@@ -67,6 +67,15 @@ void Node::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmar
    }
 }
 
+void Node::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int miscs[], PixelRef extents[])
+{
+   for (int i = 0; i < 32; i++) {
+//      if (~binmark & (1 << i)) {  // <- DON'T USE THIS, IT CAUSES TOO MANY ERRORS!
+         m_bins[i].extractUnseenMiscs(pixels, pointdata, (1 << i), miscs, extents);
+//      }
+   }
+}
+
 void Node::extractMetric(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs)
 {
    //if (dist == 0.0f || concaveConnected()) { // increases effiency but is too inaccurate
@@ -325,6 +334,26 @@ void Bin::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark
             if (pt.m_extent.col(m_dir) >= pixVec.end().col(m_dir))
                break;
             pt.m_extent.col(m_dir) = pixVec.end().col(m_dir);
+         }
+         pix.move(m_dir);
+      }
+   }
+}
+
+void Bin::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int binmark, int miscs[], PixelRef extents[])
+{
+   for (int i = 0; i < m_length; i++) {
+      for (PixelRef pix = m_pixel_vecs[i].start(); pix.col(m_dir) <= m_pixel_vecs[i].end().col(m_dir); ) {
+         int idx = pix.y*pointdata->getCols() + pix.x;
+         if (miscs[idx] == 0) {
+            pixels.push_back(pix);
+            miscs[idx] |= binmark;
+         }
+         // 10.2.02 revised --- diagonal was breaking this as it was extent in diagonal or horizontal
+         if (!(m_dir & PixelRef::DIAGONAL)) {
+            if (extents[idx].col(m_dir) >= m_pixel_vecs[i].end().col(m_dir))
+               break;
+            extents[idx].col(m_dir) = m_pixel_vecs[i].end().col(m_dir);
          }
          pix.move(m_dir);
       }

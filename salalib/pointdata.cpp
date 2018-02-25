@@ -34,6 +34,8 @@
 #include "genlib/containerutils.h"
 #include <unordered_set>
 
+#include <omp.h>
+
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -1631,7 +1633,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
 #endif
    }
 
-   int count = 0;
+   std::vector<PixelRef> filled;
 
    for (int i = 0; i < m_cols; i++) {
 
@@ -1640,21 +1642,32 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
          PixelRef curs = PixelRef( i, j );
 
          if ( getPoint( curs ).filled()) {
+             filled.push_back(curs);
+         }
+      }
+   }
 
-            if ((getPoint( curs ).contextfilled() && !curs.iseven()) ||
-                (options.gates_only)) {
+   int count = 0;
+
+   #pragma omp parallel for
+   for (int i = 0; i < filled.size(); i++) {
+
+            if ((getPoint( filled[i] ).contextfilled() && !filled[i].iseven()) ||
+                options.gates_only) {
                count++;
                continue;
             }
 
             if (options.global) {
 
-                for (int ii = 0; ii < m_cols; ii++) {
-                   for (int jj = 0; jj < m_rows; jj++) {
-                      m_points[size_t(ii*m_rows + jj)].m_misc = 0;
-                      m_points[size_t(ii*m_rows + jj)].m_extent = PixelRef(ii,jj);
-                   }
-                }
+               int miscs[m_cols*m_rows];
+               PixelRef extents[m_cols*m_rows];
+               for (int ii = 0; ii < m_cols; ii++) {
+                  for (int jj = 0; jj < m_rows; jj++) {
+                     miscs[jj*m_cols + ii] = 0;
+                     extents[jj*m_cols + ii] = PixelRef(ii,jj);
+                  }
+               }
 
                int total_depth = 0;
                int total_nodes = 0;
@@ -1662,39 +1675,49 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                pvecint distribution;
                prefvec<PixelRefVector> search_tree;
                search_tree.push_back(PixelRefVector());
-               search_tree.tail().push_back(curs);
+               search_tree.tail().push_back(filled[i]);
 
                int level = 0;
                while (search_tree[level].size()) {
                   search_tree.push_back(PixelRefVector());
                   distribution.push_back(0);
                   for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
-                     Point& p = getPoint(search_tree[level][n]);
-                     if (p.filled() && p.m_misc != ~0) {
+                      PixelRef curr = search_tree[level][n];
+                     Point& p = getPoint(curr);
+                     int pmisc = miscs[curr.y*m_cols + curr.x];
+                     if (p.filled() && pmisc != ~0) {
                         total_depth += level;
                         total_nodes += 1;
                         distribution.tail() += 1;
                         if ((int) options.radius == -1 || level < (int) options.radius &&
                             (!p.contextfilled() || search_tree[level][n].iseven())) {
-                           p.m_node->extractUnseen(search_tree[level+1],this,p.m_misc);
-                           p.m_misc = ~0;
+                           p.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents);
+                           pmisc = ~0;
                            if (!p.m_merge.empty()) {
                               Point& p2 = getPoint(p.m_merge);
-                              if (p2.m_misc != ~0) {
-                                 p2.m_node->extractUnseen(search_tree[level+1],this,p2.m_misc); // did say p.misc
-                                 p2.m_misc = ~0;
+                              int p2misc = miscs[p.m_merge.y*m_cols + curr.x];
+                              if (p2misc != ~0) {
+                                 p2.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents); // did say p.misc
+                                 p2misc = ~0;
                               }
                            }
                         }
                         else {
-                           p.m_misc = ~0;
+                           pmisc = ~0;
                         }
                      }
                      search_tree[level].pop_back();
                   }
                   level++;
                }
-               int row = m_attributes.getRowid(curs);
+               for (int ii = 0; ii < m_cols; ii++) {
+                  for (int jj = 0; jj < m_rows; jj++) {
+
+                     m_points[ii][jj].m_misc = miscs[jj*m_cols + ii];
+                     m_points[ii][jj].m_extent = extents[jj*m_cols + ii];
+                  }
+               }
+               int row = m_attributes.getRowid(filled[i]);
                // only set to single float precision after divide
                // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
                if(!simple_version) {
@@ -1704,6 +1727,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                if (total_nodes > 1) {
                   double mean_depth = double(total_depth) / double(total_nodes - 1);
                   if(!simple_version) {
+
                         m_attributes.setValue(row, depth_col, float(mean_depth) );
                   }
                   // total nodes > 2 to avoid divide by 0 (was > 3)
@@ -1763,12 +1787,12 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
             }
             if (options.local) {
 
-               int row = m_attributes.getRowid(curs);
+               int row = m_attributes.getRowid(filled[i]);
 
                // This is much easier to do with a straight forward list:
                PixelRefVector neighbourhood;
                PixelRefVector totalneighbourhood;
-               getPoint(curs).m_node->contents(neighbourhood);
+               getPoint(filled[i]).m_node->contents(neighbourhood);
 
                // only required to match previous non-stl output. Without this
                // the output differs by the last digit of the float
@@ -1813,7 +1837,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
             }
 
             count++;    // <- increment count
-         }
+
          if (comm) {
             if (qtimer( atime, 500 )) {
                if (comm->IsCancelled()) {
@@ -1822,7 +1846,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
             }         
          }
-      }
+
    }
 
    if (options.global) {
