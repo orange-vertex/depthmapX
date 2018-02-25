@@ -1672,10 +1672,10 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                int total_depth = 0;
                int total_nodes = 0;
 
-               pvecint distribution;
-               prefvec<PixelRefVector> search_tree;
+               std::vector<int> distribution;
+               std::vector<PixelRefVector> search_tree;
                search_tree.push_back(PixelRefVector());
-               search_tree.tail().push_back(filled[i]);
+               search_tree.back().push_back(filled[i]);
 
                int level = 0;
                while (search_tree[level].size()) {
@@ -1688,7 +1688,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                      if (p.filled() && pmisc != ~0) {
                         total_depth += level;
                         total_nodes += 1;
-                        distribution.tail() += 1;
+                        distribution.back() += 1;
                         if ((int) options.radius == -1 || level < (int) options.radius &&
                             (!p.contextfilled() || search_tree[level][n].iseven())) {
                            p.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents);
