@@ -97,3 +97,14 @@ HEADERS += \
 
 DISTFILES += \
     salascript-tests.txt
+
+mac {
+    QMAKE_CC = /usr/local/opt/llvm/bin/clang
+    QMAKE_CXX = /usr/local/opt/llvm/bin/clang++
+    QMAKE_LINK = /usr/local/opt/llvm/bin/clang++
+
+    QMAKE_CXXFLAGS += -fopenmp
+    QMAKE_LFLAGS +=  -fopenmp
+    QMAKE_LFLAGS += -L/usr/local/opt/llvm/lib/
+    LIBS += -fopenmp
+}

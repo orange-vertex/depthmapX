@@ -59,3 +59,14 @@ win32:Debug:LIBS += -L../genlib/debug -L../mgraph440/debug -L../salalib/debug
 !win32:LIBS += -L../genlib -L../mgraph440 -L../salalib
 
 LIBS += -lsalalib -lmgraph440 -lgenlib
+
+mac {
+    QMAKE_CC = /usr/local/opt/llvm/bin/clang
+    QMAKE_CXX = /usr/local/opt/llvm/bin/clang++
+    QMAKE_LINK = /usr/local/opt/llvm/bin/clang++
+
+    QMAKE_CXXFLAGS += -fopenmp
+    QMAKE_LFLAGS +=  -fopenmp
+    QMAKE_LFLAGS += -L/usr/local/opt/llvm/lib/
+    LIBS += -fopenmp
+}
