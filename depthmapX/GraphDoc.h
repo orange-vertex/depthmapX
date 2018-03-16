@@ -78,7 +78,7 @@ public:
           MAKEAXIALLINES, MAKEALLLINEMAP, MAKEFEWESTLINEMAP, MAKEDRAWING,
           MAKEUSERMAP, MAKEUSERMAPSHAPE, MAKEUSERSEGMAP, MAKEUSERSEGMAPSHAPE, MAKEGATESMAP, MAKEBOUNDARYMAP, MAKESEGMENTMAP, 
           MAKECONVEXMAP, 
-          AXIALANALYSIS, SEGMENTANALYSIS, TOPOMETANALYSIS, AGENTANALYSIS, BINDISPLAY, IMPORTEDANALYSIS };
+          AXIALANALYSIS, SEGMENTANALYSIS, TOPOMETANALYSIS, AGENTANALYSIS, IMPORTEDANALYSIS };
 	
 public:
    void ProcPostMessage(int m, int x, int y);
@@ -292,31 +292,24 @@ public:
 	void OnVGAOptions();
 	void OnToolsRun();
 	void OnEditUndo();
-	void OnToolsPD();
-	void OnAddGate();
+    void OnToolsPD();
 	void OnPushToLayer();
 	void OnEditGrid();
 	void OnToolsAxialLines();
 	void OnEditFixgrid();
 	void OnEditFixFill();
     void OnToolsMPD();
-	void OnEvoAgent();
-	void OnBinDisplay();
 	void OnToolsMakeFewestLineMap();
 	void OnToolsRunSeg();
-	void OnAddColumn();
-	void OnMagiMif();
-	void OnRemoveColumn();
-	void OnBinDistances();
-	void OnShowBinDistances();
+    void OnAddColumn();
+    void OnRemoveColumn();
 	void OnFileProperties();
 	void OnToolsAPD();
 	void OnViewShowGrid();
 	void OnViewSummary();
 	void OnViewShowText();
 	void OnToolsRunAxa();
-	void OnSwapColours();
-	void OnRedButton();
+    void OnSwapColours();
 	void OnToolsAxialClearLinks();
 	void OnToolsPointConvShapeMap();
 	void OnToolsAxialConvShapeMap();
