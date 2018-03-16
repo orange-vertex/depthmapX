@@ -1879,113 +1879,6 @@ int MetaGraph::importPointsAsShapeMap(const std::vector<Point2f> &points,
    return x;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
-// New layer interaction code
-
-int MetaGraph::convertDataLayersToShapeMap(DataLayers& datalayers, PointMap& pointmap)
-{
-   int retvar = 1;
-   // check for existence of data:
-   pmap<int,int> conversion_lookup;
-   size_t i;
-   for (i = 0; i < size_t(datalayers.getLayerCount()); i++) {
-      if (datalayers[i].getObjectCount()) {
-         int x = m_data_maps.addMap(datalayers[i].getLayerName(),ShapeMap::DATAMAP);
-         conversion_lookup.add(i,x);
-      }
-   }
-   // nothing to convert:
-   if (!conversion_lookup.size()) {
-      return 0;
-   }
-
-   for (i = 0; i < conversion_lookup.size(); i++) {
-      ShapeMap& shapemap = m_data_maps.getMap(conversion_lookup.value(i));
-      int j;
-      // add shapes:
-      pvecint row_lookup;
-      for (j = 0; j < datalayers[i].getObjectCount(); j++) {
-         row_lookup.push_back(shapemap.makeShapeFromPointSet(pointmap));
-         pointmap.clearSel();
-      }
-      // now add attributes:
-      AttributeTable& table = shapemap.getAttributeTable();
-      // add columns, note, we'll have to add and then have lookups because not necessarily in alphabetical order:
-      for (j = 0; j < datalayers[i].getColumnCount(); j++) {
-         table.insertColumn(datalayers[i].getColumnTitle(j));
-      }
-      pvecint column_lookup;
-      for (j = 0; j < datalayers[i].getColumnCount(); j++) {
-         column_lookup.push_back(table.getColumnIndex(datalayers[i].getColumnTitle(j)));
-      }
-      
-      // now we can add the data for this horrible matrix:
-      for (j = 0; j < datalayers[i].getObjectCount(); j++) {
-         for (int k = 0; k < datalayers[i].getColumnCount(); k++) {
-            if (row_lookup[j] != -1) {
-               int row = table.getRowid(row_lookup[j]);  // row lookup should equal j since this is a new shape map, but for safety looked up
-               table.setValue(row,column_lookup[k],float(datalayers[i][j][k]));
-            }
-            else {
-               // conversion error occurred:
-               retvar = -1;
-            }
-         }
-      }
-
-      // set the displayed attribute ready for first draw:
-      shapemap.overrideDisplayedAttribute(-2);
-      shapemap.setDisplayedAttribute(-1);
-   }
-   // the horror is over:     
-   return retvar;
-}
-
-// similar (but much, much easier than above -- relies on order of index order of
-// axial lines being the same as as the created poly index order and both attribute 
-// tables -- should be since the map is in indexed order, as is its attribute table)
-
-// DEPRECATED: only need to switch map type flag
-
-void MetaGraph::convertShapeGraphToShapeMap(const ShapeGraph& axialmap)
-{
-   int x = m_data_maps.addMap("Axial Gates",ShapeMap::DATAMAP);
-   ShapeMap& shapemap = m_data_maps.getMap(x);
-
-   // use the dangermouse all polygon grabber:
-   const pqmap<int,SalaShape>& polys = axialmap.getAllShapes();
-   shapemap.init(axialmap.getShapeCount(),axialmap.getRegion());
-   size_t i;
-   for (i = 0; i < axialmap.getShapeCount(); i++) {
-      if (polys[i].isLine()) {   // it ought to be since we're starting with an axial map!
-         shapemap.makeLineShape(polys[i].getLine());
-      }
-   }
-
-   // now convert attributes and we're done!
-   const AttributeTable& table_in = axialmap.getAttributeTable();
-   AttributeTable& table_out = shapemap.getAttributeTable();
-
-   for (i = 0; i < size_t(table_in.getColumnCount()); i++) {
-      table_out.insertColumn(table_in.getColumnName(i));
-   }
-   
-   int counter = 0;
-   for (i = 0; i < size_t(table_in.getRowCount()); i++) {
-      if (polys[i].isLine()) {   // check needs to be maintained so indices match
-         for (int j = 0; j < table_in.getColumnCount(); j++) {
-            table_out.setValue(counter,j,table_in.getValue(i,j));
-         }
-         counter++;  // in case 'i' skips over a few non-line objects
-      }
-   }
-
-   shapemap.overrideDisplayedAttribute(-2);
-   shapemap.setDisplayedAttribute(-1);
-}
-
-
 // the tidy(ish) version: still needs to be at top level and switch between layers
 
 bool MetaGraph::pushValuesToLayer(int desttype, int destlayer, int push_func, bool count_col)
@@ -2708,6 +2601,20 @@ int MetaGraph::readFromStream( std::istream &stream, const std::string& filename
 
    char type;
    stream.read( &type, 1 );
+   if (type == 'd') {
+       // contains deprecated datalayers. Read through mgraph440 which will
+       // convert them into shapemaps
+       std::unique_ptr<mgraph440::MetaGraph> mgraph(new mgraph440::MetaGraph);
+       auto result = mgraph->read(filename);
+       if ( result != mgraph440::MetaGraph::OK)
+       {
+           return DAMAGED_FILE;
+       }
+       std::stringstream tempstream;
+       mgraph->writeToStream(tempstream, METAGRAPH_VERSION, 0);
+
+       return readFromStream(tempstream, filename);
+   }
    if (type == 'x') {
       FileProperties::read(stream,version);
       if (stream.eof()) {
@@ -2779,31 +2686,6 @@ int MetaGraph::readFromStream( std::istream &stream, const std::string& filename
       temp_state |= ANGULARGRAPH;
       if (!stream.eof()) {
          stream.read( &type, 1 );
-      }
-   }
-   if (type == 'd') {
-      // data layers are deprecated: data layers have been replaced by shape maps
-      // so: first read data layers:
-      DataLayers dl;
-      dl.read( stream, version );
-      // now replace with shape maps, but only if layer exists:
-      temp_state &= ~DATAMAPS;
-      // converter requires a point map to work on:
-      if (PointMaps::size()) {
-         // returns 0 if there are actually no objects in the shapemaps to convert,
-         int conv_ok = convertDataLayersToShapeMap(dl,getDisplayedPointMap());
-         if (conv_ok == 1) {
-            // read objects in:
-            temp_state |= DATAMAPS;
-         }
-         else if (conv_ok == -1) {
-            // read objects in, but had trouble converting them:
-            temp_state |= DATAMAPS;
-            temp_state |= WARN_CONVERTED;
-         }
-      }
-      if (!stream.eof()) {
-         stream.read( &type, 1 );         
       }
    }
    if (type == 'x') {
