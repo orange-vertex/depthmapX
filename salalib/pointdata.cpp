@@ -1649,144 +1649,156 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
 
    int count = 0;
 
-   #pragma omp parallel for
-   for (int i = 0; i < filled.size(); i++) {
+    if (options.global) {
+        #pragma omp parallel for
+        for (int i = 0; i < filled.size(); i++) {
 
             if ((getPoint( filled[i] ).contextfilled() && !filled[i].iseven()) ||
-                options.gates_only) {
-               count++;
-               continue;
+                (options.gates_only)) {
+                count++;
+                continue;
             }
 
-            if (options.global) {
+            int miscs[m_cols*m_rows];
+            PixelRef extents[m_cols*m_rows];
+            for (int ii = 0; ii < m_cols; ii++) {
+                for (int jj = 0; jj < m_rows; jj++) {
+                    miscs[jj*m_cols + ii] = 0;
+                    extents[jj*m_cols + ii] = PixelRef(ii,jj);
+                }
+            }
 
-               int miscs[m_cols*m_rows];
-               PixelRef extents[m_cols*m_rows];
-               for (int ii = 0; ii < m_cols; ii++) {
-                  for (int jj = 0; jj < m_rows; jj++) {
-                     miscs[jj*m_cols + ii] = 0;
-                     extents[jj*m_cols + ii] = PixelRef(ii,jj);
-                  }
-               }
+            int total_depth = 0;
+            int total_nodes = 0;
 
-               int total_depth = 0;
-               int total_nodes = 0;
+            std::vector<int> distribution;
+            std::vector<PixelRefVector> search_tree;
+            search_tree.push_back(PixelRefVector());
+            search_tree.back().push_back(filled[i]);
 
-               std::vector<int> distribution;
-               std::vector<PixelRefVector> search_tree;
-               search_tree.push_back(PixelRefVector());
-               search_tree.back().push_back(filled[i]);
-
-               int level = 0;
-               while (search_tree[level].size()) {
-                  search_tree.push_back(PixelRefVector());
-                  distribution.push_back(0);
-                  for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
-                      PixelRef curr = search_tree[level][n];
-                     Point& p = getPoint(curr);
-                     int pmisc = miscs[curr.y*m_cols + curr.x];
-                     if (p.filled() && pmisc != ~0) {
+            int level = 0;
+            while (search_tree[level].size()) {
+                search_tree.push_back(PixelRefVector());
+                distribution.push_back(0);
+                for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
+                    PixelRef curr = search_tree[level][n];
+                    Point& p = getPoint(curr);
+                    int pmisc = miscs[curr.y*m_cols + curr.x];
+                    if (p.filled() && pmisc != ~0) {
                         total_depth += level;
                         total_nodes += 1;
                         distribution.back() += 1;
                         if ((int) options.radius == -1 || level < (int) options.radius &&
                             (!p.contextfilled() || search_tree[level][n].iseven())) {
-                           p.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents);
-                           pmisc = ~0;
-                           if (!p.m_merge.empty()) {
-                              Point& p2 = getPoint(p.m_merge);
-                              int p2misc = miscs[p.m_merge.y*m_cols + curr.x];
-                              if (p2misc != ~0) {
-                                 p2.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents); // did say p.misc
-                                 p2misc = ~0;
-                              }
-                           }
+                            p.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents);
+                            pmisc = ~0;
+                            if (!p.m_merge.empty()) {
+                                Point& p2 = getPoint(p.m_merge);
+                                int p2misc = miscs[p.m_merge.y*m_cols + curr.x];
+                                if (p2misc != ~0) {
+                                    p2.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents); // did say p.misc
+                                    p2misc = ~0;
+                                }
+                            }
+                        } else {
+                            pmisc = ~0;
                         }
-                        else {
-                           pmisc = ~0;
-                        }
-                     }
-                     search_tree[level].pop_back();
-                  }
-                  level++;
-               }
-               for (int ii = 0; ii < m_cols; ii++) {
-                  for (int jj = 0; jj < m_rows; jj++) {
-
-                     m_points[ii][jj].m_misc = miscs[jj*m_cols + ii];
-                     m_points[ii][jj].m_extent = extents[jj*m_cols + ii];
-                  }
-               }
-               int row = m_attributes.getRowid(filled[i]);
-               // only set to single float precision after divide
-               // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
-               if(!simple_version) {
-                    m_attributes.setValue(row, count_col, float(total_nodes) ); // note: total nodes includes this one
-               }
-               // ERROR !!!!!!
-               if (total_nodes > 1) {
-                  double mean_depth = double(total_depth) / double(total_nodes - 1);
-                  if(!simple_version) {
-
-                        m_attributes.setValue(row, depth_col, float(mean_depth) );
-                  }
-                  // total nodes > 2 to avoid divide by 0 (was > 3)
-                  if (total_nodes > 2 && mean_depth > 1.0) {
-                     double ra = 2.0 * (mean_depth - 1.0) / double(total_nodes - 2);
-                     // d-value / p-values from Depthmap 4 manual, note: node_count includes this one
-                     double rra_d = ra / dvalue(total_nodes);
-                     double rra_p = ra / pvalue(total_nodes);
-                     double integ_tk = teklinteg(total_nodes, total_depth);
-                     m_attributes.setValue(row,integ_dv_col,float(1.0/rra_d));
-                     if(!simple_version) {
-                          m_attributes.setValue(row,integ_pv_col,float(1.0/rra_p));
-                     }
-                     if (total_depth - total_nodes + 1 > 1) {
+                    }
+                    search_tree[level].pop_back();
+                }
+                level++;
+            }
+            for (int ii = 0; ii < m_cols; ii++) {
+                for (int jj = 0; jj < m_rows; jj++) {
+                    m_points[ii][jj].m_misc = miscs[jj*m_cols + ii];
+                    m_points[ii][jj].m_extent = extents[jj*m_cols + ii];
+                }
+            }
+            int row = m_attributes.getRowid(filled[i]);
+            // only set to single float precision after divide
+            // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
+            if(!simple_version) {
+                m_attributes.setValue(row, count_col, float(total_nodes) ); // note: total nodes includes this one
+            }
+            // ERROR !!!!!!
+            if (total_nodes > 1) {
+                double mean_depth = double(total_depth) / double(total_nodes - 1);
+                if(!simple_version) {
+                    m_attributes.setValue(row, depth_col, float(mean_depth) );
+                }
+                // total nodes > 2 to avoid divide by 0 (was > 3)
+                if (total_nodes > 2 && mean_depth > 1.0) {
+                    double ra = 2.0 * (mean_depth - 1.0) / double(total_nodes - 2);
+                    // d-value / p-values from Depthmap 4 manual, note: node_count includes this one
+                    double rra_d = ra / dvalue(total_nodes);
+                    double rra_p = ra / pvalue(total_nodes);
+                    double integ_tk = teklinteg(total_nodes, total_depth);
+                    m_attributes.setValue(row,integ_dv_col,float(1.0/rra_d));
+                    if(!simple_version) {
+                        m_attributes.setValue(row,integ_pv_col,float(1.0/rra_p));
+                    }
+                    if (total_depth - total_nodes + 1 > 1) {
                         if(!simple_version) {
                             m_attributes.setValue(row,integ_tk_col,float(integ_tk));
                         }
-                     }
-                     else {
+                    } else {
                         if(!simple_version) {
                             m_attributes.setValue(row,integ_tk_col,-1.0f);
                         }
-                     }
-                  }
-                  else {
-                     m_attributes.setValue(row,integ_dv_col,(float)-1);
-                     if(!simple_version) {
+                    }
+                } else {
+                    m_attributes.setValue(row,integ_dv_col,(float)-1);
+                    if(!simple_version) {
                         m_attributes.setValue(row,integ_pv_col,(float)-1);
                         m_attributes.setValue(row,integ_tk_col,(float)-1);
-                     }
-                  }
-                  double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
-                  // n.b., this distribution contains the root node itself in distribution[0]
-                  // -> chopped from entropy to avoid divide by zero if only one node
-                  for (size_t k = 1; k < distribution.size(); k++) {
-                     if (distribution[k] > 0) {
+                    }
+                }
+                double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
+                // n.b., this distribution contains the root node itself in distribution[0]
+                // -> chopped from entropy to avoid divide by zero if only one node
+                for (size_t k = 1; k < distribution.size(); k++) {
+                    if (distribution[k] > 0) {
                         double prob = double(distribution[k]) / double(total_nodes - 1);
                         entropy -= prob * log2(prob);
                         // Formula from Turner 2001, "Depthmap"
                         factorial *= double(k + 1);
                         double q = (pow( mean_depth, double(k) ) / double(factorial)) * exp(-mean_depth);
                         rel_entropy += (float) prob * log2( prob / q );
-                     }
-                  }
-                  if(!simple_version) {
+                    }
+                }
+                if(!simple_version) {
                     m_attributes.setValue(row, entropy_col, float(entropy) );
                     m_attributes.setValue(row, rel_entropy_col, float(rel_entropy) );
-                  }
-               }
-               else {
-                  if(!simple_version) {
+                }
+            }
+            else {
+                if(!simple_version) {
                     m_attributes.setValue(row, depth_col,(float)-1);
                     m_attributes.setValue(row, entropy_col,(float)-1);
                     m_attributes.setValue(row, rel_entropy_col,(float)-1);
+                }
+            }
+            count++;    // <- increment count
+
+            if (comm) {
+               if (qtimer( atime, 500 )) {
+                  if (comm->IsCancelled()) {
+                     throw Communicator::CancelledException();
                   }
+                  comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
                }
             }
-            if (options.local) {
+        }
+    }
 
+    if (options.local) {
+        for (int i = 0; i < filled.size(); i++) {
+
+            if ((getPoint( filled[i] ).contextfilled() && !filled[i].iseven()) ||
+                (options.gates_only)) {
+                count++;
+                continue;
+            }
                int row = m_attributes.getRowid(filled[i]);
 
                // This is much easier to do with a straight forward list:
