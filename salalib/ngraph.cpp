@@ -342,7 +342,7 @@ void Bin::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark
 
 void Bin::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int binmark, int miscs[], PixelRef extents[])
 {
-   for (int i = 0; i < m_length; i++) {
+   for (int i = 0; i < m_pixel_vecs.size(); i++) {
       for (PixelRef pix = m_pixel_vecs[i].start(); pix.col(m_dir) <= m_pixel_vecs[i].end().col(m_dir); ) {
          int idx = pix.y*pointdata->getCols() + pix.x;
          if (miscs[idx] == 0) {
