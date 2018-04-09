@@ -123,16 +123,13 @@ struct AgentSet;
 struct AgentProgram;
 class Agent;
 
-const int MAX_TRAILS = 50;
-
 class AgentEngine : public prefvec<AgentSet>
 {
 public: // public for now for speed
    int m_gatelayer;
    int m_timesteps;
 public:
-   bool m_record_trails;
-   int m_trail_count;
+   int m_maxTrailCount = -1;
 public:
    AgentEngine();
    void run(Communicator *comm, PointMap *pointmap);
@@ -196,6 +193,8 @@ struct AgentSet : public AgentProgram, public prefvec<Agent>
    AgentSet();
    void move();
    void init(int agent, int trail_num = -1);
+   void finish();
+   std::vector<std::vector<Point2f>> m_trails;
 };
 
 const int POPSIZE = 500;
@@ -221,6 +220,7 @@ class Agent
 {
 public:
    enum { OUTPUT_NOTHING = 0x00, OUTPUT_COUNTS = 0x01, OUTPUT_GATE_COUNTS = 0x02, OUTPUT_TRAILS = 0x04 };
+   std::vector<Point2f> m_trail;
 protected:
    AgentProgram *m_program;
    PointMap *m_pointmap;
@@ -244,7 +244,7 @@ protected:
    Point2f m_destination;
    //
    // for recording trails:
-   int m_trail_num;
+   bool m_record_trail;
    //
    // for occlusion memory
    pflipper<PixelRefVector> m_occ_memory;
@@ -256,7 +256,7 @@ public:
    Agent()
    { m_program = NULL; m_pointmap = NULL; m_output_mode = OUTPUT_NOTHING; }
    Agent(AgentProgram *program, PointMap *pointmap, int output_mode = OUTPUT_NOTHING);
-   void onInit(PixelRef node, int trail_num = -1);
+   void onInit(PixelRef node, bool record_trail = false);
    void onClose();
    Point2f onLook(bool wholeisovist);
    Point2f onStandardLook(bool wholeisovist);

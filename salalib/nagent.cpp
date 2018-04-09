@@ -55,20 +55,13 @@ int progcompare(const void *a, const void *b )
    return 0;
 }
 
-//
-
-pqvector<Point2f> g_trails[MAX_TRAILS];
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-
 // run one agent engine only
 
 AgentEngine::AgentEngine()
 {
    m_timesteps = 5000;
    m_gatelayer = -1;
-   m_record_trails = false;
-   m_trail_count = MAX_TRAILS;
+   m_maxTrailCount = -1;
 }
 
 void AgentEngine::run(Communicator *comm, PointMap *pointmap)
@@ -97,26 +90,13 @@ void AgentEngine::run(Communicator *comm, PointMap *pointmap)
       output_mode |= Agent::OUTPUT_GATE_COUNTS;
    }
 
-   // remove any agent trails that are left from a previous run
-   for (int k = 0; k < MAX_TRAILS; k++) {
-      g_trails[k].clear();
-   }
-
-   int trail_num = -1;
-   if (m_record_trails) {
-      if (m_trail_count < 1) {
-         m_trail_count = 1;
-      }
-      if (m_trail_count > MAX_TRAILS) {
-         m_trail_count = MAX_TRAILS;
-      }
-      trail_num = 0;
-   }
 
    // remove any agents that are left from a previous run
    for (size_t j = 0; j < size(); j++) {
       at(j).clear();
    }
+
+   int trailCount = 0;
 
    for (int i = 0; i < m_timesteps; i++) {
 
@@ -129,19 +109,18 @@ void AgentEngine::run(Communicator *comm, PointMap *pointmap)
             at(j).push_back(Agent(&(at(j)),pointmap,output_mode));
          }
          for (k = 0; k < q; k++) {
-            at(j).init(length+k,trail_num);
-            if (trail_num != -1) {
-               trail_num++;
-               // after trail count, stop recording:
-               if (trail_num == m_trail_count) {
-                  trail_num = -1;
-               }
-            }
+            at(j).init(length+k, (m_maxTrailCount == 0) ||
+                                 (m_maxTrailCount > 0 && trailCount < m_maxTrailCount));
+            trailCount++;
          }
       }
 
       for (j = 0; j < size(); j++) {
          at(j).move();
+      }
+
+      for (j = 0; j < size(); j++) {
+         at(j).finish();
       }
 
       if (comm) {
@@ -155,7 +134,7 @@ void AgentEngine::run(Communicator *comm, PointMap *pointmap)
    }
 
    // output agent trails to file:
-   if (m_record_trails) {
+   if (m_maxTrailCount >= 0) {
        // just dump in local file...
        ofstream trails("trails.cat");
        outputTrails(trails);
@@ -168,10 +147,11 @@ void AgentEngine::run(Communicator *comm, PointMap *pointmap)
 
 void AgentEngine::outputTrails(ostream& trailsFile) {
     trailsFile << "CAT" << endl;
-    for (int i = 0; i < m_trail_count; i++) {
+    for (auto& trail: tail().m_trails) {
+       if (trail.empty()) continue;
        trailsFile << "Begin Polyline" << endl;
-       for (size_t j = 0; j < g_trails[i].size(); j++) {
-          trailsFile << g_trails[i][j].x << " " << g_trails[i][j].y << endl;
+       for (auto& point: trail) {
+          trailsFile << point.x << " " << point.y << endl;
        }
        trailsFile << "End Polyline" << endl;
     }
@@ -207,9 +187,20 @@ void AgentSet::move()
    for (size_t i = size() - 1; i != paftl::npos; i--) {
       at(i).onMove();
       if (at(i).getFrame() >= m_lifetime) {
+         m_trails.push_back(at(i).m_trail);
          remove_at(i);
       }
    }
+}
+
+void AgentSet::finish()
+{
+    // go through backwards so remove does not affect later agents
+    for (size_t i = size() - 1; i != paftl::npos; i--) {
+        if(!at(i).m_trail.empty()) {
+            m_trails.push_back(at(i).m_trail);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -598,10 +589,10 @@ Agent::Agent(AgentProgram *program, PointMap *pointmap, int output_mode)
    m_program = program;
    m_pointmap = pointmap;
    m_output_mode = output_mode;
-   m_trail_num = -1;
+   m_record_trail = false;
 }
 
-void Agent::onInit(PixelRef node, int trail_num)
+void Agent::onInit(PixelRef node, bool record_trail)
 {
    m_node = node;
    m_loc = m_pointmap->depixelate(m_node);
@@ -623,7 +614,7 @@ void Agent::onInit(PixelRef node, int trail_num)
    m_at_target = false;
    m_at_destination = false;
 
-   m_trail_num = trail_num;
+   m_record_trail = record_trail;
 
    m_vector = onLook(true);
 
@@ -723,8 +714,8 @@ void Agent::onStep()
    else {
       m_loc = nextloc;
    }
-   if (!m_stopped && m_trail_num != -1) {
-      g_trails[m_trail_num].push_back(m_loc);
+   if (!m_stopped && m_record_trail) {
+      m_trail.push_back(m_loc);
    }
 }
 bool Agent::diagonalStep() 

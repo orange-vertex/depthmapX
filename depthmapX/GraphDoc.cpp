@@ -1497,8 +1497,8 @@ void QGraphDoc::OnToolsAgentRun()
       dlg.m_fov = eng.tail().m_vbin * 2 + 1;
    }
    dlg.m_steps = eng.tail().m_steps;
-   dlg.m_record_trails = eng.m_record_trails;
-   dlg.m_trail_count = eng.m_trail_count;
+   dlg.m_record_trails = eng.m_maxTrailCount >= 0;
+   dlg.m_trail_count = eng.m_maxTrailCount;
    dlg.m_names.push_back("<None>");
    for (size_t i = 0; i < m_meta_graph->getDataMaps().getMapCount(); i++) {
        dlg.m_names.push_back(m_meta_graph->getDataMaps().getMap(i).getName());
@@ -1543,8 +1543,7 @@ void QGraphDoc::OnToolsAgentRun()
 
    // note, trails currently per run, but output per engine
    if (dlg.m_record_trails) {
-      eng.m_record_trails = true;
-      eng.m_trail_count = dlg.m_trail_count;
+      eng.m_maxTrailCount = dlg.m_trail_count;
    }
 
    // then go:
