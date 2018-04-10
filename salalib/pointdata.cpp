@@ -1791,75 +1791,74 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
         }
     }
 
-    if (options.local) {
-        for (int i = 0; i < filled.size(); i++) {
+    count = 0;
 
-            if ((getPoint( filled[i] ).contextfilled() && !filled[i].iseven()) ||
+    if (options.local) {
+        #pragma omp parallel for
+        for (size_t i = 0; i < filled.size(); i++) {
+
+            Point& p = getPoint( filled[i] );
+            if ((p.contextfilled() && !filled[i].iseven()) ||
                 (options.gates_only)) {
                 count++;
                 continue;
             }
-               int row = m_attributes.getRowid(filled[i]);
+            int row = m_attributes.getRowid(filled[i]);
 
-               // This is much easier to do with a straight forward list:
-               PixelRefVector neighbourhood;
-               PixelRefVector totalneighbourhood;
-               getPoint(filled[i]).m_node->contents(neighbourhood);
+            // This is much easier to do with a straight forward list:
+            PixelRefVector neighbourhood;
+            PixelRefVector totalneighbourhood;
+            p.m_node->dumpNeighbourhood(neighbourhood);
 
-               // only required to match previous non-stl output. Without this
-               // the output differs by the last digit of the float
-               std::sort(neighbourhood.begin(), neighbourhood.end());
+            // only required to match previous non-stl output. Without this
+            // the output differs by the last digit of the float
+            std::sort(neighbourhood.begin(), neighbourhood.end());
 
-               int cluster = 0;
-               float control = 0.0f;
+            int cluster = 0;
+            float control = 0.0f;
 
-               for (size_t i = 0; i < neighbourhood.size(); i++) {
-                  int intersect_size = 0, retro_size = 0;
-                  Point& retpt = getPoint(neighbourhood[i]);
-                  if (retpt.filled() && retpt.m_node) {
-                     retpt.m_node->first();
-                     while (!retpt.m_node->is_tail()) {
+            for (auto& neighbour: neighbourhood) {
+                int intersect_size = 0, retro_size = 0;
+                Point& retpt = getPoint(neighbour);
+                if (retpt.m_node) {
+                    PixelRefVector retneighbourhood;
+                    retpt.m_node->dumpNeighbourhood(retneighbourhood);
+                    for (auto& ret: retneighbourhood) {
                         retro_size++;
-                        if (std::find(neighbourhood.begin(), neighbourhood.end(), retpt.m_node->cursor()) != neighbourhood.end()) {
-                           intersect_size++;
+                        if (std::find(neighbourhood.begin(), neighbourhood.end(), ret) != neighbourhood.end()) {
+                            intersect_size++;
                         }
-                        if (std::find(totalneighbourhood.begin(), totalneighbourhood.end(), retpt.m_node->cursor()) == totalneighbourhood.end()) {
-                           totalneighbourhood.push_back(retpt.m_node->cursor()); // <- note add does nothing if member already exists
+                        if (std::find(totalneighbourhood.begin(), totalneighbourhood.end(), ret) == totalneighbourhood.end()) {
+                            totalneighbourhood.push_back(ret); // <- note add does nothing if member already exists
                         }
-                        retpt.m_node->next();
                      }
                      control += 1.0f / float(retro_size);
                      cluster += intersect_size;
                   }
-               }
-#ifndef _COMPILE_dX_SIMPLE_VERSION
-               if(!simple_version) {
-                   if (neighbourhood.size() > 1) {
-                       m_attributes.setValue(row, cluster_col, float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0))) );
-                       m_attributes.setValue(row, control_col, float(control) );
-                       m_attributes.setValue(row, controllability_col, float( double(neighbourhood.size()) / double(totalneighbourhood.size())) );
-                   }
-                   else {
-                       m_attributes.setValue(row, cluster_col, -1 );
-                       m_attributes.setValue(row, control_col, -1 );
-                       m_attributes.setValue(row, controllability_col, -1 );
-                   }
-               }
-#endif
             }
-
+            if(!simple_version) {
+                if (neighbourhood.size() > 1) {
+                    m_attributes.setValue(row, cluster_col, float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0))) );
+                    m_attributes.setValue(row, control_col, float(control) );
+                    m_attributes.setValue(row, controllability_col, float( double(neighbourhood.size()) / double(totalneighbourhood.size())) );
+                } else {
+                    m_attributes.setValue(row, cluster_col, -1 );
+                    m_attributes.setValue(row, control_col, -1 );
+                    m_attributes.setValue(row, controllability_col, neighbourhood.size() );
+                }
+            }
             count++;    // <- increment count
 
-         if (comm) {
-            if (qtimer( atime, 500 )) {
-               if (comm->IsCancelled()) {
-                  throw Communicator::CancelledException();
-               }
-               comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-            }         
-         }
-
-   }
+            if (comm) {
+                if (qtimer( atime, 500 )) {
+                    if (comm->IsCancelled()) {
+                        throw Communicator::CancelledException();
+                    }
+                    comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+                }
+            }
+        }
+    }
 
    if (options.global) {
       setDisplayedAttribute(integ_dv_col);
