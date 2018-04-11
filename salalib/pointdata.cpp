@@ -1659,8 +1659,8 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 continue;
             }
 
-            int miscs[m_cols*m_rows];
-            PixelRef extents[m_cols*m_rows];
+            std::vector<int> miscs(m_cols*m_rows);
+            std::vector<PixelRef> extents(m_cols*m_rows);
             for (int ii = 0; ii < m_cols; ii++) {
                 for (int jj = 0; jj < m_rows; jj++) {
                     miscs[jj*m_cols + ii] = 0;

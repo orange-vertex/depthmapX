@@ -67,7 +67,7 @@ void Node::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmar
    }
 }
 
-void Node::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int miscs[], PixelRef extents[])
+void Node::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, std::vector<int>& miscs, std::vector<PixelRef> &extents)
 {
    for (int i = 0; i < 32; i++) {
 //      if (~binmark & (1 << i)) {  // <- DON'T USE THIS, IT CAUSES TOO MANY ERRORS!
@@ -347,7 +347,7 @@ void Bin::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark
    }
 }
 
-void Bin::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int binmark, int miscs[], PixelRef extents[])
+void Bin::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int binmark, std::vector<int>& miscs, std::vector<PixelRef>& extents)
 {
    for (int i = 0; i < m_pixel_vecs.size(); i++) {
       for (PixelRef pix = m_pixel_vecs[i].start(); pix.col(m_dir) <= m_pixel_vecs[i].end().col(m_dir); ) {
