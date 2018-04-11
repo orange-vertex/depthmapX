@@ -63,6 +63,8 @@ public:
    void extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int binmark, std::vector<int> &miscs, std::vector<PixelRef> &extents);
    void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs);
    void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs);
+   void extractAngularExtras(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs,
+                             std::vector<int>& miscs, std::vector<float>& cumangles);
    //
    int count() const 
    { return m_node_count; }
@@ -110,6 +112,7 @@ public:
    void extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, std::vector<int> &miscs, std::vector<PixelRef> &extents);
    void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs);
    void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs);
+   void extractAngularExtras(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs, std::vector<int>& miscs, std::vector<float> &cumangles);
    bool concaveConnected();
    bool fullyConnected();
    //
