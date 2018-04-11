@@ -98,6 +98,16 @@ void Node::extractAngular(std::set<AngularTriple>& pixels, PointMap *pointdata, 
    }
 }
 
+void Node::extractAngularExtras(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs,
+                                std::vector<int>& miscs, std::vector<float>& cumangles)
+{
+   if (curs.angle == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
+      for (int i = 0; i < 32; i++) {
+         m_bins[i].extractAngularExtras(pixels, pointdata, curs, miscs, cumangles);
+      }
+   }
+}
+
 bool Node::concaveConnected()
 {
    // not quite correct -- sometimes at corners you 'see through' the very first connection
@@ -404,6 +414,24 @@ void Bin::extractAngular(std::set<AngularTriple>& pixels, PointMap *pointdata, c
          pix.move(m_dir);
       }
    }
+}
+
+void Bin::extractAngularExtras(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs,
+                         std::vector<int>& miscs, std::vector<float> &cumangles) {
+    for (auto pixVec: m_pixel_vecs) {
+        for (PixelRef pix = pixVec.start(); pix.col(m_dir) <= pixVec.end().col(m_dir); ) {
+            int idx = pix.y*pointdata->getCols() + pix.x;
+            if (miscs[idx] == 0) {
+                // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
+                float ang = (curs.lastpixel == NoPixel) ? 0.0f : (float) (angle(pix,curs.pixel,curs.lastpixel) / (M_PI * 0.5));
+                if (cumangles[idx] == -1.0 || curs.angle + ang < cumangles[idx]) {
+                    cumangles[idx] = cumangles[curs.pixel.y*pointdata->getCols() + curs.pixel.x] + ang;
+                    pixels.insert(AngularTriple(cumangles[idx], pix, curs.pixel));
+                }
+            }
+            pix.move(m_dir);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

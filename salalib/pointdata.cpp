@@ -2146,81 +2146,91 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
    std::string count_col_text = std::string("Angular Node Count") + radius_text;
    int count_col = m_attributes.insertColumn(count_col_text.c_str());
 
-   int count = 0;
+    std::vector<PixelRef> filled;
 
-   for (int i = 0; i < m_cols; i++) {
-
-      for (int j = 0; j < m_rows; j++) {
-
-         PixelRef curs = PixelRef( i, j );
-
-         if ( getPoint( curs ).filled() ) {
-
-            if ( options.gates_only) {
-               count++;
-               continue;
+    for (int i = 0; i < m_cols; i++) {
+        for (int j = 0; j < m_rows; j++) {
+            PixelRef curs = PixelRef( i, j );
+            if ( getPoint( curs ).filled()) {
+                filled.push_back(curs);
             }
+        }
+    }
 
-            for (auto& point: m_points) {
-                point.m_misc = 0;
-                point.m_dist = 0.0f;
-                point.m_cumangle = -1.0f;
+    int count = 0;
+
+    size_t npix = size_t(m_cols*m_rows);
+    #pragma omp parallel for
+    for (size_t i = 0; i < filled.size(); i++) {
+        if ( options.gates_only) {
+            count++;
+            continue;
+        }
+
+        std::vector<int> miscs(npix);
+        std::vector<float> cumangles(npix);
+        for (int ii = 0; ii < m_cols; ii++) {
+            for (int jj = 0; jj < m_rows; jj++) {
+                miscs[size_t(jj*m_cols + ii)] = 0;
+                cumangles[size_t(jj*m_cols + ii)] = -1.0f;
             }
+        }
 
-            float total_angle = 0.0f;
-            int total_nodes = 0;
+        float total_angle = 0.0f;
+        int total_nodes = 0;
 
-            // note that m_misc is used in a different manner to analyseGraph / PointDepth
-            // here it marks the node as used in calculation only
+        // note that m_misc is used in a different manner to analyseGraph / PointDepth
+        // here it marks the node as used in calculation only
 
-            std::set<AngularTriple> search_list;
-            search_list.insert(AngularTriple(0.0f,curs,NoPixel));
-            getPoint(curs).m_cumangle = 0.0f;
-            int level = 0;
-            while (search_list.size()) {
-               std::set<AngularTriple>::iterator it = search_list.begin();
-               AngularTriple here = *it;
-               search_list.erase(it);
-               if (options.radius != -1.0 && here.angle > options.radius) {
-                  break;
-               }
-               Point& p = getPoint(here.pixel);
-               // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-               if (p.filled() && p.m_misc != ~0) {
-                  p.m_node->extractAngular(search_list,this,here);
-                  p.m_misc = ~0;
-                  if (!p.m_merge.empty()) {
-                     Point& p2 = getPoint(p.m_merge);
-                     if (p2.m_misc != ~0) {
-                        p2.m_cumangle = p.m_cumangle;
-                        p2.m_node->extractAngular(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel));
-                        p2.m_misc = ~0;
-                     }
-                  }
-                  total_angle += p.m_cumangle;
-                  total_nodes += 1;
-               }
+        std::set<AngularTriple> search_list;
+        search_list.insert(AngularTriple(0.0f,filled[i],NoPixel));
+        cumangles[filled[i].y*m_cols + filled[i].x] = 0.0f;
+
+        while (search_list.size()) {
+            std::set<AngularTriple>::iterator it = search_list.begin();
+            AngularTriple here = *it;
+            search_list.erase(it);
+            if (options.radius != -1.0 && here.angle > options.radius) {
+                break;
             }
-
-            int row = m_attributes.getRowid(curs);
-            if (total_nodes > 0) {
-               m_attributes.setValue(row, mean_depth_col, float(double(total_angle) / double(total_nodes)) );
+            Point& p = getPoint(here.pixel);
+            size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
+            // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
+            if (p.filled() && miscs[p1i] != ~0) {
+                p.m_node->extractAngularExtras(search_list,this,here, miscs, cumangles);
+                miscs[p1i] = ~0;
+                if (!p.m_merge.empty()) {
+                    Point& p2 = getPoint(p.m_merge);
+                    size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
+                    if (miscs[p2i] != ~0) {
+                        cumangles[p2i] = cumangles[p1i];
+                        p2.m_node->extractAngularExtras(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel), miscs, cumangles);
+                        miscs[p2i] = ~0;
+                    }
+                }
+                total_angle += cumangles[p1i];
+                total_nodes += 1;
             }
-            m_attributes.setValue(row, total_depth_col, total_angle );
-            m_attributes.setValue(row, count_col, float(total_nodes) );
+        }
 
-            count++;    // <- increment count
-         }
-         if (comm) {
+        int row = m_attributes.getRowid(filled[i]);
+        if (total_nodes > 0) {
+            m_attributes.setValue(row, mean_depth_col, float(double(total_angle) / double(total_nodes)) );
+        }
+        m_attributes.setValue(row, total_depth_col, total_angle );
+        m_attributes.setValue(row, count_col, float(total_nodes) );
+
+        count++;    // <- increment count
+
+        if (comm) {
             if (qtimer( atime, 500 )) {
-               if (comm->IsCancelled()) {
-                  throw Communicator::CancelledException();
-               }
-               comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-            }         
-         }
-      }
-   }
+                if (comm->IsCancelled()) {
+                    throw Communicator::CancelledException();
+                }
+                comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+            }
+        }
+    }
 
    m_displayed_attribute = -2;
    setDisplayedAttribute(mean_depth_col);
