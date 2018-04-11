@@ -62,6 +62,8 @@ public:
    void extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark);
    void extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int binmark, std::vector<int> &miscs, std::vector<PixelRef> &extents);
    void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs);
+   void extractMetricExtras(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs,
+                             std::vector<int>& miscs, std::vector<float>& dists, std::vector<float>& cumangles);
    void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs);
    void extractAngularExtras(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs,
                              std::vector<int>& miscs, std::vector<float>& cumangles);
@@ -111,6 +113,7 @@ public:
    void extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark);
    void extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, std::vector<int> &miscs, std::vector<PixelRef> &extents);
    void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs);
+   void extractMetricExtras(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs, std::vector<int>& miscs, std::vector<float>& dists, std::vector<float> &cumangles);
    void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs);
    void extractAngularExtras(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs, std::vector<int>& miscs, std::vector<float> &cumangles);
    bool concaveConnected();
