@@ -79,7 +79,7 @@ void PointMap::communicate( time_t& atime, Communicator *comm, int record )
             throw Communicator::CancelledException();
          }
          comm->CommPostMessage( Communicator::CURRENT_RECORD, record);
-      }         
+      }
    }
 }
 
@@ -114,7 +114,7 @@ bool PointMap::setGrid(double spacing, const Point2f& offset)
                            m_parentRegion->bottom_left.y + m_offset.y);
 
    m_region = QtRegion(
-      Point2f(m_bottom_left.x-m_spacing/2.0, m_bottom_left.y-m_spacing/2.0), 
+      Point2f(m_bottom_left.x-m_spacing/2.0, m_bottom_left.y-m_spacing/2.0),
       Point2f(m_bottom_left.x+double(m_cols-1)*m_spacing + m_spacing/2.0,
               m_bottom_left.y+double(m_rows-1)*m_spacing + m_spacing/2.0) );
 
@@ -142,7 +142,7 @@ bool PointMap::clearPoints()
       return false;
    }
 
-   // This function is a bit messy... 
+   // This function is a bit messy...
    // each is a slight variation (saves a little time when there's a single selection as opposed to a compound selection
    // someday clean up
 
@@ -224,24 +224,24 @@ bool PointMap::undoPoints()
    return true;
 }
 
-// constrain is used to constrain to existing rows / cols 
+// constrain is used to constrain to existing rows / cols
 // (not quite the same as constraining to bounding box due to spacing offsets)
 PixelRef PointMap::pixelate( const Point2f& p, bool constrain, int scalefactor ) const
 {
    PixelRef ref;
- 
+
    double spacing = m_spacing / double(scalefactor);
    ref.x = int(floor( (p.x - m_bottom_left.x + (m_spacing / 2.0)) / spacing ));
    ref.y = int(floor( (p.y - m_bottom_left.y + (m_spacing / 2.0)) / spacing ));
 
    if (constrain) {
-      if (ref.x < 0) 
+      if (ref.x < 0)
          ref.x = 0;
-      else if (ref.x >= m_cols * scalefactor) 
+      else if (ref.x >= m_cols * scalefactor)
          ref.x = (m_cols * scalefactor) - 1;
-      if (ref.y < 0) 
+      if (ref.y < 0)
          ref.y = 0;
-      else if (ref.y >= m_rows * scalefactor) 
+      else if (ref.y >= m_rows * scalefactor)
          ref.y = (m_rows * scalefactor) - 1;
    }
 
@@ -315,7 +315,7 @@ bool PointMap::blockLines()
 void PointMap::blockLine(const Line& li)
 {
    std::vector<PixelRef> pixels = pixelateLineTouching(li,1e-10);
-   // touching is generally better for ensuring lines pixelated completely, 
+   // touching is generally better for ensuring lines pixelated completely,
    // although it may catch extra points...
    for (size_t n = 0; n < pixels.size(); n++)
    {
@@ -372,7 +372,7 @@ bool PointMap::makePoints(const Point2f& seed, int fill_type, Communicator *comm
    if (comm) {
       comm->CommPostMessage( Communicator::NUM_RECORDS, (m_rows * m_cols));
    }
-   
+
    // Snap to existing grid
    // "false" is does not constrain: must use includes() before getPoint
    PixelRef seedref = pixelate( seed, false );
@@ -542,7 +542,7 @@ void PointMap::outputMif( std::ostream& miffile, std::ostream& midfile )
 
 void PointMap::outputNet(std::ostream& netfile)
 {
-   // this is a bid of a faff, as we first have to get the point locations, 
+   // this is a bid of a faff, as we first have to get the point locations,
    // then the connections from a lookup table... ickity ick ick...
    std::map<PixelRef,PixelRefVector> graph;
    for (int i = 0; i < m_cols; i++) {
@@ -588,8 +588,8 @@ void PointMap::outputConnections(std::ostream& myout)
          if (m_points[size_t(i*m_rows + j)].filled() && m_points[size_t(i*m_rows + j)].m_node) {
             PixelRef pix(i,j);
             Point2f p = depixelate(pix);
-            myout << "node {\n" 
-                  << "  ref    " << pix << "\n" 
+            myout << "node {\n"
+                  << "  ref    " << pix << "\n"
                   << "  origin " << p.x << " " << p.y << " " << 0.0 << "\n"
                   << "  connections [" << std::endl;
             myout << *(m_points[size_t(i*m_rows + j)].m_node);
@@ -688,7 +688,7 @@ void PointMap::outputBinSummaries(std::ostream& myout)
 
 /////////////////////////////////////////////////////////////////////////////////
 
-// Attribute Stuff 
+// Attribute Stuff
 
 void PointMap::setDisplayedAttribute(int col)
 {
@@ -706,7 +706,7 @@ void PointMap::setDisplayedAttribute(int col)
 
 /////////////////////////////////////////////////////////////////////////////////
 
-// Screen stuff 
+// Screen stuff
 
 void PointMap::setScreenPixel( double unit )
 {
@@ -811,7 +811,7 @@ bool PointMap::findNextMergeLine() const
 Line PointMap::getNextMergeLine() const
 {
    if (curmergeline < (int)m_merge_lines.size()) {
-      return Line(depixelate(m_merge_lines[curmergeline].a), 
+      return Line(depixelate(m_merge_lines[curmergeline].a),
                   depixelate(m_merge_lines[curmergeline].b));
    }
    return Line();
@@ -831,7 +831,7 @@ PafColor PointMap::getPointColor(PixelRef pixelRef) const
    PafColor color;
    int state = pointState( pixelRef );
    if (state & Point::HIGHLIGHT) {
-      return PafColor( SALA_HIGHLIGHTED_COLOR ); 
+      return PafColor( SALA_HIGHLIGHTED_COLOR );
    }
    else if (state & Point::SELECTED) {
       return PafColor( SALA_SELECTED_COLOR );
@@ -955,6 +955,7 @@ bool PointMap::setCurSel(const std::vector<int>& selset, bool add)
    return true;
 }
 
+
 // Helper function: is there a blocked point next to you?
 // ...rather scruffily goes round the eight adjacent points...
 
@@ -1037,7 +1038,7 @@ bool PointMap::read(std::istream& stream, int version )
    stream.read( (char *) &m_bottom_left, sizeof(m_bottom_left) );
 
    m_region = QtRegion(
-      Point2f(m_bottom_left.x-m_spacing/2.0, m_bottom_left.y-m_spacing/2.0), 
+      Point2f(m_bottom_left.x-m_spacing/2.0, m_bottom_left.y-m_spacing/2.0),
       Point2f(m_bottom_left.x+double(m_cols-1)*m_spacing + m_spacing/2.0,
               m_bottom_left.y+double(m_rows-1)*m_spacing + m_spacing/2.0) );
 
@@ -1050,9 +1051,10 @@ bool PointMap::read(std::istream& stream, int version )
    stream.read((char *)&displayed_attribute,sizeof(displayed_attribute));
    m_attributes.read( stream, version );
 
+
    m_points.clear();
    m_points.resize(m_cols*m_rows);
-   
+
    for (int j = 0; j < m_cols; j++) {
       for (int k = 0; k < m_rows; k++) {
          m_points[size_t(j*m_rows + k)].read(stream,version,attr_count);
@@ -1175,7 +1177,7 @@ int PointMap::tagState(bool settag, bool sparkgraph)
 // This uses the new points line segments to allow quick overlap comparisons
 // The spark method uses a 1024 long bit string to check against
 
-// writing the algo has thrown up something: it would be more appropriate to 
+// writing the algo has thrown up something: it would be more appropriate to
 // have lines between the grid points, rather than centred on the grid square,
 // i.e.:
 //
@@ -1216,8 +1218,8 @@ bool PointMap::sparkGraph2( Communicator *comm, bool boundarygraph, double maxdi
    int count = tagState( true, true );
 
    // start the timer when you know the true count including fixed points
-   
    time_t atime = 0;
+
    if (comm) {
       qtimer( atime, 0 );
       comm->CommPostMessage( Communicator::NUM_RECORDS, count );
@@ -1230,7 +1232,7 @@ bool PointMap::sparkGraph2( Communicator *comm, bool boundarygraph, double maxdi
       for (int j = 0; j < m_rows; j++) {
 
          PixelRef curs = PixelRef( i, j );
-   
+
          if ( getPoint( curs ).getState() & Point::FILLED ) {
 
             getPoint( curs ).m_node = std::unique_ptr<Node>(new Node());
@@ -1255,7 +1257,7 @@ bool PointMap::sparkGraph2( Communicator *comm, bool boundarygraph, double maxdi
                      throw Communicator::CancelledException();
                   }
                   comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-               }         
+               }
             } // if (comm)
          } // if ( getPoint( curs ).getState() & Point::FILLED )
       } // rows
@@ -1283,7 +1285,7 @@ bool PointMap::sparkGraph2( Communicator *comm, bool boundarygraph, double maxdi
    return true;
 }
 
-// 'make' construct types are: 
+// 'make' construct types are:
 // 1 -- build this node
 // 2 -- register the reciprocal q octant in nodes you can see as requiring processing
 
@@ -1314,7 +1316,7 @@ bool PointMap::sparkPixel2(PixelRef curs, int make, double maxdist)
       // from immediately around centre
       // note regionate border must be greater than tolerance squared used in interection testing later
       double border = m_spacing * 1e-10;
-      QtRegion viewport0 = regionate(curs, 1e-10); 
+      QtRegion viewport0 = regionate(curs, 1e-10);
       switch (q) {
       case 0:
          viewport0.top_right.x = centre0.x;
@@ -1364,7 +1366,7 @@ bool PointMap::sparkPixel2(PixelRef curs, int make, double maxdist)
 
       for (depth = 1; sieve.hasGaps(); depth++) {
 
-         addlist.clear();   
+         addlist.clear();
          if (!sieve2(sieve, addlist, q, depth, curs))
          {
             break;
@@ -1443,13 +1445,13 @@ bool PointMap::sieve2(sparkSieve2& sieve, std::vector<PixelRef>& addlist, int q,
          // this did say first = ind + 1, but I needed to change it to cope with vertical lines
          // I have a feeling the ind + 1 was there for a reason!
          // (if there to cope with boundary graph, could easily simply use ind + 1 in the specific check)
-         firstind = ind; 
+         firstind = ind;
 
          // x and y are calculated using Grad's whichbin q quadrants
          int x = (q >= 4 ? ind : depth);
          int y = (q >= 4 ? depth : ind);
 
-         PixelRef here = PixelRef( 
+         PixelRef here = PixelRef(
                            curs.x + (q % 2 ? x : -x), curs.y + (q <= 1 || q >= 6 ? y : -y) );
 
          if (includes(here)) {
@@ -1462,7 +1464,7 @@ bool PointMap::sieve2(sparkSieve2& sieve, std::vector<PixelRef>& addlist, int q,
                // don't repeat axes / diagonals
                if ((ind != 0 || q == 0 || q == 1 || q == 5 || q == 6) && (ind != depth || q < 4)) {
                   // block test as usual [tested 31.10.04 -- MUST use 1e-10 for Gassin at 10 grid spacing]
-                  if (!sieve.testblock(depixelate(here), getPoint(here).m_lines, m_spacing * 1e-10))  
+                  if (!sieve.testblock(depixelate(here), getPoint(here).m_lines, m_spacing * 1e-10))
                   {
                      addlist.push_back(here);
                   }
@@ -1499,7 +1501,7 @@ bool PointMap::binDisplay(Communicator *comm)
             int row = m_attributes.getRowid( b.cursor() );
             //m_attributes.setValue( row, bindisplay_col, float((i % 8) + 1) );
             m_attributes.setValue( row, bindisplay_col, float(b.distance()) );
-            b.next();   
+            b.next();
          }
       }
    }
@@ -1526,6 +1528,7 @@ bool PointMap::analyseIsovist(Communicator *comm, MetaGraph& mgraph, bool simple
    comm->CommPostMessage( Communicator::CURRENT_STEP, 2 );
 
    time_t atime = 0;
+
    if (comm) {
       qtimer( atime, 0 );
       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
@@ -1571,7 +1574,7 @@ bool PointMap::analyseIsovist(Communicator *comm, MetaGraph& mgraph, bool simple
                   throw Communicator::CancelledException();
                }
                comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-            }         
+            }
          }
       }
    }
@@ -1584,6 +1587,7 @@ bool PointMap::analyseIsovist(Communicator *comm, MetaGraph& mgraph, bool simple
 bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_version)
 {
    time_t atime = 0;
+
    if (comm) {
       qtimer( atime, 0 );
       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
@@ -1683,25 +1687,25 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
                     PixelRef curr = search_tree[level][n];
                     Point& p = getPoint(curr);
-                    int pmisc = miscs[curr.y*m_cols + curr.x];
-                    if (p.filled() && pmisc != ~0) {
+                    size_t p1i = size_t(curr.y*m_cols + curr.x);
+                    if (p.filled() && miscs[p1i] != ~0) {
                         total_depth += level;
                         total_nodes += 1;
                         distribution.back() += 1;
                         if ((int) options.radius == -1 || level < (int) options.radius &&
                             (!p.contextfilled() || search_tree[level][n].iseven())) {
                             p.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents);
-                            pmisc = ~0;
+                            miscs[p1i] = ~0;
                             if (!p.m_merge.empty()) {
                                 Point& p2 = getPoint(p.m_merge);
-                                int p2misc = miscs[p.m_merge.y*m_cols + curr.x];
-                                if (p2misc != ~0) {
+                                size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
+                                if (miscs[p2i] != ~0) {
                                     p2.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents); // did say p.misc
-                                    p2misc = ~0;
+                                    miscs[p2i] = ~0;
                                 }
                             }
                         } else {
-                            pmisc = ~0;
+                            miscs[p1i] = ~0;
                         }
                     }
                     search_tree[level].pop_back();
@@ -1919,11 +1923,11 @@ bool PointMap::analyseVisualPointDepth(Communicator *comm)
       }
       level++;
    }
-   
+
    // force redisplay:
    m_displayed_attribute = -2;
    setDisplayedAttribute(col);
-   
+
    return true;
 }
 
@@ -1933,6 +1937,7 @@ bool PointMap::analyseVisualPointDepth(Communicator *comm)
 bool PointMap::analyseMetric(Communicator *comm, Options& options)
 {
    time_t atime = 0;
+
    if (comm) {
       qtimer( atime, 0 );
       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
@@ -1960,88 +1965,107 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
    std::string count_col_text = std::string("Metric Node Count") + radius_text;
    int count_col = m_attributes.insertColumn(count_col_text.c_str());
 
-   int count = 0;
+    std::vector<PixelRef> filled;
 
-   for (int i = 0; i < m_cols; i++) {
+    for (int i = 0; i < m_cols; i++) {
+       for (int j = 0; j < m_rows; j++) {
+           PixelRef curs = PixelRef( i, j );
+           if ( getPoint( curs ).filled()) {
+               filled.push_back(curs);
+           }
+       }
+    }
 
-      for (int j = 0; j < m_rows; j++) {
+    int count = 0;
 
-         PixelRef curs = PixelRef( i, j );
+    size_t npix = size_t(m_cols*m_rows);
+    #pragma omp parallel for
+    for (size_t i = 0; i < filled.size(); i++) {
+        if ( options.gates_only) {
+            count++;
+            continue;
+        }
 
-         if ( getPoint( curs ).filled() ) {
-
-            if ( options.gates_only) {
-               count++;
-               continue;
+        std::vector<int> miscs(npix);
+        std::vector<float> dists(npix);
+        std::vector<float> cumangles(npix);
+        for (int ii = 0; ii < m_cols; ii++) {
+            for (int jj = 0; jj < m_rows; jj++) {
+                miscs[size_t(jj*m_cols + ii)] = 0;
+                dists[size_t(jj*m_cols + ii)] = -1.0f;
+                cumangles[size_t(jj*m_cols + ii)] = 0.0f;
             }
+        }
 
-            for (auto& point: m_points) {
-                point.m_misc = 0;
-                point.m_dist = -1.0f;
-                point.m_cumangle = 0.0f;
+        float euclid_depth = 0.0f;
+        float total_depth = 0.0f;
+        float total_angle = 0.0f;
+        int total_nodes = 0;
+
+        // note that m_misc is used in a different manner to analyseGraph / PointDepth
+        // here it marks the node as used in calculation only
+
+        std::set<MetricTriple> search_list;
+        search_list.insert(MetricTriple(0.0f, filled[i], NoPixel));
+        int level = 0;
+        while (search_list.size()) {
+            std::set<MetricTriple>::iterator it = search_list.begin();
+            MetricTriple here = *it;
+            search_list.erase(it);
+            if (options.radius != -1.0 && (here.dist * m_spacing) > options.radius) {
+                break;
             }
-
-            float euclid_depth = 0.0f;
-            float total_depth = 0.0f;
-            float total_angle = 0.0f;
-            int total_nodes = 0;
-
-            // note that m_misc is used in a different manner to analyseGraph / PointDepth
-            // here it marks the node as used in calculation only
-
-            std::set<MetricTriple> search_list;
-            search_list.insert(MetricTriple(0.0f,curs,NoPixel));
-            int level = 0;
-            while (search_list.size()) {
-               std::set<MetricTriple>::iterator it = search_list.begin();
-               MetricTriple here = *it;
-               search_list.erase(it);
-               if (options.radius != -1.0 && (here.dist * m_spacing) > options.radius) {
-                  break;
-               }
-               Point& p = getPoint(here.pixel);
-               // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-               if (p.filled() && p.m_misc != ~0) {
-                  p.m_node->extractMetric(search_list,this,here);
-                  p.m_misc = ~0;
-                  if (!p.m_merge.empty()) {
-                     Point& p2 = getPoint(p.m_merge);
-                     if (p2.m_misc != ~0) {
-                        p2.m_cumangle = p.m_cumangle;
-                        p2.m_node->extractMetric(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel));
-                        p2.m_misc = ~0;
+            Point& p = getPoint(here.pixel);
+            size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
+            // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
+            if (p.filled() && miscs[p1i] != ~0) {
+                p.m_node->extractMetricExtras(search_list,this,here, miscs, dists, cumangles);
+                miscs[p1i] = ~0;
+                if (!p.m_merge.empty()) {
+                    Point& p2 = getPoint(p.m_merge);
+                    size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
+                    if (miscs[p2i] != ~0) {
+                        cumangles[p2i] = cumangles[p1i];
+                        p2.m_node->extractMetricExtras(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel), miscs, dists, cumangles);
+                        miscs[p2i] = ~0;
                      }
-                  }
-                  total_depth += float(here.dist * m_spacing);
-                  total_angle += p.m_cumangle;
-                  euclid_depth += float(m_spacing * dist(here.pixel,curs));
-                  total_nodes += 1;
-               }
+                }
+                total_depth += float(here.dist * m_spacing);
+                total_angle += cumangles[p1i];
+                euclid_depth += float(m_spacing * dist(here.pixel, filled[i]));
+                total_nodes += 1;
             }
+        }
 
-            int row = m_attributes.getRowid(curs);
-            m_attributes.setValue(row, mspa_col, float(double(total_angle) / double(total_nodes)) );
-            m_attributes.setValue(row, mspl_col, float(double(total_depth) / double(total_nodes)) );
-            m_attributes.setValue(row, dist_col, float(double(euclid_depth) / double(total_nodes)) );
-            m_attributes.setValue(row, count_col, float(total_nodes) );
+        // kept to achieve parity in binary comparison with old versions
+        // TODO: Remove at next version of .graph file
+        size_t filledIdx = size_t(filled[i].y*m_cols + filled[i].x);
+        getPoint(filled[i]).m_misc = miscs[filledIdx];
+        getPoint(filled[i]).m_dist = dists[filledIdx];
+        getPoint(filled[i]).m_cumangle = cumangles[filledIdx];
 
-            count++;    // <- increment count
-         }
-         if (comm) {
+        int row = m_attributes.getRowid(filled[i]);
+        m_attributes.setValue(row, mspa_col, float(double(total_angle) / double(total_nodes)) );
+        m_attributes.setValue(row, mspl_col, float(double(total_depth) / double(total_nodes)) );
+        m_attributes.setValue(row, dist_col, float(double(euclid_depth) / double(total_nodes)) );
+        m_attributes.setValue(row, count_col, float(total_nodes) );
+
+        count++;    // <- increment count
+
+        if (comm) {
             if (qtimer( atime, 500 )) {
-               if (comm->IsCancelled()) {
-                  throw Communicator::CancelledException();
-               }
-               comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-            }         
-         }
-      }
-   }
+                if (comm->IsCancelled()) {
+                    throw Communicator::CancelledException();
+                }
+                comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+            }
+        }
+    }
 
-   m_displayed_attribute = -2;
-   setDisplayedAttribute(mspl_col);
+    m_displayed_attribute = -2;
+    setDisplayedAttribute(mspl_col);
 
-   return true;
+    return true;
 }
 
 bool PointMap::analyseMetricPointDepth(Communicator *comm)
@@ -2109,18 +2133,19 @@ bool PointMap::analyseMetricPointDepth(Communicator *comm)
 
    m_displayed_attribute = -2;
    setDisplayedAttribute(path_length_col);
-   
+
    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
 
 // This is based on the Metric Step Depth calculation
-// 
+//
 
 bool PointMap::analyseAngular(Communicator *comm, Options& options)
 {
    time_t atime = 0;
+
    if (comm) {
       qtimer( atime, 0 );
       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
@@ -2230,6 +2255,12 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
                 comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
             }
         }
+
+        // kept to achieve parity in binary comparison with old versions
+        // TODO: Remove at next version of .graph file
+        size_t filledIdx = size_t(filled[i].y*m_cols + filled[i].x);
+        getPoint(filled[i]).m_misc = miscs[filledIdx];
+        getPoint(filled[i]).m_cumangle = cumangles[filledIdx];
     }
 
    m_displayed_attribute = -2;
@@ -2287,13 +2318,14 @@ bool PointMap::analyseAngularPointDepth(Communicator *comm)
 
    m_displayed_attribute = -2;
    setDisplayedAttribute(path_angle_col);
-   
+
    return true;
 }
 
 bool PointMap::analyseThruVision(Communicator *comm)
 {
    time_t atime = 0;
+
    if (comm) {
       qtimer( atime, 0 );
       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
@@ -2340,7 +2372,7 @@ bool PointMap::analyseThruVision(Communicator *comm)
                   throw Communicator::CancelledException();
                }
                comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-            }         
+            }
          }
       }
    }
@@ -2388,7 +2420,7 @@ bool PointMap::mergePoints(const Point2f& p)
       }
    }
    clearSel();
-   
+
    return true;
 }
 

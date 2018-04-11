@@ -87,6 +87,18 @@ void Node::extractMetric(std::set<MetricTriple>& pixels, PointMap *pointdata, co
    }
 }
 
+void Node::extractMetricExtras(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs,
+                               std::vector<int>& miscs, std::vector<float>& dists, std::vector<float> &cumangles)
+{
+   //if (dist == 0.0f || concaveConnected()) { // increases effiency but is too inaccurate
+   //if (dist == 0.0f || !fullyConnected()) { // increases effiency but can miss lines
+   if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
+      for (int i = 0; i < 32; i++) {
+         m_bins[i].extractMetricExtras(pixels, pointdata, curs, miscs, dists, cumangles);
+      }
+   }
+}
+
 // based on extract metric
 
 void Node::extractAngular(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs)
@@ -394,6 +406,24 @@ void Bin::extractMetric(std::set<MetricTriple>& pixels, PointMap *pointdata, con
          pix.move(m_dir);
       }
    }
+}
+
+
+void Bin::extractMetricExtras(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs,
+                         std::vector<int>& miscs, std::vector<float>& dists, std::vector<float> &cumangles) {
+    for (auto pixVec: m_pixel_vecs) {
+        for (PixelRef pix = pixVec.start(); pix.col(m_dir) <= pixVec.end().col(m_dir); ) {
+            int idx = pix.y*pointdata->getCols() + pix.x;
+            if (miscs[idx] == 0 &&
+                    (dists[idx] == -1.0 || (curs.dist + dist(pix,curs.pixel) < dists[idx]))) {
+                dists[idx] = curs.dist + (float) dist(pix,curs.pixel);
+                // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
+                cumangles[idx] = cumangles[curs.pixel.y*pointdata->getCols() + curs.pixel.x] + (curs.lastpixel == NoPixel ? 0.0f : (float) (angle(pix,curs.pixel,curs.lastpixel) / (M_PI * 0.5)));
+                pixels.insert(MetricTriple(dists[idx], pix, curs.pixel));
+            }
+            pix.move(m_dir);
+        }
+    }
 }
 
 // based on metric
