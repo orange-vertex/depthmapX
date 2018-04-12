@@ -1658,13 +1658,13 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                         distribution.back() += 1;
                         if ((int) options.radius == -1 || level < (int) options.radius &&
                             (!p.contextfilled() || search_tree[level][n].iseven())) {
-                            p.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents);
+                            p.m_node->extractUnseen(search_tree[level+1],this,miscs,extents);
                             miscs[p1i] = ~0;
                             if (!p.m_merge.empty()) {
                                 Point& p2 = getPoint(p.m_merge);
                                 size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
                                 if (miscs[p2i] != ~0) {
-                                    p2.m_node->extractUnseenMiscs(search_tree[level+1],this,miscs,extents); // did say p.misc
+                                    p2.m_node->extractUnseen(search_tree[level+1],this,miscs,extents); // did say p.misc
                                     miscs[p2i] = ~0;
                                 }
                             }
@@ -1909,7 +1909,7 @@ bool PointMap::analyseVisualPointDepth(Communicator *comm)
                 int row = m_attributes.getRowid(search_tree[level][n]);
                 m_attributes.setValue(row,col,float(level));
                 if (!p.contextfilled() || search_tree[level][n].iseven() || level == 0) {
-                    p.m_node->extractUnseenMiscs(search_tree[level+1],this, miscs, extents);
+                    p.m_node->extractUnseen(search_tree[level+1],this, miscs, extents);
                     miscs[p1i] = ~0;
                     if (!p.m_merge.empty()) {
                         Point& p2 = getPoint(p.m_merge);
@@ -1917,7 +1917,7 @@ bool PointMap::analyseVisualPointDepth(Communicator *comm)
                         if (miscs[p2i] != ~0) {
                             int row = m_attributes.getRowid(p.m_merge);
                             m_attributes.setValue(row,col,float(level));
-                            p2.m_node->extractUnseenMiscs(search_tree[level+1],this, miscs, extents); // did say p.misc
+                            p2.m_node->extractUnseen(search_tree[level+1],this, miscs, extents); // did say p.misc
                             miscs[p2i] = ~0;
                         }
                     }
@@ -2009,14 +2009,14 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
             size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
             // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
             if (p.filled() && miscs[p1i] != ~0) {
-                p.m_node->extractMetricExtras(search_list,this,here, miscs, dists, cumangles);
+                p.m_node->extractMetric(search_list,this,here, miscs, dists, cumangles);
                 miscs[p1i] = ~0;
                 if (!p.m_merge.empty()) {
                     Point& p2 = getPoint(p.m_merge);
                     size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
                     if (miscs[p2i] != ~0) {
                         cumangles[p2i] = cumangles[p1i];
-                        p2.m_node->extractMetricExtras(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel), miscs, dists, cumangles);
+                        p2.m_node->extractMetric(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel), miscs, dists, cumangles);
                         miscs[p2i] = ~0;
                      }
                 }
@@ -2125,7 +2125,7 @@ bool PointMap::analyseMetricPointDepth(Communicator *comm)
         size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
         // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
         if (p.filled() && miscs[p1i] != ~0) {
-            p.m_node->extractMetricExtras(search_list,this,here, miscs, dists, cumangles);
+            p.m_node->extractMetric(search_list,this,here, miscs, dists, cumangles);
             miscs[p1i] = ~0;
             int row = m_attributes.getRowid(here.pixel);
             m_attributes.setValue(row, path_length_col, float(m_spacing * here.dist) );
@@ -2146,7 +2146,7 @@ bool PointMap::analyseMetricPointDepth(Communicator *comm)
                         // Note: Euclidean distance is currently only calculated from a single point
                         m_attributes.setValue(row, dist_col, float(m_spacing * dist(p.m_merge,*m_selection_set.begin())) );
                     }
-                    p2.m_node->extractMetricExtras(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel), miscs, dists, cumangles);
+                    p2.m_node->extractMetric(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel), miscs, dists, cumangles);
                     miscs[p2i] = ~0;
                 }
             }
@@ -2230,14 +2230,14 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
             size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
             // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
             if (p.filled() && miscs[p1i] != ~0) {
-                p.m_node->extractAngularExtras(search_list,this,here, miscs, cumangles);
+                p.m_node->extractAngular(search_list,this,here, miscs, cumangles);
                 miscs[p1i] = ~0;
                 if (!p.m_merge.empty()) {
                     Point& p2 = getPoint(p.m_merge);
                     size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
                     if (miscs[p2i] != ~0) {
                         cumangles[p2i] = cumangles[p1i];
-                        p2.m_node->extractAngularExtras(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel), miscs, cumangles);
+                        p2.m_node->extractAngular(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel), miscs, cumangles);
                         miscs[p2i] = ~0;
                     }
                 }
@@ -2334,7 +2334,7 @@ bool PointMap::analyseAngularPointDepth(Communicator *comm)
       size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
       // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
       if (p.filled() && miscs[p1i] != ~0) {
-         p.m_node->extractAngularExtras(search_list,this,here, miscs, cumangles);
+         p.m_node->extractAngular(search_list,this,here, miscs, cumangles);
          miscs[p1i] = ~0;
          int row = m_attributes.getRowid(here.pixel);
          m_attributes.setValue(row, path_angle_col, float(cumangles[p1i]) );
@@ -2345,7 +2345,7 @@ bool PointMap::analyseAngularPointDepth(Communicator *comm)
                cumangles[p2i] = cumangles[p1i];
                int row = m_attributes.getRowid(p.m_merge);
                m_attributes.setValue(row, path_angle_col, float(cumangles[p2i]) );
-               p2.m_node->extractAngularExtras(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel), miscs, cumangles);
+               p2.m_node->extractAngular(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel), miscs, cumangles);
                miscs[p2i] = ~0;
             }
          }

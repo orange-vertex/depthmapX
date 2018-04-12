@@ -58,66 +58,33 @@ void Node::make(const PixelRef pix, PixelRefVector *bins, float *bin_far_dists, 
    }
 }
 
-void Node::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark)
+void Node::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, std::vector<int>& miscs, std::vector<PixelRef> &extents)
 {
-   for (int i = 0; i < 32; i++) {
-//      if (~binmark & (1 << i)) {  // <- DON'T USE THIS, IT CAUSES TOO MANY ERRORS!
-         m_bins[i].extractUnseen(pixels, pointdata, (1 << i));
-//      }
-   }
+    for (int i = 0; i < 32; i++) {
+        m_bins[i].extractUnseen(pixels, pointdata, (1 << i), miscs, extents);
+    }
 }
 
-void Node::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, std::vector<int>& miscs, std::vector<PixelRef> &extents)
-{
-   for (int i = 0; i < 32; i++) {
-//      if (~binmark & (1 << i)) {  // <- DON'T USE THIS, IT CAUSES TOO MANY ERRORS!
-         m_bins[i].extractUnseenMiscs(pixels, pointdata, (1 << i), miscs, extents);
-//      }
-   }
-}
-
-void Node::extractMetric(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs)
-{
-   //if (dist == 0.0f || concaveConnected()) { // increases effiency but is too inaccurate
-   //if (dist == 0.0f || !fullyConnected()) { // increases effiency but can miss lines
-   if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) { 
-      for (int i = 0; i < 32; i++) {
-         m_bins[i].extractMetric(pixels, pointdata, curs);
-      }
-   }
-}
-
-void Node::extractMetricExtras(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs,
+void Node::extractMetric(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs,
                                std::vector<int>& miscs, std::vector<float>& dists, std::vector<float> &cumangles)
 {
-   //if (dist == 0.0f || concaveConnected()) { // increases effiency but is too inaccurate
-   //if (dist == 0.0f || !fullyConnected()) { // increases effiency but can miss lines
-   if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
-      for (int i = 0; i < 32; i++) {
-         m_bins[i].extractMetricExtras(pixels, pointdata, curs, miscs, dists, cumangles);
-      }
-   }
+    if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
+        for (int i = 0; i < 32; i++) {
+            m_bins[i].extractMetric(pixels, pointdata, curs, miscs, dists, cumangles);
+        }
+    }
 }
 
 // based on extract metric
 
-void Node::extractAngular(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs)
-{
-   if (curs.angle == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
-      for (int i = 0; i < 32; i++) {
-         m_bins[i].extractAngular(pixels, pointdata, curs);
-      }
-   }
-}
-
-void Node::extractAngularExtras(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs,
+void Node::extractAngular(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs,
                                 std::vector<int>& miscs, std::vector<float>& cumangles)
 {
-   if (curs.angle == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
-      for (int i = 0; i < 32; i++) {
-         m_bins[i].extractAngularExtras(pixels, pointdata, curs, miscs, cumangles);
-      }
-   }
+    if (curs.angle == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
+        for (int i = 0; i < 32; i++) {
+            m_bins[i].extractAngular(pixels, pointdata, curs, miscs, cumangles);
+        }
+    }
 }
 
 bool Node::concaveConnected()
@@ -349,31 +316,11 @@ void Bin::make(const PixelRefVector& pixels, char dir)
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void Bin::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark)
+void Bin::extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark, std::vector<int>& miscs, std::vector<PixelRef>& extents)
 {
-   for (auto pixVec: m_pixel_vecs) {
-      for (PixelRef pix = pixVec.start(); pix.col(m_dir) <= pixVec.end().col(m_dir); ) {
-         Point& pt = pointdata->getPoint(pix);
-         if (pointdata->getPoint(pix).m_misc == 0) {
-            pixels.push_back(pix);
-            pointdata->getPoint(pix).m_misc |= binmark;
-         }
-         // 10.2.02 revised --- diagonal was breaking this as it was extent in diagonal or horizontal
-         if (!(m_dir & PixelRef::DIAGONAL)) {
-            if (pt.m_extent.col(m_dir) >= pixVec.end().col(m_dir))
-               break;
-            pt.m_extent.col(m_dir) = pixVec.end().col(m_dir);
-         }
-         pix.move(m_dir);
-      }
-   }
-}
-
-void Bin::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int binmark, std::vector<int>& miscs, std::vector<PixelRef>& extents)
-{
-   for (int i = 0; i < m_pixel_vecs.size(); i++) {
+   for (size_t i = 0; i < m_pixel_vecs.size(); i++) {
       for (PixelRef pix = m_pixel_vecs[i].start(); pix.col(m_dir) <= m_pixel_vecs[i].end().col(m_dir); ) {
-         int idx = pix.y*pointdata->getCols() + pix.x;
+         size_t idx = size_t(pix.y*pointdata->getCols() + pix.x);
          if (miscs[idx] == 0) {
             pixels.push_back(pix);
             miscs[idx] |= binmark;
@@ -391,29 +338,11 @@ void Bin::extractUnseenMiscs(PixelRefVector& pixels, PointMap *pointdata, int bi
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void Bin::extractMetric(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs)
-{
-   for (auto pixVec: m_pixel_vecs) {
-      for (PixelRef pix = pixVec.start(); pix.col(m_dir) <= pixVec.end().col(m_dir); ) {
-         Point& pt = pointdata->getPoint(pix);
-         if (pt.m_misc == 0 && 
-            (pt.m_dist == -1.0 || (curs.dist + dist(pix,curs.pixel) < pt.m_dist))) {
-            pt.m_dist = curs.dist + (float) dist(pix,curs.pixel);
-            // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
-            pt.m_cumangle = pointdata->getPoint(curs.pixel).m_cumangle + (curs.lastpixel == NoPixel ? 0.0f : (float) (angle(pix,curs.pixel,curs.lastpixel) / (M_PI * 0.5)));
-            pixels.insert(MetricTriple(pt.m_dist, pix, curs.pixel));
-         }
-         pix.move(m_dir);
-      }
-   }
-}
-
-
-void Bin::extractMetricExtras(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs,
+void Bin::extractMetric(std::set<MetricTriple>& pixels, PointMap *pointdata, const MetricTriple& curs,
                          std::vector<int>& miscs, std::vector<float>& dists, std::vector<float> &cumangles) {
     for (auto pixVec: m_pixel_vecs) {
         for (PixelRef pix = pixVec.start(); pix.col(m_dir) <= pixVec.end().col(m_dir); ) {
-            int idx = pix.y*pointdata->getCols() + pix.x;
+            size_t idx = size_t(pix.y*pointdata->getCols() + pix.x);
             if (miscs[idx] == 0 &&
                     (dists[idx] == -1.0 || (curs.dist + dist(pix,curs.pixel) < dists[idx]))) {
                 dists[idx] = curs.dist + (float) dist(pix,curs.pixel);
@@ -428,29 +357,11 @@ void Bin::extractMetricExtras(std::set<MetricTriple>& pixels, PointMap *pointdat
 
 // based on metric
 
-void Bin::extractAngular(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs)
-{
-   for (auto pixVec: m_pixel_vecs) {
-      for (PixelRef pix = pixVec.start(); pix.col(m_dir) <= pixVec.end().col(m_dir); ) {
-         Point& pt = pointdata->getPoint(pix);
-         if (pt.m_misc == 0) {
-            // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
-            float ang = (curs.lastpixel == NoPixel) ? 0.0f : (float) (angle(pix,curs.pixel,curs.lastpixel) / (M_PI * 0.5));
-            if (pt.m_cumangle == -1.0 || curs.angle + ang < pt.m_cumangle) {
-               pt.m_cumangle = pointdata->getPoint(curs.pixel).m_cumangle + ang;
-               pixels.insert(AngularTriple(pt.m_cumangle, pix, curs.pixel));
-            }
-         }
-         pix.move(m_dir);
-      }
-   }
-}
-
-void Bin::extractAngularExtras(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs,
+void Bin::extractAngular(std::set<AngularTriple>& pixels, PointMap *pointdata, const AngularTriple& curs,
                          std::vector<int>& miscs, std::vector<float> &cumangles) {
     for (auto pixVec: m_pixel_vecs) {
         for (PixelRef pix = pixVec.start(); pix.col(m_dir) <= pixVec.end().col(m_dir); ) {
-            int idx = pix.y*pointdata->getCols() + pix.x;
+            size_t idx = size_t(pix.y*pointdata->getCols() + pix.x);
             if (miscs[idx] == 0) {
                 // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
                 float ang = (curs.lastpixel == NoPixel) ? 0.0f : (float) (angle(pix,curs.pixel,curs.lastpixel) / (M_PI * 0.5));
