@@ -1638,6 +1638,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
    }
 
    std::vector<PixelRef> filled;
+   std::vector<int> rows;
 
    for (int i = 0; i < m_cols; i++) {
 
@@ -1647,6 +1648,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
 
          if ( getPoint( curs ).filled()) {
              filled.push_back(curs);
+             rows.push_back(m_attributes.getRowid(curs));
          }
       }
    }
@@ -1654,8 +1656,17 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
    int count = 0;
 
     if (options.global) {
+
+        std::vector<float> count_col_data(filled.size());
+        std::vector<float> depth_col_data(filled.size());
+        std::vector<float> integ_dv_col_data(filled.size());
+        std::vector<float> integ_pv_col_data(filled.size());
+        std::vector<float> integ_tk_col_data(filled.size());
+        std::vector<float> entropy_col_data(filled.size());
+        std::vector<float> rel_entropy_col_data(filled.size());
+
         #pragma omp parallel for
-        for (int i = 0; i < filled.size(); i++) {
+        for (size_t i = 0; i < filled.size(); i++) {
 
             if ((getPoint( filled[i] ).contextfilled() && !filled[i].iseven()) ||
                 (options.gates_only)) {
@@ -1712,23 +1723,17 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 }
                 level++;
             }
-            for (int ii = 0; ii < m_cols; ii++) {
-                for (int jj = 0; jj < m_rows; jj++) {
-                    m_points[ii][jj].m_misc = miscs[jj*m_cols + ii];
-                    m_points[ii][jj].m_extent = extents[jj*m_cols + ii];
-                }
-            }
-            int row = m_attributes.getRowid(filled[i]);
+
             // only set to single float precision after divide
             // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
             if(!simple_version) {
-                m_attributes.setValue(row, count_col, float(total_nodes) ); // note: total nodes includes this one
+                count_col_data[i] = float(total_nodes); // note: total nodes includes this one;
             }
             // ERROR !!!!!!
             if (total_nodes > 1) {
                 double mean_depth = double(total_depth) / double(total_nodes - 1);
                 if(!simple_version) {
-                    m_attributes.setValue(row, depth_col, float(mean_depth) );
+                    depth_col_data[i] = float(mean_depth);
                 }
                 // total nodes > 2 to avoid divide by 0 (was > 3)
                 if (total_nodes > 2 && mean_depth > 1.0) {
@@ -1737,24 +1742,24 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                     double rra_d = ra / dvalue(total_nodes);
                     double rra_p = ra / pvalue(total_nodes);
                     double integ_tk = teklinteg(total_nodes, total_depth);
-                    m_attributes.setValue(row,integ_dv_col,float(1.0/rra_d));
+                    integ_dv_col_data[i] = float(1.0/rra_d);
                     if(!simple_version) {
-                        m_attributes.setValue(row,integ_pv_col,float(1.0/rra_p));
+                        integ_pv_col_data[i] = float(1.0/rra_p);
                     }
                     if (total_depth - total_nodes + 1 > 1) {
                         if(!simple_version) {
-                            m_attributes.setValue(row,integ_tk_col,float(integ_tk));
+                            integ_tk_col_data[i] = float(integ_tk);
                         }
                     } else {
                         if(!simple_version) {
-                            m_attributes.setValue(row,integ_tk_col,-1.0f);
+                            integ_tk_col_data[i] = -1.0f;
                         }
                     }
                 } else {
-                    m_attributes.setValue(row,integ_dv_col,(float)-1);
+                    integ_dv_col_data[i] = -1.0f;
                     if(!simple_version) {
-                        m_attributes.setValue(row,integ_pv_col,(float)-1);
-                        m_attributes.setValue(row,integ_tk_col,(float)-1);
+                        integ_pv_col_data[i] = -1.0f;
+                        integ_tk_col_data[i] = -1.0f;
                     }
                 }
                 double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
@@ -1771,15 +1776,15 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                     }
                 }
                 if(!simple_version) {
-                    m_attributes.setValue(row, entropy_col, float(entropy) );
-                    m_attributes.setValue(row, rel_entropy_col, float(rel_entropy) );
+                    entropy_col_data[i] = float(entropy);
+                    rel_entropy_col_data[i] = float(rel_entropy);
                 }
             }
             else {
                 if(!simple_version) {
-                    m_attributes.setValue(row, depth_col,(float)-1);
-                    m_attributes.setValue(row, entropy_col,(float)-1);
-                    m_attributes.setValue(row, rel_entropy_col,(float)-1);
+                    depth_col_data[i] = -1.0f;
+                    entropy_col_data[i] = -1.0f;
+                    rel_entropy_col_data[i] = -1.0f;
                 }
             }
             count++;    // <- increment count
@@ -1791,13 +1796,35 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                   }
                   comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
                }
+
             }
+
+            // kept to achieve parity in binary comparison with old versions
+            // TODO: Remove at next version of .graph file
+            size_t filledIdx = size_t(filled[i].y*m_cols + filled[i].x);
+            getPoint(filled[i]).m_misc = miscs[filledIdx];
+            getPoint(filled[i]).m_extent = extents[filledIdx];
+        }
+
+        for(size_t i = 0; i < rows.size(); i++) {
+            m_attributes.setValue(rows[i], count_col,       count_col_data[i]);
+            m_attributes.setValue(rows[i], depth_col,       depth_col_data[i]);
+            m_attributes.setValue(rows[i], integ_dv_col,    integ_dv_col_data[i]);
+            m_attributes.setValue(rows[i], integ_pv_col,    integ_pv_col_data[i]);
+            m_attributes.setValue(rows[i], integ_tk_col,    integ_tk_col_data[i]);
+            m_attributes.setValue(rows[i], entropy_col,     entropy_col_data[i]);
+            m_attributes.setValue(rows[i], rel_entropy_col, rel_entropy_col_data[i]);
         }
     }
 
     count = 0;
 
     if (options.local) {
+
+        std::vector<float> cluster_col_data(filled.size());
+        std::vector<float> control_col_data(filled.size());
+        std::vector<float> controllability_col_data(filled.size());
+
         #pragma omp parallel for
         for (size_t i = 0; i < filled.size(); i++) {
 
@@ -1807,7 +1834,6 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 count++;
                 continue;
             }
-            int row = m_attributes.getRowid(filled[i]);
 
             // This is much easier to do with a straight forward list:
             PixelRefVector neighbourhood;
@@ -1842,13 +1868,13 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
             }
             if(!simple_version) {
                 if (neighbourhood.size() > 1) {
-                    m_attributes.setValue(row, cluster_col, float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0))) );
-                    m_attributes.setValue(row, control_col, float(control) );
-                    m_attributes.setValue(row, controllability_col, float( double(neighbourhood.size()) / double(totalneighbourhood.size())) );
+                    cluster_col_data[i] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
+                    control_col_data[i] = float(control);
+                    controllability_col_data[i] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
                 } else {
-                    m_attributes.setValue(row, cluster_col, -1 );
-                    m_attributes.setValue(row, control_col, -1 );
-                    m_attributes.setValue(row, controllability_col, neighbourhood.size() );
+                    cluster_col_data[i] = -1.0f;
+                    control_col_data[i] = -1.0f;
+                    controllability_col_data[i] = neighbourhood.size();
                 }
             }
             count++;    // <- increment count
@@ -1861,6 +1887,11 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                     comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
                 }
             }
+        }
+        for(size_t i = 0; i < rows.size(); i++) {
+            m_attributes.setValue(rows[i], cluster_col,         cluster_col_data[i]);
+            m_attributes.setValue(rows[i], control_col,         control_col_data[i]);
+            m_attributes.setValue(rows[i], controllability_col, controllability_col_data[i]);
         }
     }
 
@@ -1966,17 +1997,24 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
    int count_col = m_attributes.insertColumn(count_col_text.c_str());
 
     std::vector<PixelRef> filled;
+    std::vector<int> rows;
 
     for (int i = 0; i < m_cols; i++) {
        for (int j = 0; j < m_rows; j++) {
            PixelRef curs = PixelRef( i, j );
            if ( getPoint( curs ).filled()) {
                filled.push_back(curs);
+               rows.push_back(m_attributes.getRowid(curs));
            }
        }
     }
 
     int count = 0;
+
+    std::vector<float> mspa_col_data(filled.size());
+    std::vector<float> mspl_col_data(filled.size());
+    std::vector<float> dist_col_data(filled.size());
+    std::vector<float> count_col_data(filled.size());
 
     size_t npix = size_t(m_cols*m_rows);
     #pragma omp parallel for
@@ -2044,11 +2082,10 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
         getPoint(filled[i]).m_dist = dists[filledIdx];
         getPoint(filled[i]).m_cumangle = cumangles[filledIdx];
 
-        int row = m_attributes.getRowid(filled[i]);
-        m_attributes.setValue(row, mspa_col, float(double(total_angle) / double(total_nodes)) );
-        m_attributes.setValue(row, mspl_col, float(double(total_depth) / double(total_nodes)) );
-        m_attributes.setValue(row, dist_col, float(double(euclid_depth) / double(total_nodes)) );
-        m_attributes.setValue(row, count_col, float(total_nodes) );
+        mspa_col_data[i] = float(double(total_angle) / double(total_nodes));
+        mspl_col_data[i] = float(double(total_depth) / double(total_nodes));
+        dist_col_data[i] = float(double(euclid_depth) / double(total_nodes));
+        count_col_data[i] = float(total_nodes);
 
         count++;    // <- increment count
 
@@ -2060,6 +2097,13 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
                 comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
             }
         }
+    }
+
+    for(size_t i = 0; i < rows.size(); i++) {
+        m_attributes.setValue(rows[i], mspa_col,  mspa_col_data[i]);
+        m_attributes.setValue(rows[i], mspl_col,  mspl_col_data[i]);
+        m_attributes.setValue(rows[i], dist_col,  dist_col_data[i]);
+        m_attributes.setValue(rows[i], count_col, count_col_data[i]);
     }
 
     m_displayed_attribute = -2;
@@ -2172,17 +2216,22 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
    int count_col = m_attributes.insertColumn(count_col_text.c_str());
 
     std::vector<PixelRef> filled;
+    std::vector<int> rows;
 
     for (int i = 0; i < m_cols; i++) {
         for (int j = 0; j < m_rows; j++) {
             PixelRef curs = PixelRef( i, j );
             if ( getPoint( curs ).filled()) {
                 filled.push_back(curs);
+                rows.push_back(m_attributes.getRowid(curs));
             }
         }
     }
 
     int count = 0;
+
+    std::vector<float> total_depth_col_data(filled.size());
+    std::vector<float> count_col_data(filled.size());
 
     size_t npix = size_t(m_cols*m_rows);
     #pragma omp parallel for
@@ -2242,8 +2291,8 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
         if (total_nodes > 0) {
             m_attributes.setValue(row, mean_depth_col, float(double(total_angle) / double(total_nodes)) );
         }
-        m_attributes.setValue(row, total_depth_col, total_angle );
-        m_attributes.setValue(row, count_col, float(total_nodes) );
+        total_depth_col_data[i] = total_angle;
+        count_col_data[i] = float(total_nodes);
 
         count++;    // <- increment count
 
@@ -2261,6 +2310,10 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
         size_t filledIdx = size_t(filled[i].y*m_cols + filled[i].x);
         getPoint(filled[i]).m_misc = miscs[filledIdx];
         getPoint(filled[i]).m_cumangle = cumangles[filledIdx];
+    }
+    for(size_t i = 0; i < rows.size(); i++) {
+        m_attributes.setValue(rows[i], total_depth_col,  total_depth_col_data[i]);
+        m_attributes.setValue(rows[i], count_col,        count_col_data[i]);
     }
 
    m_displayed_attribute = -2;
