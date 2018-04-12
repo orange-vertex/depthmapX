@@ -15,6 +15,11 @@ SUBDIRS = \
     depthmapXTest
 GuiApp.depends = depthmapX genlib mgraph440 salalib settingsdialog
 
+linux {
+    QMAKE_CXXFLAGS += -fopenmp
+    QMAKE_LFLAGS +=  -fopenmp
+}
+
 mac {
     QMAKE_CC = /usr/local/opt/llvm/bin/clang
     QMAKE_CXX = /usr/local/opt/llvm/bin/clang++

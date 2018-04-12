@@ -41,3 +41,8 @@ mac {
     QMAKE_LFLAGS += -L/usr/local/opt/llvm/lib/
     LIBS += -fopenmp
 }
+
+linux {
+    QMAKE_CXXFLAGS += -fopenmp
+    QMAKE_LFLAGS +=  -fopenmp
+}
