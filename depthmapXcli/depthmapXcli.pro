@@ -68,3 +68,7 @@ linux {
     QMAKE_CXXFLAGS += -fopenmp
     QMAKE_LFLAGS +=  -fopenmp
 }
+
+msvc {
+    QMAKE_CXXFLAGS += -openmp
+}
