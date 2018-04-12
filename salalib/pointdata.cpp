@@ -1588,72 +1588,25 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
 {
    time_t atime = 0;
 
-   if (comm) {
-      qtimer( atime, 0 );
-      comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
-   }
+    if (comm) {
+        qtimer( atime, 0 );
+        comm->CommPostMessage( Communicator::NUM_RECORDS, m_point_count );
+    }
 
-   int cluster_col, control_col, controllability_col;
-   if(!simple_version) {
-       if (options.local) {
-           cluster_col = m_attributes.insertColumn("Visual Clustering Coefficient");
-           control_col = m_attributes.insertColumn("Visual Control");
-           controllability_col = m_attributes.insertColumn("Visual Controllability");
-       }
-   }
+    std::vector<PixelRef> filled;
+    std::vector<int> rows;
 
-   int entropy_col, rel_entropy_col, integ_dv_col, integ_pv_col, integ_tk_col, depth_col, count_col;
-   if (options.global) {
-      std::string radius_text;
-      if (options.radius != -1) {
-         radius_text = std::string(" R") + dXstring::formatString(int(options.radius),"%d");
-      }
+    for (int i = 0; i < m_cols; i++) {
+        for (int j = 0; j < m_rows; j++) {
+            PixelRef curs = PixelRef( i, j );
+            if ( getPoint( curs ).filled()) {
+                filled.push_back(curs);
+                rows.push_back(m_attributes.getRowid(curs));
+            }
+        }
+    }
 
-      // n.b. these must be entered in alphabetical order to preserve col indexing:
-      // dX simple version test // TV
-#ifndef _COMPILE_dX_SIMPLE_VERSION
-      if(!simple_version) {
-          std::string entropy_col_text = std::string("Visual Entropy") + radius_text;
-          entropy_col = m_attributes.insertColumn(entropy_col_text.c_str());
-      }
-#endif
-
-      std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
-      integ_dv_col = m_attributes.insertColumn(integ_dv_col_text.c_str());
-
-#ifndef _COMPILE_dX_SIMPLE_VERSION
-      if(!simple_version) {
-          std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
-          integ_pv_col = m_attributes.insertColumn(integ_pv_col_text.c_str());
-          std::string integ_tk_col_text = std::string("Visual Integration [Tekl]") + radius_text;
-          integ_tk_col = m_attributes.insertColumn(integ_tk_col_text.c_str());
-          std::string depth_col_text = std::string("Visual Mean Depth") + radius_text;
-          depth_col = m_attributes.insertColumn(depth_col_text.c_str());
-          std::string count_col_text = std::string("Visual Node Count") + radius_text;
-          count_col = m_attributes.insertColumn(count_col_text.c_str());
-          std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
-          rel_entropy_col = m_attributes.insertColumn(rel_entropy_col_text.c_str());
-      }
-#endif
-   }
-
-   std::vector<PixelRef> filled;
-   std::vector<int> rows;
-
-   for (int i = 0; i < m_cols; i++) {
-
-      for (int j = 0; j < m_rows; j++) {
-
-         PixelRef curs = PixelRef( i, j );
-
-         if ( getPoint( curs ).filled()) {
-             filled.push_back(curs);
-             rows.push_back(m_attributes.getRowid(curs));
-         }
-      }
-   }
-
-   int count = 0;
+    int count = 0;
 
     if (options.global) {
 
@@ -1726,9 +1679,9 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
 
             // only set to single float precision after divide
             // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
-            if(!simple_version) {
-                count_col_data[i] = float(total_nodes); // note: total nodes includes this one;
-            }
+
+            count_col_data[i] = float(total_nodes); // note: total nodes includes this one;
+
             // ERROR !!!!!!
             if (total_nodes > 1) {
                 double mean_depth = double(total_depth) / double(total_nodes - 1);
@@ -1775,17 +1728,13 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                         rel_entropy += (float) prob * log2( prob / q );
                     }
                 }
-                if(!simple_version) {
-                    entropy_col_data[i] = float(entropy);
-                    rel_entropy_col_data[i] = float(rel_entropy);
-                }
+                entropy_col_data[i] = float(entropy);
+                rel_entropy_col_data[i] = float(rel_entropy);
             }
             else {
-                if(!simple_version) {
-                    depth_col_data[i] = -1.0f;
-                    entropy_col_data[i] = -1.0f;
-                    rel_entropy_col_data[i] = -1.0f;
-                }
+                depth_col_data[i] = -1.0f;
+                entropy_col_data[i] = -1.0f;
+                rel_entropy_col_data[i] = -1.0f;
             }
             count++;    // <- increment count
 
@@ -1806,20 +1755,55 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
             getPoint(filled[i]).m_extent = extents[filledIdx];
         }
 
+        int entropy_col, rel_entropy_col, integ_dv_col, integ_pv_col,
+                integ_tk_col, depth_col, count_col;
+
+        std::string radius_text;
+        if (options.radius != -1) {
+            radius_text = std::string(" R") + dXstring::formatString(int(options.radius),"%d");
+        }
+
+        // n.b. these must be entered in alphabetical order to preserve col indexing:
+        // dX simple version test // TV
+        if(!simple_version) {
+            std::string entropy_col_text = std::string("Visual Entropy") + radius_text;
+            entropy_col = m_attributes.insertColumn(entropy_col_text.c_str());
+        }
+
+        std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
+        integ_dv_col = m_attributes.insertColumn(integ_dv_col_text.c_str());
+
+        if(!simple_version) {
+            std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
+            integ_pv_col = m_attributes.insertColumn(integ_pv_col_text.c_str());
+            std::string integ_tk_col_text = std::string("Visual Integration [Tekl]") + radius_text;
+            integ_tk_col = m_attributes.insertColumn(integ_tk_col_text.c_str());
+            std::string depth_col_text = std::string("Visual Mean Depth") + radius_text;
+            depth_col = m_attributes.insertColumn(depth_col_text.c_str());
+            std::string count_col_text = std::string("Visual Node Count") + radius_text;
+            count_col = m_attributes.insertColumn(count_col_text.c_str());
+            std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
+            rel_entropy_col = m_attributes.insertColumn(rel_entropy_col_text.c_str());
+        }
+
         for(size_t i = 0; i < rows.size(); i++) {
-            m_attributes.setValue(rows[i], count_col,       count_col_data[i]);
-            m_attributes.setValue(rows[i], depth_col,       depth_col_data[i]);
             m_attributes.setValue(rows[i], integ_dv_col,    integ_dv_col_data[i]);
             m_attributes.setValue(rows[i], integ_pv_col,    integ_pv_col_data[i]);
             m_attributes.setValue(rows[i], integ_tk_col,    integ_tk_col_data[i]);
-            m_attributes.setValue(rows[i], entropy_col,     entropy_col_data[i]);
-            m_attributes.setValue(rows[i], rel_entropy_col, rel_entropy_col_data[i]);
+            if(!simple_version) {
+                m_attributes.setValue(rows[i], count_col,       count_col_data[i]);
+                m_attributes.setValue(rows[i], depth_col,       depth_col_data[i]);
+                m_attributes.setValue(rows[i], entropy_col,     entropy_col_data[i]);
+                m_attributes.setValue(rows[i], rel_entropy_col, rel_entropy_col_data[i]);
+            }
         }
+
+        setDisplayedAttribute(integ_dv_col);
     }
 
     count = 0;
 
-    if (options.local) {
+    if (options.local && !simple_version) {
 
         std::vector<float> cluster_col_data(filled.size());
         std::vector<float> control_col_data(filled.size());
@@ -1866,16 +1850,14 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                      cluster += intersect_size;
                   }
             }
-            if(!simple_version) {
-                if (neighbourhood.size() > 1) {
-                    cluster_col_data[i] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
-                    control_col_data[i] = float(control);
-                    controllability_col_data[i] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
-                } else {
-                    cluster_col_data[i] = -1.0f;
-                    control_col_data[i] = -1.0f;
-                    controllability_col_data[i] = neighbourhood.size();
-                }
+            if (neighbourhood.size() > 1) {
+                cluster_col_data[i] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
+                control_col_data[i] = float(control);
+                controllability_col_data[i] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
+            } else {
+                cluster_col_data[i] = -1.0f;
+                control_col_data[i] = -1.0f;
+                controllability_col_data[i] = neighbourhood.size();
             }
             count++;    // <- increment count
 
@@ -1888,24 +1870,20 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 }
             }
         }
+
+        int cluster_col = m_attributes.insertColumn("Visual Clustering Coefficient");
+        int control_col = m_attributes.insertColumn("Visual Control");
+        int controllability_col = m_attributes.insertColumn("Visual Controllability");
+
         for(size_t i = 0; i < rows.size(); i++) {
             m_attributes.setValue(rows[i], cluster_col,         cluster_col_data[i]);
             m_attributes.setValue(rows[i], control_col,         control_col_data[i]);
             m_attributes.setValue(rows[i], controllability_col, controllability_col_data[i]);
         }
+        setDisplayedAttribute(cluster_col);
     }
 
-   if (options.global) {
-      setDisplayedAttribute(integ_dv_col);
-   }
-   else if (options.local) {
-#ifndef _COMPILE_dX_SIMPLE_VERSION
-       if(!simple_version)
-           setDisplayedAttribute(cluster_col);
-#endif
-   }
-
-   return true;
+    return true;
 }
 
 bool PointMap::analyseVisualPointDepth(Communicator *comm)
@@ -1973,28 +1951,6 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
       qtimer( atime, 0 );
       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
    }
-
-   std::string radius_text;
-   if (options.radius != -1.0) {
-      if (options.radius > 100.0) {
-         radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.f");
-      }
-      else if (m_region.width() < 1.0) {
-         radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.4f");
-      }
-      else {
-         radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.2f");
-      }
-   }
-   // n.b. these must be entered in alphabetical order to preserve col indexing:
-   std::string mspa_col_text = std::string("Metric Mean Shortest-Path Angle") + radius_text;
-   int mspa_col = m_attributes.insertColumn(mspa_col_text.c_str());
-   std::string mspl_col_text = std::string("Metric Mean Shortest-Path Distance") + radius_text;
-   int mspl_col = m_attributes.insertColumn(mspl_col_text.c_str());
-   std::string dist_col_text = std::string("Metric Mean Straight-Line Distance") + radius_text;
-   int dist_col = m_attributes.insertColumn(dist_col_text.c_str());
-   std::string count_col_text = std::string("Metric Node Count") + radius_text;
-   int count_col = m_attributes.insertColumn(count_col_text.c_str());
 
     std::vector<PixelRef> filled;
     std::vector<int> rows;
@@ -2099,6 +2055,27 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
         }
     }
 
+    std::string radius_text;
+    if (options.radius != -1.0) {
+        if (options.radius > 100.0) {
+            radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.f");
+        } else if (m_region.width() < 1.0) {
+            radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.4f");
+        } else {
+            radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.2f");
+        }
+    }
+    // n.b. these must be entered in alphabetical order to preserve col indexing:
+    std::string mspa_col_text = std::string("Metric Mean Shortest-Path Angle") + radius_text;
+    int mspa_col = m_attributes.insertColumn(mspa_col_text.c_str());
+    std::string mspl_col_text = std::string("Metric Mean Shortest-Path Distance") + radius_text;
+    int mspl_col = m_attributes.insertColumn(mspl_col_text.c_str());
+    std::string dist_col_text = std::string("Metric Mean Straight-Line Distance") + radius_text;
+    int dist_col = m_attributes.insertColumn(dist_col_text.c_str());
+    std::string count_col_text = std::string("Metric Node Count") + radius_text;
+    int count_col = m_attributes.insertColumn(count_col_text.c_str());
+
+
     for(size_t i = 0; i < rows.size(); i++) {
         m_attributes.setValue(rows[i], mspa_col,  mspa_col_data[i]);
         m_attributes.setValue(rows[i], mspl_col,  mspl_col_data[i]);
@@ -2195,26 +2172,6 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
    }
 
-   std::string radius_text;
-   if (options.radius != -1.0) {
-      if (m_region.width() > 100.0) {
-         radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.f");
-      }
-      else if (m_region.width() < 1.0) {
-         radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.4f");
-      }
-      else {
-         radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.2f");
-      }
-   }
-   // n.b. these must be entered in alphabetical order to preserve col indexing:
-   std::string mean_depth_col_text = std::string("Angular Mean Depth") + radius_text;
-   int mean_depth_col = m_attributes.insertColumn(mean_depth_col_text.c_str());
-   std::string total_detph_col_text = std::string("Angular Total Depth") + radius_text;
-   int total_depth_col = m_attributes.insertColumn(total_detph_col_text.c_str());
-   std::string count_col_text = std::string("Angular Node Count") + radius_text;
-   int count_col = m_attributes.insertColumn(count_col_text.c_str());
-
     std::vector<PixelRef> filled;
     std::vector<int> rows;
 
@@ -2231,6 +2188,7 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
     int count = 0;
 
     std::vector<float> total_depth_col_data(filled.size());
+    std::vector<float> mean_depth_col_data(filled.size());
     std::vector<float> count_col_data(filled.size());
 
     size_t npix = size_t(m_cols*m_rows);
@@ -2289,7 +2247,7 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
 
         int row = m_attributes.getRowid(filled[i]);
         if (total_nodes > 0) {
-            m_attributes.setValue(row, mean_depth_col, float(double(total_angle) / double(total_nodes)) );
+            mean_depth_col_data[i] = float(double(total_angle) / double(total_nodes));
         }
         total_depth_col_data[i] = total_angle;
         count_col_data[i] = float(total_nodes);
@@ -2311,15 +2269,36 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
         getPoint(filled[i]).m_misc = miscs[filledIdx];
         getPoint(filled[i]).m_cumangle = cumangles[filledIdx];
     }
+
+
+    std::string radius_text;
+    if (options.radius != -1.0) {
+        if (m_region.width() > 100.0) {
+            radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.f");
+        } else if (m_region.width() < 1.0) {
+            radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.4f");
+        } else {
+            radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.2f");
+        }
+    }
+    // n.b. these must be entered in alphabetical order to preserve col indexing:
+    std::string mean_depth_col_text = std::string("Angular Mean Depth") + radius_text;
+    int mean_depth_col = m_attributes.insertColumn(mean_depth_col_text.c_str());
+    std::string total_detph_col_text = std::string("Angular Total Depth") + radius_text;
+    int total_depth_col = m_attributes.insertColumn(total_detph_col_text.c_str());
+    std::string count_col_text = std::string("Angular Node Count") + radius_text;
+    int count_col = m_attributes.insertColumn(count_col_text.c_str());
+
     for(size_t i = 0; i < rows.size(); i++) {
+        m_attributes.setValue(rows[i], mean_depth_col,   mean_depth_col_data[i]);
         m_attributes.setValue(rows[i], total_depth_col,  total_depth_col_data[i]);
         m_attributes.setValue(rows[i], count_col,        count_col_data[i]);
     }
 
-   m_displayed_attribute = -2;
-   setDisplayedAttribute(mean_depth_col);
+    m_displayed_attribute = -2;
+    setDisplayedAttribute(mean_depth_col);
 
-   return true;
+    return true;
 }
 
 bool PointMap::analyseAngularPointDepth(Communicator *comm)
