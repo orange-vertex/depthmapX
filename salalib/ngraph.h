@@ -88,7 +88,7 @@ public:
    void next() const;
    bool is_tail() const;
    PixelRef cursor() const;
-   void dumpNeighbourhood(PixelRefVector& hood) const;
+   void dumpNeighbourhood(std::set<PixelRef> &hood) const;
    //
    std::istream &read(std::istream &stream, int version);
    std::ofstream& write(std::ofstream& stream, int version);
@@ -141,7 +141,7 @@ protected:
    mutable int m_curbin;
 public:
    void contents(PixelRefVector& hood) const;
-   void dumpNeighbourhood(PixelRefVector& hood) const;
+   void dumpNeighbourhood(std::set<PixelRef> &hood) const;
    void first() const;
    void next() const;
    bool is_tail() const;

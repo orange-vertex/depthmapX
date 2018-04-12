@@ -191,7 +191,7 @@ void Node::contents(PixelRefVector& hood) const
    }
 }
 
-void Node::dumpNeighbourhood(PixelRefVector& hood) const
+void Node::dumpNeighbourhood(std::set<PixelRef>& hood) const
 {
    for (int i = 0; i < 32; i++) {
       m_bins[i].dumpNeighbourhood(hood);
@@ -435,10 +435,10 @@ PixelRef Bin::cursor() const
    return (int) m_curpix;
 }
 
-void Bin::dumpNeighbourhood(PixelRefVector& hood) const {
+void Bin::dumpNeighbourhood(std::set<PixelRef>& hood) const {
     for (int i = 0; i < m_pixel_vecs.size(); i++) {
        for (PixelRef pix = m_pixel_vecs[i].start(); pix.col(m_dir) <= m_pixel_vecs[i].end().col(m_dir); ) {
-           hood.push_back(pix);
+           hood.insert(pix);
            pix.move(m_dir);
        }
     }
