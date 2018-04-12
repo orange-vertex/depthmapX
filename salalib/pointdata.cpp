@@ -1685,9 +1685,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
             // ERROR !!!!!!
             if (total_nodes > 1) {
                 double mean_depth = double(total_depth) / double(total_nodes - 1);
-                if(!simple_version) {
-                    depth_col_data[i] = float(mean_depth);
-                }
+                depth_col_data[i] = float(mean_depth);
                 // total nodes > 2 to avoid divide by 0 (was > 3)
                 if (total_nodes > 2 && mean_depth > 1.0) {
                     double ra = 2.0 * (mean_depth - 1.0) / double(total_nodes - 2);
@@ -1696,24 +1694,17 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                     double rra_p = ra / pvalue(total_nodes);
                     double integ_tk = teklinteg(total_nodes, total_depth);
                     integ_dv_col_data[i] = float(1.0/rra_d);
-                    if(!simple_version) {
-                        integ_pv_col_data[i] = float(1.0/rra_p);
-                    }
+                    integ_pv_col_data[i] = float(1.0/rra_p);
+
                     if (total_depth - total_nodes + 1 > 1) {
-                        if(!simple_version) {
-                            integ_tk_col_data[i] = float(integ_tk);
-                        }
+                        integ_tk_col_data[i] = float(integ_tk);
                     } else {
-                        if(!simple_version) {
-                            integ_tk_col_data[i] = -1.0f;
-                        }
+                        integ_tk_col_data[i] = -1.0f;
                     }
                 } else {
                     integ_dv_col_data[i] = -1.0f;
-                    if(!simple_version) {
-                        integ_pv_col_data[i] = -1.0f;
-                        integ_tk_col_data[i] = -1.0f;
-                    }
+                    integ_pv_col_data[i] = -1.0f;
+                    integ_tk_col_data[i] = -1.0f;
                 }
                 double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
                 // n.b., this distribution contains the root node itself in distribution[0]
@@ -1888,56 +1879,61 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
 
 bool PointMap::analyseVisualPointDepth(Communicator *comm)
 {
-   // n.b., insert columns sets values to -1 if the column already exists
-   int col = m_attributes.insertColumn("Visual Step Depth");
+    // n.b., insert columns sets values to -1 if the column already exists
+    int col = m_attributes.insertColumn("Visual Step Depth");
 
-   for (int i = 0; i < m_attributes.getRowCount(); i++) {
-      PixelRef pix = m_attributes.getRowKey(i);
-      getPoint(pix).m_misc = 0;
-      getPoint(pix).m_extent = pix;
-   }
+    std::vector<int> miscs(m_cols*m_rows);
+    std::vector<PixelRef> extents(m_cols*m_rows);
+    for (int ii = 0; ii < m_cols; ii++) {
+        for (int jj = 0; jj < m_rows; jj++) {
+            miscs[jj*m_cols + ii] = 0;
+            extents[jj*m_cols + ii] = PixelRef(ii,jj);
+        }
+    }
 
-   prefvec<PixelRefVector> search_tree;
-   search_tree.push_back(PixelRefVector());
-   for (auto& sel: m_selection_set) {
-      // need to convert from ints (m_selection_set) to pixelrefs for this op:
-      search_tree.tail().push_back(sel);
-   }
+    prefvec<PixelRefVector> search_tree;
+    search_tree.push_back(PixelRefVector());
+    for (auto& sel: m_selection_set) {
+        // need to convert from ints (m_selection_set) to pixelrefs for this op:
+        search_tree.tail().push_back(sel);
+    }
 
-   int level = 0;
-   while (search_tree[level].size()) {
-      search_tree.push_back(PixelRefVector());
-      for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
-         Point& p = getPoint(search_tree[level][n]);
-         if (p.filled() && p.m_misc != ~0) {
-            int row = m_attributes.getRowid(search_tree[level][n]);
-            m_attributes.setValue(row,col,float(level));
-            if (!p.contextfilled() || search_tree[level][n].iseven() || level == 0) {
-               p.m_node->extractUnseen(search_tree[level+1],this,p.m_misc);
-               p.m_misc = ~0;
-               if (!p.m_merge.empty()) {
-                  Point& p2 = getPoint(p.m_merge);
-                  if (p2.m_misc != ~0) {
-                     int row = m_attributes.getRowid(p.m_merge);
-                     m_attributes.setValue(row,col,float(level));
-                     p2.m_node->extractUnseen(search_tree[level+1],this,p2.m_misc); // did say p.misc
-                     p2.m_misc = ~0;
-                  }
-               }
+    int level = 0;
+    while (search_tree[level].size()) {
+        search_tree.push_back(PixelRefVector());
+        for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
+            PixelRef curr = search_tree[level][n];
+            Point& p = getPoint(curr);
+            size_t p1i = size_t(curr.y*m_cols + curr.x);
+            if (p.filled() && miscs[p1i] != ~0) {
+                int row = m_attributes.getRowid(search_tree[level][n]);
+                m_attributes.setValue(row,col,float(level));
+                if (!p.contextfilled() || search_tree[level][n].iseven() || level == 0) {
+                    p.m_node->extractUnseenMiscs(search_tree[level+1],this, miscs, extents);
+                    miscs[p1i] = ~0;
+                    if (!p.m_merge.empty()) {
+                        Point& p2 = getPoint(p.m_merge);
+                        size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
+                        if (miscs[p2i] != ~0) {
+                            int row = m_attributes.getRowid(p.m_merge);
+                            m_attributes.setValue(row,col,float(level));
+                            p2.m_node->extractUnseenMiscs(search_tree[level+1],this, miscs, extents); // did say p.misc
+                            miscs[p2i] = ~0;
+                        }
+                    }
+                } else {
+                    miscs[p1i] = ~0;
+                }
             }
-            else {
-               p.m_misc = ~0;
-            }
-         }
-      }
-      level++;
-   }
+        }
+        level++;
+    }
 
-   // force redisplay:
-   m_displayed_attribute = -2;
-   setDisplayedAttribute(col);
+    // force redisplay:
+    m_displayed_attribute = -2;
+    setDisplayedAttribute(col);
 
-   return true;
+    return true;
 }
 
 // This is a slow algorithm, but should give the correct answer
@@ -2091,71 +2087,76 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
 
 bool PointMap::analyseMetricPointDepth(Communicator *comm)
 {
-   // n.b., insert columns sets values to -1 if the column already exists
-   int path_angle_col = m_attributes.insertColumn("Metric Step Shortest-Path Angle");
-   int path_length_col = m_attributes.insertColumn("Metric Step Shortest-Path Length");
-   int dist_col;
-   if (m_selection_set.size() == 1) {
-      // Note: Euclidean distance is currently only calculated from a single point
-      dist_col = m_attributes.insertColumn("Metric Straight-Line Distance");
-   }
+    // n.b., insert columns sets values to -1 if the column already exists
+    int path_angle_col = m_attributes.insertColumn("Metric Step Shortest-Path Angle");
+    int path_length_col = m_attributes.insertColumn("Metric Step Shortest-Path Length");
+    int dist_col;
+    if (m_selection_set.size() == 1) {
+        // Note: Euclidean distance is currently only calculated from a single point
+        dist_col = m_attributes.insertColumn("Metric Straight-Line Distance");
+    }
 
-   for (int i = 0; i < m_attributes.getRowCount(); i++) {
-      PixelRef pix = m_attributes.getRowKey(i);
-      getPoint(pix).m_misc = 0;
-      getPoint(pix).m_dist = -1.0f;
-      getPoint(pix).m_cumangle = 0.0f;
-   }
+    size_t npix = size_t(m_cols*m_rows);
+    std::vector<int> miscs(npix);
+    std::vector<float> dists(npix);
+    std::vector<float> cumangles(npix);
+    for (int ii = 0; ii < m_cols; ii++) {
+        for (int jj = 0; jj < m_rows; jj++) {
+            miscs[size_t(jj*m_cols + ii)] = 0;
+            dists[size_t(jj*m_cols + ii)] = -1.0f;
+            cumangles[size_t(jj*m_cols + ii)] = 0.0f;
+        }
+    }
 
-   // in order to calculate Penn angle, the MetricPair becomes a metric triple...
-   std::set<MetricTriple> search_list; // contains root point
+    // in order to calculate Penn angle, the MetricPair becomes a metric triple...
+    std::set<MetricTriple> search_list; // contains root point
 
-   for (auto& sel: m_selection_set) {
-      search_list.insert(MetricTriple(0.0f,sel,NoPixel));
-   }
+    for (auto& sel: m_selection_set) {
+        search_list.insert(MetricTriple(0.0f,sel,NoPixel));
+    }
 
-   // note that m_misc is used in a different manner to analyseGraph / PointDepth
-   // here it marks the node as used in calculation only
-   int count = 0;
-   int level = 0;
-   while (search_list.size()) {
-      std::set<MetricTriple>::iterator it = search_list.begin();
-      MetricTriple here = *it;
-      search_list.erase(it);
-      Point& p = getPoint(here.pixel);
-      // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-      if (p.filled() && p.m_misc != ~0) {
-         p.m_node->extractMetric(search_list,this,here);
-         p.m_misc = ~0;
-         int row = m_attributes.getRowid(here.pixel);
-         m_attributes.setValue(row, path_length_col, float(m_spacing * here.dist) );
-         m_attributes.setValue(row, path_angle_col, float(p.m_cumangle) );
-         if (m_selection_set.size() == 1) {
-            // Note: Euclidean distance is currently only calculated from a single point
-            m_attributes.setValue(row, dist_col, float(m_spacing * dist(here.pixel,*m_selection_set.begin())) );
-         }
-         if (!p.m_merge.empty()) {
-            Point& p2 = getPoint(p.m_merge);
-            if (p2.m_misc != ~0) {
-               p2.m_cumangle = p.m_cumangle;
-               int row = m_attributes.getRowid(p.m_merge);
-               m_attributes.setValue(row, path_length_col, float(m_spacing * here.dist) );
-               m_attributes.setValue(row, path_angle_col, float(p2.m_cumangle) );
-               if (m_selection_set.size() == 1) {
-                  // Note: Euclidean distance is currently only calculated from a single point
-                  m_attributes.setValue(row, dist_col, float(m_spacing * dist(p.m_merge,*m_selection_set.begin())) );
-               }
-               p2.m_node->extractMetric(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel));
-               p2.m_misc = ~0;
+    // note that m_misc is used in a different manner to analyseGraph / PointDepth
+    // here it marks the node as used in calculation only
+    while (search_list.size()) {
+        std::set<MetricTriple>::iterator it = search_list.begin();
+        MetricTriple here = *it;
+        search_list.erase(it);
+        Point& p = getPoint(here.pixel);
+        size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
+        // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
+        if (p.filled() && miscs[p1i] != ~0) {
+            p.m_node->extractMetricExtras(search_list,this,here, miscs, dists, cumangles);
+            miscs[p1i] = ~0;
+            int row = m_attributes.getRowid(here.pixel);
+            m_attributes.setValue(row, path_length_col, float(m_spacing * here.dist) );
+            m_attributes.setValue(row, path_angle_col, float(cumangles[p1i]) );
+            if (m_selection_set.size() == 1) {
+                // Note: Euclidean distance is currently only calculated from a single point
+                m_attributes.setValue(row, dist_col, float(m_spacing * dist(here.pixel,*m_selection_set.begin())) );
             }
-         }
-      }
-   }
+            if (!p.m_merge.empty()) {
+                Point& p2 = getPoint(p.m_merge);
+                size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
+                if (miscs[p2i] != ~0) {
+                    cumangles[p2i] = cumangles[p1i];
+                    int row = m_attributes.getRowid(p.m_merge);
+                    m_attributes.setValue(row, path_length_col, float(m_spacing * here.dist) );
+                    m_attributes.setValue(row, path_angle_col, float(cumangles[p2i]) );
+                    if (m_selection_set.size() == 1) {
+                        // Note: Euclidean distance is currently only calculated from a single point
+                        m_attributes.setValue(row, dist_col, float(m_spacing * dist(p.m_merge,*m_selection_set.begin())) );
+                    }
+                    p2.m_node->extractMetricExtras(search_list,this,MetricTriple(here.dist,p.m_merge,NoPixel), miscs, dists, cumangles);
+                    miscs[p2i] = ~0;
+                }
+            }
+        }
+    }
 
-   m_displayed_attribute = -2;
-   setDisplayedAttribute(path_length_col);
+    m_displayed_attribute = -2;
+    setDisplayedAttribute(path_length_col);
 
-   return true;
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -2306,43 +2307,46 @@ bool PointMap::analyseAngularPointDepth(Communicator *comm)
    // n.b., insert columns sets values to -1 if the column already exists
    int path_angle_col = m_attributes.insertColumn("Angular Step Depth");
 
-   for (int i = 0; i < m_attributes.getRowCount(); i++) {
-      PixelRef pix = m_attributes.getRowKey(i);
-      getPoint(pix).m_misc = 0;
-      getPoint(pix).m_dist = 0.0f;
-      getPoint(pix).m_cumangle = -1.0f;
+   size_t npix = size_t(m_cols*m_rows);
+   std::vector<int> miscs(npix);
+   std::vector<float> cumangles(npix);
+   for (int ii = 0; ii < m_cols; ii++) {
+       for (int jj = 0; jj < m_rows; jj++) {
+           miscs[size_t(jj*m_cols + ii)] = 0;
+           cumangles[size_t(jj*m_cols + ii)] = -1.0f;
+       }
    }
 
    std::set<AngularTriple> search_list; // contains root point
 
    for (auto& sel: m_selection_set) {
       search_list.insert(AngularTriple(0.0f,sel,NoPixel));
-      getPoint(sel).m_cumangle = 0.0f;
+      cumangles[PixelRef(sel).y*m_cols +PixelRef(sel).x] = 0.0f;
    }
 
    // note that m_misc is used in a different manner to analyseGraph / PointDepth
    // here it marks the node as used in calculation only
-   int count = 0;
-   int level = 0;
    while (search_list.size()) {
       std::set<AngularTriple>::iterator it = search_list.begin();
       AngularTriple here = *it;
       search_list.erase(it);
       Point& p = getPoint(here.pixel);
+      size_t p1i = size_t(here.pixel.y*m_cols + here.pixel.x);
       // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-      if (p.filled() && p.m_misc != ~0) {
-         p.m_node->extractAngular(search_list,this,here);
-         p.m_misc = ~0;
+      if (p.filled() && miscs[p1i] != ~0) {
+         p.m_node->extractAngularExtras(search_list,this,here, miscs, cumangles);
+         miscs[p1i] = ~0;
          int row = m_attributes.getRowid(here.pixel);
-         m_attributes.setValue(row, path_angle_col, float(p.m_cumangle) );
+         m_attributes.setValue(row, path_angle_col, float(cumangles[p1i]) );
          if (!p.m_merge.empty()) {
             Point& p2 = getPoint(p.m_merge);
-            if (p2.m_misc != ~0) {
-               p2.m_cumangle = p.m_cumangle;
+            size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
+            if (miscs[p2i] != ~0) {
+               cumangles[p2i] = cumangles[p1i];
                int row = m_attributes.getRowid(p.m_merge);
-               m_attributes.setValue(row, path_angle_col, float(p2.m_cumangle) );
-               p2.m_node->extractAngular(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel));
-               p2.m_misc = ~0;
+               m_attributes.setValue(row, path_angle_col, float(cumangles[p2i]) );
+               p2.m_node->extractAngularExtras(search_list,this,AngularTriple(here.angle,p.m_merge,NoPixel), miscs, cumangles);
+               miscs[p2i] = ~0;
             }
          }
       }
