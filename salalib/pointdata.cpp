@@ -1619,7 +1619,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
         std::vector<float> rel_entropy_col_data(filled.size());
 
         #pragma omp parallel for
-        for (size_t i = 0; i < filled.size(); i++) {
+        for (int i = 0; i < filled.size(); i++) {
 
             if ((getPoint( filled[i] ).contextfilled() && !filled[i].iseven()) ||
                 (options.gates_only)) {
@@ -1801,7 +1801,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
         std::vector<float> controllability_col_data(filled.size());
 
         #pragma omp parallel for
-        for (size_t i = 0; i < filled.size(); i++) {
+        for (int i = 0; i < filled.size(); i++) {
 
             Point& p = getPoint( filled[i] );
             if ((p.contextfilled() && !filled[i].iseven()) ||
@@ -1970,7 +1970,7 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
 
     size_t npix = size_t(m_cols*m_rows);
     #pragma omp parallel for
-    for (size_t i = 0; i < filled.size(); i++) {
+    for (int i = 0; i < filled.size(); i++) {
         if ( options.gates_only) {
             count++;
             continue;
@@ -2194,7 +2194,7 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
 
     size_t npix = size_t(m_cols*m_rows);
     #pragma omp parallel for
-    for (size_t i = 0; i < filled.size(); i++) {
+    for (int i = 0; i < filled.size(); i++) {
         if ( options.gates_only) {
             count++;
             continue;

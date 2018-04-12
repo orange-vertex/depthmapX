@@ -15,6 +15,10 @@ SUBDIRS = \
     depthmapXTest
 GuiApp.depends = depthmapX genlib mgraph440 salalib settingsdialog
 
+msvc {
+  QMAKE_CXXFLAGS += -openmp
+}
+
 linux {
     QMAKE_CXXFLAGS += -fopenmp
     QMAKE_LFLAGS +=  -fopenmp
