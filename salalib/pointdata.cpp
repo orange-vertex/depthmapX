@@ -1811,34 +1811,25 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
             }
 
             // This is much easier to do with a straight forward list:
-            PixelRefVector neighbourhood;
-            PixelRefVector totalneighbourhood;
+            std::set<PixelRef> neighbourhood;
+            std::set<PixelRef> totalneighbourhood;
             p.m_node->dumpNeighbourhood(neighbourhood);
-
-            // only required to match previous non-stl output. Without this
-            // the output differs by the last digit of the float
-            std::sort(neighbourhood.begin(), neighbourhood.end());
 
             int cluster = 0;
             float control = 0.0f;
 
             for (auto& neighbour: neighbourhood) {
-                int intersect_size = 0, retro_size = 0;
                 Point& retpt = getPoint(neighbour);
                 if (retpt.m_node) {
-                    PixelRefVector retneighbourhood;
+                    std::set<PixelRef> retneighbourhood;
                     retpt.m_node->dumpNeighbourhood(retneighbourhood);
-                    for (auto& ret: retneighbourhood) {
-                        retro_size++;
-                        if (std::find(neighbourhood.begin(), neighbourhood.end(), ret) != neighbourhood.end()) {
-                            intersect_size++;
-                        }
-                        if (std::find(totalneighbourhood.begin(), totalneighbourhood.end(), ret) == totalneighbourhood.end()) {
-                            totalneighbourhood.push_back(ret); // <- note add does nothing if member already exists
-                        }
-                     }
-                     control += 1.0f / float(retro_size);
-                     cluster += intersect_size;
+                    std::set<int> intersect;
+                    std::set_intersection(neighbourhood.begin(),neighbourhood.end(),
+                                                      retneighbourhood.begin(),retneighbourhood.end(),
+                                                      std::inserter(intersect,intersect.begin()));
+                    totalneighbourhood.insert(retneighbourhood.begin(), retneighbourhood.end());
+                    control += 1.0f / float(retneighbourhood.size());
+                    cluster += intersect.size();
                   }
             }
             if (neighbourhood.size() > 1) {
