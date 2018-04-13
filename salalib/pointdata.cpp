@@ -1800,49 +1800,71 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
         std::vector<float> control_col_data(filled.size());
         std::vector<float> controllability_col_data(filled.size());
 
-        #pragma omp parallel for
-        for (int i = 0; i < filled.size(); i++) {
+        std::vector<std::set<int>> hoods(filled.size());
 
-            Point& p = getPoint( filled[i] );
-            if ((p.contextfilled() && !filled[i].iseven()) ||
+
+        int i, N = int(filled.size());
+        std::map<PixelRef, int> refToFilled;
+        for ( i = 0; i < N; ++i ) {
+            refToFilled.insert(std::make_pair(filled[size_t(i)], i));
+        }
+        #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+        for ( i = 0; i < N; ++i ) {
+            Point& p = getPoint( filled[size_t(i)] );
+            std::set<PixelRef> neighbourhood;
+            #pragma omp critical(dumpNeighbourhood)
+            {
+            p.m_node->dumpNeighbourhood(neighbourhood);
+            }
+            for(auto& neighbour: neighbourhood) {
+                if (getPoint(neighbour).m_node) {
+                    hoods[size_t(i)].insert(refToFilled[neighbour]);
+                }
+            }
+        }
+
+        #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+        for ( i = 0; i < N; ++i ) {
+
+            Point& p = getPoint( filled[size_t(i)] );
+            if ((p.contextfilled() && !filled[size_t(i)].iseven()) ||
                 (options.gates_only)) {
                 count++;
                 continue;
             }
 
             // This is much easier to do with a straight forward list:
-            std::set<PixelRef> neighbourhood;
-            std::set<PixelRef> totalneighbourhood;
-            p.m_node->dumpNeighbourhood(neighbourhood);
-
+            std::set<int>& neighbourhood = hoods[size_t(i)];
+            std::set<int> totalneighbourhood;
             int cluster = 0;
             float control = 0.0f;
 
             for (auto& neighbour: neighbourhood) {
-                Point& retpt = getPoint(neighbour);
-                if (retpt.m_node) {
-                    std::set<PixelRef> retneighbourhood;
-                    retpt.m_node->dumpNeighbourhood(retneighbourhood);
+                    std::set<int>& retneighbourhood = hoods[size_t(neighbour)];
                     std::set<int> intersect;
                     std::set_intersection(neighbourhood.begin(),neighbourhood.end(),
-                                                      retneighbourhood.begin(),retneighbourhood.end(),
-                                                      std::inserter(intersect,intersect.begin()));
+                                          retneighbourhood.begin(),retneighbourhood.end(),
+                                          std::inserter(intersect,intersect.begin()));
                     totalneighbourhood.insert(retneighbourhood.begin(), retneighbourhood.end());
                     control += 1.0f / float(retneighbourhood.size());
                     cluster += intersect.size();
-                  }
             }
+            #pragma omp critical(add_to_col)
+            {
             if (neighbourhood.size() > 1) {
-                cluster_col_data[i] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
-                control_col_data[i] = float(control);
-                controllability_col_data[i] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
+                cluster_col_data[size_t(i)] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
+                control_col_data[size_t(i)] = float(control);
+                controllability_col_data[size_t(i)] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
             } else {
-                cluster_col_data[i] = -1.0f;
-                control_col_data[i] = -1.0f;
-                controllability_col_data[i] = neighbourhood.size();
+                cluster_col_data[size_t(i)] = -1.0f;
+                control_col_data[size_t(i)] = -1.0f;
+                controllability_col_data[size_t(i)] = neighbourhood.size();
             }
-            count++;    // <- increment count
+            }
 
+            #pragma omp critical(count)
+            {
+            count++;    // <- increment count
             if (comm) {
                 if (qtimer( atime, 500 )) {
                     if (comm->IsCancelled()) {
@@ -1850,6 +1872,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                     }
                     comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
                 }
+            }
             }
         }
 
