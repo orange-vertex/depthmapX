@@ -1891,17 +1891,17 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
     return true;
 }
 
-bool PointMap::analyseVisualPointDepth(Communicator *comm)
+bool PointMap::analyseVisualPointDepth()
 {
     // n.b., insert columns sets values to -1 if the column already exists
     int col = m_attributes.insertColumn("Visual Step Depth");
 
-    std::vector<int> miscs(m_cols*m_rows);
-    std::vector<PixelRef> extents(m_cols*m_rows);
-    for (int ii = 0; ii < m_cols; ii++) {
-        for (int jj = 0; jj < m_rows; jj++) {
-            miscs[jj*m_cols + ii] = 0;
-            extents[jj*m_cols + ii] = PixelRef(ii,jj);
+    std::vector<int> miscs(size_t(m_cols*m_rows));
+    std::vector<PixelRef> extents(size_t(m_cols*m_rows));
+    for (short ii = 0; ii < m_cols; ii++) {
+        for (short jj = 0; jj < m_rows; jj++) {
+            miscs[size_t(jj*m_cols + ii)] = 0;
+            extents[size_t(jj*m_cols + ii)] = PixelRef(ii,jj);
         }
     }
 
@@ -1912,7 +1912,7 @@ bool PointMap::analyseVisualPointDepth(Communicator *comm)
         search_tree.tail().push_back(sel);
     }
 
-    int level = 0;
+    size_t level = 0;
     while (search_tree[level].size()) {
         search_tree.push_back(PixelRefVector());
         for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
@@ -1965,8 +1965,8 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
     std::vector<PixelRef> filled;
     std::vector<int> rows;
 
-    for (int i = 0; i < m_cols; i++) {
-       for (int j = 0; j < m_rows; j++) {
+    for (short i = 0; i < m_cols; i++) {
+       for (short j = 0; j < m_rows; j++) {
            PixelRef curs = PixelRef( i, j );
            if ( getPoint( curs ).filled()) {
                filled.push_back(curs);
@@ -1983,8 +1983,10 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
     std::vector<float> count_col_data(filled.size());
 
     size_t npix = size_t(m_cols*m_rows);
-    #pragma omp parallel for
-    for (int i = 0; i < filled.size(); i++) {
+
+    int i, N = int(filled.size());
+    #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+    for (i = 0; i < N; i++) {
         if ( options.gates_only) {
             count++;
             continue;
@@ -2010,13 +2012,12 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
         // here it marks the node as used in calculation only
 
         std::set<MetricTriple> search_list;
-        search_list.insert(MetricTriple(0.0f, filled[i], NoPixel));
-        int level = 0;
+        search_list.insert(MetricTriple(0.0f, filled[size_t(i)], NoPixel));
         while (search_list.size()) {
             std::set<MetricTriple>::iterator it = search_list.begin();
             MetricTriple here = *it;
             search_list.erase(it);
-            if (options.radius != -1.0 && (here.dist * m_spacing) > options.radius) {
+            if (int(options.radius) != -1 && double(here.dist) * m_spacing > options.radius) {
                 break;
             }
             Point& p = getPoint(here.pixel);
@@ -2034,24 +2035,24 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
                         miscs[p2i] = ~0;
                      }
                 }
-                total_depth += float(here.dist * m_spacing);
+                total_depth += here.dist * float(m_spacing);
                 total_angle += cumangles[p1i];
-                euclid_depth += float(m_spacing * dist(here.pixel, filled[i]));
+                euclid_depth += float(m_spacing * dist(here.pixel, filled[size_t(i)]));
                 total_nodes += 1;
             }
         }
 
         // kept to achieve parity in binary comparison with old versions
         // TODO: Remove at next version of .graph file
-        size_t filledIdx = size_t(filled[i].y*m_cols + filled[i].x);
-        getPoint(filled[i]).m_misc = miscs[filledIdx];
-        getPoint(filled[i]).m_dist = dists[filledIdx];
-        getPoint(filled[i]).m_cumangle = cumangles[filledIdx];
+        size_t filledIdx = size_t(filled[size_t(i)].y*m_cols + filled[size_t(i)].x);
+        getPoint(filled[size_t(i)]).m_misc = miscs[filledIdx];
+        getPoint(filled[size_t(i)]).m_dist = dists[filledIdx];
+        getPoint(filled[size_t(i)]).m_cumangle = cumangles[filledIdx];
 
-        mspa_col_data[i] = float(double(total_angle) / double(total_nodes));
-        mspl_col_data[i] = float(double(total_depth) / double(total_nodes));
-        dist_col_data[i] = float(double(euclid_depth) / double(total_nodes));
-        count_col_data[i] = float(total_nodes);
+        mspa_col_data[size_t(i)] = float(double(total_angle) / double(total_nodes));
+        mspl_col_data[size_t(i)] = float(double(total_depth) / double(total_nodes));
+        dist_col_data[size_t(i)] = float(double(euclid_depth) / double(total_nodes));
+        count_col_data[size_t(i)] = float(total_nodes);
 
         count++;    // <- increment count
 
@@ -2066,7 +2067,7 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
     }
 
     std::string radius_text;
-    if (options.radius != -1.0) {
+    if (int(options.radius) != -1) {
         if (options.radius > 100.0) {
             radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.f");
         } else if (m_region.width() < 1.0) {
@@ -2099,7 +2100,7 @@ bool PointMap::analyseMetric(Communicator *comm, Options& options)
     return true;
 }
 
-bool PointMap::analyseMetricPointDepth(Communicator *comm)
+bool PointMap::analyseMetricPointDepth()
 {
     // n.b., insert columns sets values to -1 if the column already exists
     int path_angle_col = m_attributes.insertColumn("Metric Step Shortest-Path Angle");
@@ -2142,7 +2143,7 @@ bool PointMap::analyseMetricPointDepth(Communicator *comm)
             p.m_node->extractMetric(search_list,this,here, miscs, dists, cumangles);
             miscs[p1i] = ~0;
             int row = m_attributes.getRowid(here.pixel);
-            m_attributes.setValue(row, path_length_col, float(m_spacing * here.dist) );
+            m_attributes.setValue(row, path_length_col, float(m_spacing) * here.dist );
             m_attributes.setValue(row, path_angle_col, float(cumangles[p1i]) );
             if (m_selection_set.size() == 1) {
                 // Note: Euclidean distance is currently only calculated from a single point
@@ -2154,7 +2155,7 @@ bool PointMap::analyseMetricPointDepth(Communicator *comm)
                 if (miscs[p2i] != ~0) {
                     cumangles[p2i] = cumangles[p1i];
                     int row = m_attributes.getRowid(p.m_merge);
-                    m_attributes.setValue(row, path_length_col, float(m_spacing * here.dist) );
+                    m_attributes.setValue(row, path_length_col, float(m_spacing) * here.dist );
                     m_attributes.setValue(row, path_angle_col, float(cumangles[p2i]) );
                     if (m_selection_set.size() == 1) {
                         // Note: Euclidean distance is currently only calculated from a single point
@@ -2190,8 +2191,8 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
     std::vector<PixelRef> filled;
     std::vector<int> rows;
 
-    for (int i = 0; i < m_cols; i++) {
-        for (int j = 0; j < m_rows; j++) {
+    for (short i = 0; i < m_cols; i++) {
+        for (short j = 0; j < m_rows; j++) {
             PixelRef curs = PixelRef( i, j );
             if ( getPoint( curs ).filled()) {
                 filled.push_back(curs);
@@ -2207,8 +2208,10 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
     std::vector<float> count_col_data(filled.size());
 
     size_t npix = size_t(m_cols*m_rows);
-    #pragma omp parallel for
-    for (int i = 0; i < filled.size(); i++) {
+
+    int i, N = int(filled.size());
+    #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+    for (i = 0; i < N; i++) {
         if ( options.gates_only) {
             count++;
             continue;
@@ -2230,14 +2233,14 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
         // here it marks the node as used in calculation only
 
         std::set<AngularTriple> search_list;
-        search_list.insert(AngularTriple(0.0f,filled[i],NoPixel));
-        cumangles[filled[i].y*m_cols + filled[i].x] = 0.0f;
+        search_list.insert(AngularTriple(0.0f,filled[size_t(i)],NoPixel));
+        cumangles[size_t(filled[size_t(i)].y*m_cols + filled[size_t(i)].x)] = 0.0f;
 
         while (search_list.size()) {
             std::set<AngularTriple>::iterator it = search_list.begin();
             AngularTriple here = *it;
             search_list.erase(it);
-            if (options.radius != -1.0 && here.angle > options.radius) {
+            if (int(options.radius) != -1 && double(here.angle) > options.radius) {
                 break;
             }
             Point& p = getPoint(here.pixel);
@@ -2260,12 +2263,11 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
             }
         }
 
-        int row = m_attributes.getRowid(filled[i]);
         if (total_nodes > 0) {
-            mean_depth_col_data[i] = float(double(total_angle) / double(total_nodes));
+            mean_depth_col_data[size_t(i)] = float(double(total_angle) / double(total_nodes));
         }
-        total_depth_col_data[i] = total_angle;
-        count_col_data[i] = float(total_nodes);
+        total_depth_col_data[size_t(i)] = total_angle;
+        count_col_data[size_t(i)] = float(total_nodes);
 
         count++;    // <- increment count
 
@@ -2280,14 +2282,14 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
 
         // kept to achieve parity in binary comparison with old versions
         // TODO: Remove at next version of .graph file
-        size_t filledIdx = size_t(filled[i].y*m_cols + filled[i].x);
-        getPoint(filled[i]).m_misc = miscs[filledIdx];
-        getPoint(filled[i]).m_cumangle = cumangles[filledIdx];
+        size_t filledIdx = size_t(filled[size_t(i)].y*m_cols + filled[size_t(i)].x);
+        getPoint(filled[size_t(i)]).m_misc = miscs[filledIdx];
+        getPoint(filled[size_t(i)]).m_cumangle = cumangles[filledIdx];
     }
 
 
     std::string radius_text;
-    if (options.radius != -1.0) {
+    if (int(options.radius) != -1) {
         if (m_region.width() > 100.0) {
             radius_text = std::string(" R") + dXstring::formatString(options.radius,"%.f");
         } else if (m_region.width() < 1.0) {
@@ -2316,7 +2318,7 @@ bool PointMap::analyseAngular(Communicator *comm, Options& options)
     return true;
 }
 
-bool PointMap::analyseAngularPointDepth(Communicator *comm)
+bool PointMap::analyseAngularPointDepth()
 {
    // n.b., insert columns sets values to -1 if the column already exists
    int path_angle_col = m_attributes.insertColumn("Angular Step Depth");
@@ -2335,7 +2337,7 @@ bool PointMap::analyseAngularPointDepth(Communicator *comm)
 
    for (auto& sel: m_selection_set) {
       search_list.insert(AngularTriple(0.0f,sel,NoPixel));
-      cumangles[PixelRef(sel).y*m_cols +PixelRef(sel).x] = 0.0f;
+      cumangles[size_t(PixelRef(sel).y*m_cols +PixelRef(sel).x)] = 0.0f;
    }
 
    // note that m_misc is used in a different manner to analyseGraph / PointDepth
