@@ -21,6 +21,7 @@
 #define __SPATIALDATA_H__
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
+#include "salalib/pixelbase.h"
 #include "genlib/pafmath.h"
 #include "genlib/p2dpoly.h"
 
@@ -32,33 +33,6 @@
 #include <deque>
 
 class SalaShape;
-
-class PixelBase
-{
-protected:
-   int m_rows;
-   int m_cols;
-   QtRegion m_region;
-public:
-   PixelBase() {;}
-   // constrain is constrain to bounding box (i.e., in row / col bounds)
-   virtual PixelRef pixelate(const Point2f&, bool constrain = true, int scalefactor = 1 ) const = 0;
-   PixelRefVector pixelateLine( Line l, int scalefactor = 1 ) const;
-   PixelRefVector pixelateLineTouching( Line l, double tolerance ) const;
-   PixelRefVector quickPixelateLine(PixelRef p, PixelRef q);
-   bool includes(const PixelRef pix) const {
-      return (pix.x >= 0 && pix.x < m_cols && pix.y >= 0 && pix.y < m_rows);
-   }
-   int getCols() const {
-      return m_cols;
-   }
-   int getRows() const {
-      return m_rows;
-   }
-   const QtRegion& getRegion() const {
-      return m_region;
-   }
-};
 
 /////////////////////////////////////////////
 
@@ -338,13 +312,5 @@ bool SpacePixelGroup<T>::write( ofstream& stream, int version )
    }
    return true;
 }
-
-// (Currently) two layers of SpacePixeling, the file, and the whole lot (in SuperSpacePixel)
-// (I aim to split this into a set of ShapeMaps with the version 9 layer system for each subset)
-#include <salalib/attributes.h>
-#include <salalib/shapemap.h>
-typedef SpacePixelGroup < ShapeMap> SpacePixelFile;
-//typedef SpacePixelGroup<SpacePixel> SpacePixelFile;
-typedef SpacePixelGroup<SpacePixelFile > SuperSpacePixel;
 
 #endif

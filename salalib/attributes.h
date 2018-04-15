@@ -18,6 +18,8 @@
 #ifndef __ATTRIBUTES_H__
 #define __ATTRIBUTES_H__
 
+#include "salalib/displayparams.h"
+#include "salalib/pafcolor.h"
 #include "salalib/mgraph_consts.h"
 #include <string>
 

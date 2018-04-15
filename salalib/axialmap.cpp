@@ -592,7 +592,7 @@ bool RadialLine::cuts(const Line& l) const
 
 // for this to work, your polygons should not intersect each other!
 
-bool ShapeGraphs::makeAllLineMap(Communicator *comm, SuperSpacePixel& superspacepix, const Point2f& seed)
+bool ShapeGraphs::makeAllLineMap(Communicator *comm, std::vector<ShapeMap>& spacePixels, const Point2f& seed)
 {
    if (comm) {
       comm->CommPostMessage( Communicator::NUM_STEPS, 3 );
@@ -621,22 +621,20 @@ bool ShapeGraphs::makeAllLineMap(Communicator *comm, SuperSpacePixel& superspace
    prefvec<Line> lines;
 
    // add all visible layers to the set of polygon lines...
-   for (auto& pixelGroup: superspacepix.m_spacePixels) {
-      for (auto& pixel: pixelGroup.m_spacePixels) {
-         if (pixel.isShown()) {
+    for (auto& pixel: spacePixels) {
+        if (pixel.isShown()) {
             if (region.atZero()) {
-               region = pixel.getRegion();
+                region = pixel.getRegion();
             }
             else {
-               region = runion(region, pixel.getRegion());
+                region = runion(region, pixel.getRegion());
             }
             std::vector<SimpleLine> newLines = pixel.getAllShapesAsLines();
             for (auto line: newLines) {
-               lines.push_back(Line(line.start(), line.end()));
+                lines.push_back(Line(line.start(), line.end()));
             }
-         }
-      }
-   }
+        }
+    }
 
    region.grow(1.30);
    m_polygons.init(lines, region);
@@ -1245,7 +1243,7 @@ bool AxialMinimiser::checkVital(int checkindex, pvecint& axsegcuts, std::map<Rad
 
 // convert line layers to an axial map
 
-int ShapeGraphs::convertDrawingToAxial(Communicator *comm, const std::string& name, SuperSpacePixel& superspacepix)
+int ShapeGraphs::convertDrawingToAxial(Communicator *comm, const std::string& name, std::vector<ShapeMap>& spacePixels)
 {
    if (comm) {
       comm->CommPostMessage( Communicator::NUM_STEPS, 2 );
@@ -1259,34 +1257,32 @@ int ShapeGraphs::convertDrawingToAxial(Communicator *comm, const std::string& na
    bool recordlayer = false;
 
    // add all visible layers to the set of polygon lines...
-   int count = 0;
-   for (auto& pixelGroup: superspacepix.m_spacePixels) {
-      int j = 0;
-      for (auto& pixel: pixelGroup.m_spacePixels) {
-         if (pixel.isShown()) {
+    int count = 0;
+    int j = 0;
+    for (auto& pixel: spacePixels) {
+        if (pixel.isShown()) {
             if (region.atZero()) {
-               region = pixel.getRegion();
+                region = pixel.getRegion();
             }
             else {
-               region = runion(region, pixel.getRegion());
+                region = runion(region, pixel.getRegion());
             }
             std::vector<SimpleLine> newLines = pixel.getAllShapesAsLines();
             for (auto line: newLines) {
-               lines.insert(std::make_pair(count, Line(line.start(), line.end())));
-               layers.insert(std::make_pair(count,j));
-               count ++;
+                lines.insert(std::make_pair(count, Line(line.start(), line.end())));
+                layers.insert(std::make_pair(count,j));
+                count ++;
             }
             pixel.setShow(false);
-         }
-         if (j > 0) {
+        }
+        if (j > 0) {
             recordlayer = true;
-         }
-         j++;
-      }
-   }
-   if (count == 0) {
-      return -1;
-   }
+        }
+        j++;
+    }
+    if (count == 0) {
+        return -1;
+    }
 
    // quick tidy removes very short and duplicate lines, but does not merge overlapping lines
    TidyLines tidier;
@@ -1451,7 +1447,7 @@ int ShapeGraphs::convertDataToAxial(Communicator *comm, const std::string& name,
 
 // yet more conversions, this time polygons to shape elements
 
-int ShapeGraphs::convertDrawingToConvex(Communicator *comm, const std::string& name, SuperSpacePixel& superspacepix)
+int ShapeGraphs::convertDrawingToConvex(Communicator *comm, const std::string& name, std::vector<ShapeMap>& spacePixels)
 {
    QtRegion region;
    pvecint polygon_refs;
@@ -1460,35 +1456,31 @@ int ShapeGraphs::convertDrawingToConvex(Communicator *comm, const std::string& n
    ShapeGraph& usermap = tail();
    int conn_col = usermap.m_attributes.insertLockedColumn("Connectivity");
 
-   size_t count = 0;
-   size_t i = 0;
+    size_t count = 0;
+    size_t i = 0;
 
-   for (auto& pixelGroup: superspacepix.m_spacePixels) {
-      for (auto& pixel: pixelGroup.m_spacePixels) {
-         if (pixel.isShown()) {
-             auto refShapes = pixel.getAllShapes();
-             for (auto refShape: refShapes) {
-                 SalaShape& shape = refShape.second;
-               if (shape.isPolygon()) {
-                  usermap.makeShape(shape);
-                  usermap.m_connectors.push_back( Connector() );
-                  usermap.m_attributes.setValue(count,conn_col,0);
-                  count++;
-               }
+    for (auto& pixel: spacePixels) {
+        if (pixel.isShown()) {
+            auto refShapes = pixel.getAllShapes();
+            for (auto refShape: refShapes) {
+                SalaShape& shape = refShape.second;
+                if (shape.isPolygon()) {
+                    usermap.makeShape(shape);
+                    usermap.m_connectors.push_back( Connector() );
+                    usermap.m_attributes.setValue(count,conn_col,0);
+                    count++;
+                }
             }
-         }
-      }
-   }
-   if (count == 0) {
-      removeMap(mapref);
-      return -1;
-   }
+        }
+    }
+    if (count == 0) {
+        removeMap(mapref);
+        return -1;
+    }
 
-   for (auto& pixelGroup: superspacepix.m_spacePixels) {
-      for (auto& pixel: pixelGroup.m_spacePixels) {
-         pixel.setShow(false);
-      }
-   }
+    for (auto& pixel: spacePixels) {
+        pixel.setShow(false);
+    }
 
    usermap.m_displayed_attribute = -2; // <- override if it's already showing
    usermap.setDisplayedAttribute( -1 );
@@ -1550,7 +1542,7 @@ int ShapeGraphs::convertDataToConvex(Communicator *comm, const std::string& name
 
 // create segment map directly from line layers
 
-int ShapeGraphs::convertDrawingToSegment(Communicator *comm, const std::string& name, SuperSpacePixel& superspacepix)
+int ShapeGraphs::convertDrawingToSegment(Communicator *comm, const std::string& name, std::vector<ShapeMap>& spacePixels)
 {
    if (comm) {
       comm->CommPostMessage( Communicator::NUM_STEPS, 2 );
@@ -1563,35 +1555,33 @@ int ShapeGraphs::convertDrawingToSegment(Communicator *comm, const std::string& 
 
    QtRegion region;
 
-   // add all visible layers to the set of polygon lines...
-   int count = 0;
-   for (auto& pixelGroup: superspacepix.m_spacePixels) {
-       int j = 0;
-      for (auto& pixel: pixelGroup.m_spacePixels) {
-         if (pixel.isShown()) {
+    // add all visible layers to the set of polygon lines...
+    int count = 0;
+    int j = 0;
+    for (auto& pixel: spacePixels) {
+        if (pixel.isShown()) {
             if (region.atZero()) {
-               region = pixel.getRegion();
+                region = pixel.getRegion();
             }
             else {
-               region = runion(region, pixel.getRegion());
+                region = runion(region, pixel.getRegion());
             }
             std::vector<SimpleLine> newLines = pixel.getAllShapesAsLines();
             for (auto& line: newLines) {
-               lines.insert(std::make_pair(count, Line(line.start(), line.end())));
-               layers.insert(std::make_pair(count,j));
-               count++;
+                lines.insert(std::make_pair(count, Line(line.start(), line.end())));
+                layers.insert(std::make_pair(count,j));
+                count++;
             }
             pixel.setShow(false);
-         }
-         if (j > 0) {
+        }
+        if (j > 0) {
             recordlayer = true;
-         }
-         j++;
-      }
-   }
-   if (count == 0) {
-      return -1;
-   }
+        }
+        j++;
+    }
+    if (count == 0) {
+        return -1;
+    }
 
    // quick tidy removes very short and duplicate lines, but does not merge overlapping lines
    TidyLines tidier;

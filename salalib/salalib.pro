@@ -73,7 +73,9 @@ HEADERS += \
     pixelref.h \
     displayparams.h \
     pafcolor.h \
-    options.h
+    options.h \
+    superspacepix.h \
+    pixelbase.h
 
 DISTFILES += \
     salascript-tests.txt

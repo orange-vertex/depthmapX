@@ -763,7 +763,13 @@ bool MetaGraph::convertDrawingToAxial(Communicator *comm, std::string layer_name
    bool retvar = false;
    
    try {
-      int mapref = m_shape_graphs.convertDrawingToAxial( comm, layer_name, (SuperSpacePixel&) *this );
+       std::vector<ShapeMap> pixels;
+       for (auto& pixelGroup: m_spacePixels) {
+          for (auto& pixel: pixelGroup.m_spacePixels) {
+              pixels.push_back(pixel);
+          }
+       }
+      int mapref = m_shape_graphs.convertDrawingToAxial( comm, layer_name, pixels );
       if (mapref != -1) {
          retvar = true;
       }
@@ -829,7 +835,13 @@ bool MetaGraph::convertToConvex(Communicator *comm, std::string layer_name, bool
    try {
       int mapref;
       if (typeflag == -1) {
-         mapref = m_shape_graphs.convertDrawingToConvex( comm, layer_name, (SuperSpacePixel&) *this );
+          std::vector<ShapeMap> pixels;
+          for (auto& pixelGroup: m_spacePixels) {
+             for (auto& pixel: pixelGroup.m_spacePixels) {
+                 pixels.push_back(pixel);
+             }
+          }
+         mapref = m_shape_graphs.convertDrawingToConvex( comm, layer_name, pixels );
       }
       else {
          mapref = m_shape_graphs.convertDataToConvex( comm, layer_name, m_data_maps.getDisplayedMap(), (typeflag != 0) );
@@ -868,7 +880,13 @@ bool MetaGraph::convertDrawingToSegment(Communicator *comm, std::string layer_na
    bool retvar = false;
    
    try {
-      int mapref = m_shape_graphs.convertDrawingToSegment( comm, layer_name, (SuperSpacePixel&) *this );
+       std::vector<ShapeMap> pixels;
+       for (auto& pixelGroup: m_spacePixels) {
+          for (auto& pixel: pixelGroup.m_spacePixels) {
+              pixels.push_back(pixel);
+          }
+       }
+      int mapref = m_shape_graphs.convertDrawingToSegment( comm, layer_name, pixels );
       if (mapref != -1) {
          retvar = true;
       }
@@ -1202,7 +1220,13 @@ bool MetaGraph::makeAllLineMap( Communicator *communicator, const Point2f& seed 
    bool retvar = false;
 
    try {
-      retvar = m_shape_graphs.makeAllLineMap( communicator, (SuperSpacePixel&) *this, seed );
+       std::vector<ShapeMap> pixels;
+       for (auto& pixelGroup: m_spacePixels) {
+          for (auto& pixel: pixelGroup.m_spacePixels) {
+              pixels.push_back(pixel);
+          }
+       }
+      retvar = m_shape_graphs.makeAllLineMap( communicator, pixels, seed );
    } 
    catch (Communicator::CancelledException) {
       retvar = false;

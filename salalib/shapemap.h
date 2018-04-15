@@ -20,6 +20,8 @@
 #ifndef __SHAPEMAP_H__
 #define __SHAPEMAP_H__
 
+#include "salalib/pixelbase.h"
+#include "salalib/attributes.h"
 #include "genlib/p2dpoly.h"
 #include "genlib/stringutils.h"
 #include <vector>
@@ -27,6 +29,7 @@
 #include "salalib/importtypedefs.h"
 #include "genlib/bsptree.h"
 #include "genlib/containerutils.h"
+#include "pixelref.h"
 #include <set>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -17,7 +17,9 @@
 
 #ifndef __SHAPEGRAPH_H__
 #define __SHAPEGRAPH_H__
-#include "spacepix.h"
+
+#include "salalib/shapemap.h"
+#include "salalib/spacepix.h"
 #include "connector.h"
 
 struct AxialVertex;
@@ -237,13 +239,13 @@ public:
    virtual ~ShapeGraphs() {;}
    //
    // ShapeGraphs just have extra functionality over ShapeMaps here:
-   bool makeAllLineMap(Communicator *comm, SuperSpacePixel& superspacepix, const Point2f& seed);
+   bool makeAllLineMap(Communicator *comm, std::vector<ShapeMap>& spacePixels, const Point2f& seed);
    bool makeFewestLineMap(Communicator *comm, bool replace_existing);
-   int convertDrawingToAxial(Communicator *comm, const std::string& name, SuperSpacePixel& superspacepix);
+   int convertDrawingToAxial(Communicator *comm, const std::string& name, std::vector<ShapeMap>& spacePixels);
    int convertDataToAxial(Communicator *comm, const std::string& name, ShapeMap& shapemap, bool copydata = false);
-   int convertDrawingToConvex(Communicator *comm, const std::string& name, SuperSpacePixel& superspacepix);
+   int convertDrawingToConvex(Communicator *comm, const std::string& name, std::vector<ShapeMap>& spacePixels);
    int convertDataToConvex(Communicator *comm, const std::string& name, ShapeMap& shapemap, bool copydata = false);
-   int convertDrawingToSegment(Communicator *comm, const std::string& name, SuperSpacePixel& superspacepix);
+   int convertDrawingToSegment(Communicator *comm, const std::string& name, std::vector<ShapeMap>& spacePixels);
    int convertDataToSegment(Communicator *comm, const std::string& name, ShapeMap& shapemap, bool copydata = false);
    int convertAxialToSegment(Communicator *comm, const std::string& name, bool keeporiginal = true, bool pushvalues = false, double stubremoval = 0.0);
    //

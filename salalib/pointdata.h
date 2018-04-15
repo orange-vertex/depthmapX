@@ -18,6 +18,7 @@
 #ifndef __POINTDATA_H__
 #define __POINTDATA_H__
 
+#include "salalib/superspacepix.h"
 #include "genlib/exceptions.h"
 #include "salalib/point.h"
 #include "salalib/options.h"

@@ -40,7 +40,13 @@ TEST_CASE("Testing ShapeGraph::writeAxialConnections"){
     spacePixel->m_spacePixels.back().m_spacePixels.back().makeLineShape(Line(line3Start, line3End));
 
     std::unique_ptr<ShapeGraphs> shapeGraphs(new ShapeGraphs());
-    shapeGraphs->convertDrawingToAxial(0, "Test axial", (*spacePixel));
+    std::vector<ShapeMap> pixels;
+    for (auto& pixelMap: spacePixel->m_spacePixels) {
+        for(auto& pixel: pixelMap.m_spacePixels) {
+            pixels.push_back(pixel);
+        }
+    }
+    shapeGraphs->convertDrawingToAxial(0, "Test axial", pixels);
     ShapeGraph &displayedShapeGraph = shapeGraphs->getDisplayedMap();
 
     SECTION("writeAxialConnectionsAsDotGraph") {
@@ -97,7 +103,13 @@ TEST_CASE("Testing ShapeGraph::writeSegmentConnections")
     spacePixel->m_spacePixels.back().m_spacePixels.back().makeLineShape(Line(line3Start, line3End));
 
     std::unique_ptr<ShapeGraphs> shapeGraphs(new ShapeGraphs());
-    shapeGraphs->convertDrawingToSegment(0, "Test segment", (*spacePixel));
+    std::vector<ShapeMap> pixels;
+    for (auto& pixelMap: spacePixel->m_spacePixels) {
+        for(auto& pixel: pixelMap.m_spacePixels) {
+            pixels.push_back(pixel);
+        }
+    }
+    shapeGraphs->convertDrawingToSegment(0, "Test segment", pixels);
     ShapeGraph &displayedShapeGraph = shapeGraphs->getDisplayedMap();
 
     SECTION("writeSegmentConnectionsAsPairsCSV") {

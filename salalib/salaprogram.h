@@ -19,6 +19,7 @@
 #ifndef __SALAPROGRAM_H__
 #define __SALAPROGRAM_H__
 
+#include "genlib/paftl.h"
 #include "genlib/stringutils.h"
 #include <vector>
 #include <set>
