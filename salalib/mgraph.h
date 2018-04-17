@@ -35,6 +35,7 @@
 #include <salalib/shapemap.h>
 #include <salalib/axialmap.h>
 #include <salalib/datalayer.h>   // datalayers deprecated
+#include <RInside.h>
 
 #include <mutex>
 
@@ -80,6 +81,7 @@ public:
       return m_file_version;
    }
 
+   RInside m_R;
 
    std::vector<PointMap>& getPointMaps()
    { return m_pointMaps; }

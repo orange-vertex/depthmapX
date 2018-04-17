@@ -56,6 +56,9 @@ MetaGraph::MetaGraph()
    // bsp tree for making isovists:
    m_bsp_tree = false;
    m_bsp_root = NULL;
+
+   std::cout << "LOADING R... " << Rcpp::as<std::string>(m_R.parseEval("print(\"...LOADED\")")) << std::endl;
+
 }
 
 MetaGraph::~MetaGraph()
