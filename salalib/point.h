@@ -21,6 +21,7 @@
 #include "salalib/ngraph.h"
 #include <map>
 #include <memory>
+#include <iostream>
 
 class Point {
    friend class Bin;
@@ -62,7 +63,7 @@ public:
    Point()
       { m_state = EMPTY; m_block = 0; m_misc = 0; m_grid_connections = 0; m_node = NULL; m_processflag = 0; m_merge = NoPixel; m_user_data = NULL; }
    Point& operator = (const Point& p)
-      { throw 1; }
+      { std::cout << "loller" << std::endl;throw 1; }
    Point(const Point& p)
       { throw 1; }
    //

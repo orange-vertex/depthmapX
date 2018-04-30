@@ -317,6 +317,24 @@ void MainWindow::OnLayerNew()
     }
 }
 
+void MainWindow::OnLayerMove()
+{
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnLayerMove();
+    }
+}
+
+void MainWindow::OnScaleAll()
+{
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnScaleAll();
+    }
+}
+
 void MainWindow::OnLayerDelete()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -2977,6 +2995,14 @@ void MainWindow::createActions()
     deleteAct->setStatusTip(tr("Delete the active map"));
     connect(deleteAct, SIGNAL(triggered()), this, SLOT(OnLayerDelete()));
 
+    moveAct = new QAction(tr("&Move..."), this);
+    moveAct->setStatusTip(tr("Move the active map"));
+    connect(moveAct, SIGNAL(triggered()), this, SLOT(OnLayerMove()));
+
+    scaleAct = new QAction(tr("&Scale..."), this);
+    scaleAct->setStatusTip(tr("Scale the active map"));
+    connect(scaleAct, SIGNAL(triggered()), this, SLOT(OnScaleAll()));
+
     convertActiveMapAct = new QAction(tr("&Convert Active Map..."), this);
     convertActiveMapAct->setStatusTip(tr("Create a new map from the active map"));
     connect(convertActiveMapAct, SIGNAL(triggered()), this, SLOT(OnLayerConvert()));
@@ -3514,6 +3540,8 @@ void MainWindow::createMenus()
     mapMenu = menuBar()->addMenu(tr("&Map"));
     mapMenu->addAction(mapNewAct);
     mapMenu->addAction(deleteAct);
+    mapMenu->addAction(moveAct);
+    mapMenu->addAction(scaleAct);
     mapMenu->addSeparator();
     mapMenu->addAction(convertActiveMapAct);
     mapMenu->addAction(convertDrawingMapAct);

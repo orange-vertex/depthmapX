@@ -243,6 +243,18 @@ void QGraphDoc::OnLayerNew()
    }
 }
 
+void QGraphDoc::OnLayerMove() {
+    m_meta_graph->moveAll();
+    SetUpdateFlag(DELETED_TABLE);
+    SetRedrawFlag(VIEW_ALL, REDRAW_TOTAL, NEW_DATA);
+}
+
+void QGraphDoc::OnScaleAll() {
+    m_meta_graph->scaleAll();
+    SetUpdateFlag(DELETED_TABLE);
+    SetRedrawFlag(VIEW_ALL, REDRAW_TOTAL, NEW_DATA);
+}
+
 void QGraphDoc::OnLayerDelete() 
 {
    // Delete the currently displayed map

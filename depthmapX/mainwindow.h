@@ -122,6 +122,8 @@ private slots:
     void OnEditSelectToLayer();
     void OnAppAbout();
     void OnLayerNew();
+    void OnLayerMove();
+    void OnScaleAll();
     void OnLayerDelete();
     void OnLayerConvert();
     void OnLayerConvertDrawing();
@@ -349,6 +351,8 @@ private:
     //Map Menu Actions
     QAction *mapNewAct;
     QAction *deleteAct;
+    QAction *moveAct;
+    QAction *scaleAct;
     QAction *convertActiveMapAct;
     QAction *convertDrawingMapAct;
     QAction *convertMapShapesAct;

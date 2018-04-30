@@ -312,7 +312,9 @@ public:
 	void OnRenameColumn();
 	void OnEditQuery();
     void OnColumnProperties();
-	void OnLayerNew();
+    void OnLayerNew();
+    void OnLayerMove();
+    void OnScaleAll();
 	void OnLayerDelete();
 	void OnLayerConvert();
 	void OnLayerConvertDrawing();

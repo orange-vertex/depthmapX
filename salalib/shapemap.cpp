@@ -933,6 +933,30 @@ bool ShapeMap::removeSelected()
    return true;
 }
 
+void ShapeMap::recreateBounds() {
+    QtRegion region;
+
+    for(auto& shape: m_shapes) {
+        if(shape.second.isPolygon() || shape.second.isPolyLine()) {
+            for (auto pnt: shape.second.m_points) {
+               region.encompass(pnt);
+            }
+        } else if (shape.second.isLine()) {
+            region.encompass(shape.second.getLine().start());
+            region.encompass(shape.second.getLine().end());
+        }
+    }
+    m_region.bottom_left.x = 0;
+    m_region.bottom_left.y = 0;
+    m_region.top_right.x = 0;
+    m_region.top_right.y = 0;
+    init(m_shapes.size(),region);
+    for(auto& shape: m_shapes) {
+        removePolyPixels(shape.first);
+        makePolyPixels(shape.first);
+    }
+}
+
 void ShapeMap::removeShape(int shaperef, bool undoing)
 {
    // remove shape from four keys: the pixel grid, the poly list, the attributes and the connections

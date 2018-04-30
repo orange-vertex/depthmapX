@@ -43,6 +43,7 @@
 
 #include <vector>
 #include <memory>
+#include <deque>
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -80,7 +81,7 @@ public:
    }
 
 
-   std::vector<PointMap>& getPointMaps()
+   std::deque<PointMap>& getPointMaps()
    { return m_pointMaps; }
    PointMap& getDisplayedPointMap()
    { return m_pointMaps[m_displayed_pointmap]; }
@@ -95,14 +96,14 @@ public:
    int addNewPointMap(const std::string& name = std::string("VGA Map"));
 
 private:
-   std::vector<PointMap> m_pointMaps;
+   std::deque<PointMap> m_pointMaps;
    int m_displayed_pointmap;
    SuperSpacePixel *m_spacepix;
 
    void setSpacePixel(SuperSpacePixel *spacepix)
    { m_spacepix = spacepix; for (auto& pointMap: m_pointMaps) pointMap.setSpacePixel(spacepix); }
    void removePointMap(int i)
-   { if (m_displayed_pointmap >= i) m_displayed_pointmap--; m_pointMaps.erase(m_pointMaps.begin() + i); }
+   { if (m_displayed_pointmap >= i) m_displayed_pointmap--; if(m_displayed_pointmap < 0) m_displayed_pointmap = 0; m_pointMaps.erase(m_pointMaps.begin() + i); }
 
    bool readPointMaps(istream &stream, int version );
    bool writePointMaps( ofstream& stream, int version, bool displayedmaponly = false );
@@ -162,6 +163,8 @@ public:
    int addShapeGraph(const std::string& name, int type);
    int addShapeMap(const std::string& name);
    void removeDisplayedMap();
+   void scaleAll();
+   void moveAll();
    //
    // various map conversions
    bool convertDrawingToAxial(Communicator *comm, std::string layer_name);  // n.b., name copied for thread safety

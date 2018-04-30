@@ -113,11 +113,26 @@ public:
    { return (m_type & (SHAPE_POLY | SHAPE_CLOSED)) == (SHAPE_POLY | SHAPE_CLOSED); } 
    bool isCCW() const
    { return (m_type & SHAPE_CCW) == SHAPE_CCW; }
+   unsigned char getType() const {
+       return m_type;
+   }
    //
    const Point2f& getPoint() const
    { return m_centroid; }
    const Line& getLine() const
    { return m_region; }
+   void moveRegion(Point2f offset) {
+       m_region.ax() += offset.x;
+       m_region.ay() += offset.y;
+       m_region.bx() += offset.x;
+       m_region.by() += offset.y;
+   }
+   void scaleRegion(double scale) {
+       m_region.ax() *= scale;
+       m_region.ay() *= scale;
+       m_region.bx() *= scale;
+       m_region.by() *= scale;
+   }
    const QtRegion& getBoundingBox() const
    { return m_region; }
    //
@@ -297,6 +312,7 @@ public:
    bool moveShape(int shaperef, const Line& line, bool undoing = false);
    // delete selected shapes
    bool removeSelected();
+   void recreateBounds();
    // delete a shape
    void removeShape(int shaperef, bool undoing = false);
    //

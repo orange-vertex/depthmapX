@@ -713,6 +713,294 @@ int MetaGraph::addShapeMap(const std::string& name)
    setViewClass(SHOWSHAPETOP);
    return m_dataMaps.size() - 1;
 }
+void MetaGraph::scaleAll() {
+    int pointMapIdx = getDisplayedPointMapRef();
+    PointMap& pointMap = getDisplayedPointMap();
+
+    double scale = 266.667794066544743;
+
+    bool graphRegionReset = false;
+    for (int i = 0; i < getLineFileCount(); i++) {
+        bool fileRegionReset = false;
+        for (int j = 0; j < getLineLayerCount(i); j++) {
+           ShapeMap& map = getLineLayer(i,j);
+
+           std::map<int, SalaShape>& shapes = map.getAllShapes();
+           for(auto& shape: shapes) {
+               if(shape.second.isLine()) {
+                   shape.second.scaleRegion(scale);
+               } else {
+                   for(auto& pnt: shape.second.m_points) {
+                       pnt.x *= scale;
+                       pnt.y *= scale;
+                   }
+
+               }
+           }
+           map.recreateBounds();
+           if(!fileRegionReset) {
+               SuperSpacePixel::at(i).m_region = map.getRegion();
+               fileRegionReset = true;
+           } else {
+               SuperSpacePixel::at(i).m_region = runion(SuperSpacePixel::at(i).m_region, map.getRegion());
+           }
+           if(!graphRegionReset) {
+               SuperSpacePixel::m_region = map.getRegion();
+               graphRegionReset = true;
+           } else {
+               SuperSpacePixel::m_region = runion(SuperSpacePixel::m_region, map.getRegion());
+           }
+        }
+    }
+
+    int newPointMapIdx = addNewPointMap();
+    PointMap& newPointMap = getPointMaps()[size_t(newPointMapIdx)];
+    newPointMap.setSpacePixel( (SuperSpacePixel *) this );
+    newPointMap.setGrid(pointMap.getSpacing()*scale);
+    for (int i = 0; i < pointMap.m_cols; i++) {
+       for (int j = 0; j < pointMap.m_rows; j++) {
+          PixelRef curs = PixelRef( i, j );
+          Point2f cursPnt = pointMap.depixelate(curs);
+          cursPnt.x *= scale;
+          cursPnt.y *= scale;
+          PixelRef cursOnNewPointmap = newPointMap.pixelate(cursPnt, false);
+          Point& pt = pointMap.getPoint( curs );
+          if ( pt.filled()) {
+              newPointMap.m_points[cursOnNewPointmap.x][cursOnNewPointmap.y].set(pt.getState());
+          }
+       }
+    }
+
+    newPointMap.sparkGraph2(nullptr, pointMap.isBoundaryGraph() ? 1 : 0, -1);
+
+    for(int i = 0; i < pointMap.getAttributeTable().getColumnCount(); i++) {
+        if(newPointMap.getAttributeTable().getColumnIndex(pointMap.getAttributeTable().getColumnName(i)) == -1)
+            newPointMap.getAttributeTable().insertColumn(pointMap.getAttributeTable().getColumnName(i));
+    }
+    for (int i = 0; i < pointMap.m_cols; i++) {
+       for (int j = 0; j < pointMap.m_rows; j++) {
+          PixelRef curs = PixelRef( i, j );
+          Point2f cursPnt = pointMap.depixelate(curs);
+          cursPnt.x *= scale;
+          cursPnt.y *= scale;
+          PixelRef cursOnNewPointmap = newPointMap.pixelate(cursPnt, false);
+          Point& pt = pointMap.getPoint( curs );
+          if ( pt.filled()) {
+              newPointMap.m_points[cursOnNewPointmap.x][cursOnNewPointmap.y].set(pt.getState());
+              for(int i = 0; i < pointMap.getAttributeTable().getColumnCount(); i++) {
+                  int cursId = pointMap.getAttributeTable().getRowid(curs);
+                  int newCursId = newPointMap.getAttributeTable().getRowid(cursOnNewPointmap);
+                  newPointMap.getAttributeTable().setValue(newCursId, i,
+                                                        pointMap.getAttributeTable().getValue(cursId, i));
+              }
+          }
+       }
+    }
+    for (int i = 0; i < pointMap.m_cols; i++) {
+       for (int j = 0; j < pointMap.m_rows; j++) {
+          PixelRef curs = PixelRef( i, j );
+          Point2f cursPnt = pointMap.depixelate(curs);
+          cursPnt.x *= scale;
+          cursPnt.y *= scale;
+          PixelRef cursOnNewPointmap = newPointMap.pixelate(cursPnt, false);
+          Point& pt = pointMap.getPoint( curs );
+          if ( pt.filled()) {
+              if(!pt.m_merge.empty()) {
+                  Point2f mergePnt = pointMap.depixelate(pt.m_merge);
+                  mergePnt.x *= scale;
+                  mergePnt.y *= scale;
+                  PixelRef mergeOnNewPointMap = newPointMap.pixelate(mergePnt, false);
+                  newPointMap.getPoint( mergeOnNewPointMap ).m_merge = cursOnNewPointmap;
+                  newPointMap.getPoint( cursOnNewPointmap ).m_merge = mergeOnNewPointMap;
+              }
+          }
+       }
+    }
+    setDisplayedPointMapRef(newPointMapIdx);
+    removePointMap(pointMapIdx);
+
+}
+void MetaGraph::moveAll() {
+    int pointMapIdx = getDisplayedPointMapRef();
+    PointMap& pointMap = getDisplayedPointMap();
+
+    double minX = -54724;
+    double maxX = 46020;
+    double minY = 254685;
+    double maxY = 504123;
+    int offsetPixX = -120;
+    int offsetPixY = -400;
+
+    //    double minX = 0.9;
+    //    double maxX = 2.1;
+    //    double minY = 0.5;
+    //    double maxY = 1.1;
+
+    //    int offsetPixX = -21;
+    //    int offsetPixY = -8;
+
+//    double minX = -0.1;
+//    double maxX = 1.1;
+//    double minY = 0.3;
+//    double maxY = 1.0;
+
+//    int offsetPixX = -21;
+//    int offsetPixY = -9;
+
+    double offsetX = pointMap.getSpacing()*offsetPixX;
+    double offsetY = pointMap.getSpacing()*offsetPixY;
+
+    bool graphRegionReset = false;
+    for (int i = 0; i < getLineFileCount(); i++) {
+        bool fileRegionReset = false;
+        for (int j = 0; j < getLineLayerCount(i); j++) {
+           ShapeMap& map = getLineLayer(i,j);
+
+           std::map<int, SalaShape>& shapes = map.getAllShapes();
+           int shapesChanged = 0;
+           for(auto& shape: shapes) {
+               if(shape.second.isLine()) {
+                   const Line& line = shape.second.getLine();
+                   if((minX < line.ax() && line.ax() < maxX && minY < line.ay() && line.ay() < maxY) ||
+                      (minX < line.bx() && line.bx() < maxX && minY < line.by() && line.by() < maxY)) {
+                       shape.second.moveRegion(Point2f(offsetX, offsetY));
+                       shapesChanged++;
+                   }
+               } else {
+                   bool isInRange = false;
+                   for(auto& pnt: shape.second.m_points) {
+                       if(minX < pnt.x && pnt.x < maxX && minY < pnt.y && pnt.y < maxY) {
+                           isInRange = true;
+                           break;
+                       }
+                   }
+                   if(isInRange) {
+                       for(auto& pnt: shape.second.m_points) {
+                           pnt.x += offsetX;
+                           pnt.y += offsetY;
+                       }
+                       shapesChanged++;
+                   }
+
+               }
+           }
+           if(shapesChanged > 0) {
+               map.recreateBounds();
+               if(!fileRegionReset) {
+                   SuperSpacePixel::at(i).m_region = map.getRegion();
+                   fileRegionReset = true;
+               } else {
+                   SuperSpacePixel::at(i).m_region = runion(SuperSpacePixel::at(i).m_region, map.getRegion());
+               }
+               if(!graphRegionReset) {
+                   SuperSpacePixel::m_region = map.getRegion();
+                   graphRegionReset = true;
+               } else {
+                   SuperSpacePixel::m_region = runion(SuperSpacePixel::m_region, map.getRegion());
+               }
+
+           }
+        }
+    }
+
+    int newPointMapIdx = addNewPointMap();
+    PointMap& newPointMap = getPointMaps()[size_t(newPointMapIdx)];
+    newPointMap.setSpacePixel( (SuperSpacePixel *) this );
+    newPointMap.setGrid(pointMap.getSpacing());
+    for (int i = 0; i < pointMap.m_cols; i++) {
+       for (int j = 0; j < pointMap.m_rows; j++) {
+          PixelRef curs = PixelRef( i, j );
+          PixelRef cursOnNewPointmap = newPointMap.pixelate(pointMap.depixelate(curs), false);
+          PixelRef movedCurs = PixelRef( cursOnNewPointmap.x + offsetPixX, cursOnNewPointmap.y + offsetPixY);
+          Point& pt = pointMap.getPoint( curs );
+          if ( pt.filled()) {
+              if(minX < pt.m_location.x && pt.m_location.x < maxX
+                      && minY < pt.m_location.y && pt.m_location.y < maxY) {
+                  newPointMap.m_points[movedCurs.x][movedCurs.y].set(pt.getState());
+              } else {
+                  newPointMap.m_points[cursOnNewPointmap.x][cursOnNewPointmap.y].set(pt.getState());
+              }
+          }
+       }
+    }
+
+    newPointMap.sparkGraph2(nullptr, pointMap.isBoundaryGraph() ? 1 : 0, -1);
+
+    for(int i = 0; i < pointMap.getAttributeTable().getColumnCount(); i++) {
+        if(newPointMap.getAttributeTable().getColumnIndex(pointMap.getAttributeTable().getColumnName(i)) == -1)
+            newPointMap.getAttributeTable().insertColumn(pointMap.getAttributeTable().getColumnName(i));
+    }
+    for (int i = 0; i < pointMap.m_cols; i++) {
+       for (int j = 0; j < pointMap.m_rows; j++) {
+          PixelRef curs = PixelRef( i, j );
+          PixelRef cursOnNewPointmap = newPointMap.pixelate(pointMap.depixelate(curs), false);
+          PixelRef movedCurs = PixelRef( cursOnNewPointmap.x + offsetPixX, cursOnNewPointmap.y + offsetPixY);
+          Point& pt = pointMap.getPoint( curs );
+          if ( pt.filled()) {
+              if(minX < pt.m_location.x && pt.m_location.x < maxX
+                      && minY < pt.m_location.y && pt.m_location.y < maxY) {
+                  newPointMap.m_points[movedCurs.x][movedCurs.y].set(pt.getState());
+                  for(int i = 0; i < pointMap.getAttributeTable().getColumnCount(); i++) {
+                      int cursId = pointMap.getAttributeTable().getRowid(curs);
+                      int newCursId = newPointMap.getAttributeTable().getRowid(movedCurs);
+                      newPointMap.getAttributeTable().setValue(newCursId, i,
+                                                            pointMap.getAttributeTable().getValue(cursId, i));
+                  }
+              } else {
+                  newPointMap.m_points[cursOnNewPointmap.x][cursOnNewPointmap.y].set(pt.getState());
+                  for(int i = 0; i < pointMap.getAttributeTable().getColumnCount(); i++) {
+                      int cursId = pointMap.getAttributeTable().getRowid(curs);
+                      int newCursId = newPointMap.getAttributeTable().getRowid(cursOnNewPointmap);
+                      newPointMap.getAttributeTable().setValue(newCursId, i,
+                                                            pointMap.getAttributeTable().getValue(cursId, i));
+                  }
+              }
+          }
+       }
+    }
+    for (int i = 0; i < pointMap.m_cols; i++) {
+       for (int j = 0; j < pointMap.m_rows; j++) {
+          PixelRef curs = PixelRef( i, j );
+          PixelRef cursOnNewPointmap = newPointMap.pixelate(pointMap.depixelate(curs), false);
+          Point& pt = pointMap.getPoint( curs );
+          if ( pt.filled()) {
+              if(minX < pt.m_location.x && pt.m_location.x < maxX
+                      && minY < pt.m_location.y && pt.m_location.y < maxY) {
+                  PixelRef movedCurs = PixelRef( cursOnNewPointmap.x + offsetPixX, cursOnNewPointmap.y + offsetPixY);
+                  if(!pt.m_merge.empty()) {
+                      Point2f mergePnt = pointMap.depixelate(pt.m_merge);
+                      PixelRef mergeOnNewPointMap = newPointMap.pixelate(mergePnt, false);
+                      if(minX < mergePnt.x && mergePnt.x < maxX
+                              && minY < mergePnt.y && mergePnt.y < maxY) {
+                          PixelRef movedMerge = PixelRef( mergeOnNewPointMap.x + offsetPixX, mergeOnNewPointMap.y + offsetPixY);
+                          newPointMap.getPoint( movedMerge ).m_merge = movedCurs;
+                          newPointMap.getPoint( movedCurs ).m_merge = movedMerge;
+                      } else {
+                          newPointMap.getPoint( mergeOnNewPointMap ).m_merge = movedCurs;
+                          newPointMap.getPoint( movedCurs ).m_merge = mergeOnNewPointMap;
+                      }
+                  }
+              } else {
+                  if(!pt.m_merge.empty()) {
+                      Point2f mergePnt = pointMap.depixelate(pt.m_merge);
+                      PixelRef mergeOnNewPointMap = newPointMap.pixelate(mergePnt, false);
+                      if(minX < mergePnt.x && mergePnt.x < maxX
+                              && minY < mergePnt.y && mergePnt.y < maxY) {
+                          PixelRef movedMerge = PixelRef( mergeOnNewPointMap.x + offsetPixX, mergeOnNewPointMap.y + offsetPixY);
+                          newPointMap.getPoint( movedMerge ).m_merge = cursOnNewPointmap;
+                          newPointMap.getPoint( cursOnNewPointmap ).m_merge = movedMerge;
+                      } else {
+                          newPointMap.getPoint( mergeOnNewPointMap ).m_merge = cursOnNewPointmap;
+                          newPointMap.getPoint( cursOnNewPointmap ).m_merge = mergeOnNewPointMap;
+                      }
+                  }
+              }
+          }
+       }
+    }
+    setDisplayedPointMapRef(newPointMapIdx);
+    removePointMap(pointMapIdx);
+}
 void MetaGraph::removeDisplayedMap()
 {
    int ref = getDisplayedMapRef();
