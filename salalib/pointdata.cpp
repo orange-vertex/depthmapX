@@ -1609,7 +1609,12 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
     int count = 0;
 
     if (options.global) {
-
+        if (comm) {
+            qtimer( atime, 0 );
+            comm->CommPostMessage( Communicator::NUM_STEPS, 1 );
+            comm->CommPostMessage( Communicator::CURRENT_STEP, 1 );
+            comm->CommPostMessage( Communicator::NUM_RECORDS, filled.size() );
+        }
         std::vector<float> count_col_data(filled.size());
         std::vector<float> depth_col_data(filled.size());
         std::vector<float> integ_dv_col_data(filled.size());
@@ -1800,79 +1805,207 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
         std::vector<float> control_col_data(filled.size());
         std::vector<float> controllability_col_data(filled.size());
 
-        std::vector<std::set<int>> hoods(filled.size());
+        bool adjMatrix = true;
 
+        if(adjMatrix) {
 
-        int i, N = int(filled.size());
-        std::map<PixelRef, int> refToFilled;
-        for ( i = 0; i < N; ++i ) {
-            refToFilled.insert(std::make_pair(filled[size_t(i)], i));
-        }
-        #pragma omp parallel for default(shared) private(i) schedule(dynamic)
-        for ( i = 0; i < N; ++i ) {
-            Point& p = getPoint( filled[size_t(i)] );
-            std::set<PixelRef> neighbourhood;
-            #pragma omp critical(dumpNeighbourhood)
-            {
-            p.m_node->dumpNeighbourhood(neighbourhood);
+            int i;
+            const int N = int(filled.size());
+            bool* hoods = new bool[N*N];
+//            std::vector<bool> hoods(N*N);
+//            std::bitset hoods(N*N);
+            for(int i = 0; i < N*N; i++) {
+                hoods[i] = false;
             }
-            for(auto& neighbour: neighbourhood) {
-                if (getPoint(neighbour).m_node) {
-                    hoods[size_t(i)].insert(refToFilled[neighbour]);
+
+            std::map<PixelRef, int> refToFilled;
+            for ( i = 0; i < N; ++i ) {
+                refToFilled.insert(std::make_pair(filled[size_t(i)], i));
+            }
+            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+            for ( i = 0; i < N; ++i ) {
+                Point& p = getPoint( filled[size_t(i)] );
+                std::set<PixelRef> neighbourhood;
+                #pragma omp critical(dumpNeighbourhood)
+                {
+                p.m_node->dumpNeighbourhood(neighbourhood);
                 }
-            }
-        }
-
-        #pragma omp parallel for default(shared) private(i) schedule(dynamic)
-        for ( i = 0; i < N; ++i ) {
-
-            Point& p = getPoint( filled[size_t(i)] );
-            if ((p.contextfilled() && !filled[size_t(i)].iseven()) ||
-                (options.gates_only)) {
-                count++;
-                continue;
-            }
-
-            // This is much easier to do with a straight forward list:
-            std::set<int>& neighbourhood = hoods[size_t(i)];
-            std::set<int> totalneighbourhood;
-            int cluster = 0;
-            float control = 0.0f;
-
-            for (auto& neighbour: neighbourhood) {
-                    std::set<int>& retneighbourhood = hoods[size_t(neighbour)];
-                    std::set<int> intersect;
-                    std::set_intersection(neighbourhood.begin(),neighbourhood.end(),
-                                          retneighbourhood.begin(),retneighbourhood.end(),
-                                          std::inserter(intersect,intersect.begin()));
-                    totalneighbourhood.insert(retneighbourhood.begin(), retneighbourhood.end());
-                    control += 1.0f / float(retneighbourhood.size());
-                    cluster += intersect.size();
-            }
-            #pragma omp critical(add_to_col)
-            {
-            if (neighbourhood.size() > 1) {
-                cluster_col_data[size_t(i)] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
-                control_col_data[size_t(i)] = float(control);
-                controllability_col_data[size_t(i)] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
-            } else {
-                cluster_col_data[size_t(i)] = -1.0f;
-                control_col_data[size_t(i)] = -1.0f;
-                controllability_col_data[size_t(i)] = neighbourhood.size();
-            }
-            }
-
-            #pragma omp critical(count)
-            {
-            count++;    // <- increment count
-            if (comm) {
-                if (qtimer( atime, 500 )) {
-                    if (comm->IsCancelled()) {
-                        throw Communicator::CancelledException();
+                for(auto& neighbour: neighbourhood) {
+                    if (getPoint(neighbour).m_node) {
+                        hoods[size_t(i)*N + size_t(refToFilled[neighbour])] = true;
                     }
-                    comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+                }
+//                #pragma omp critical(count)
+//                {
+//                count++;    // <- increment count
+//                if (comm) {
+//                    if (qtimer( atime, 500 )) {
+//                        if (comm->IsCancelled()) {
+//                            throw Communicator::CancelledException();
+//                        }
+//                        comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+//                    }
+//                }
+//                }
+            }
+
+
+            if (comm) {
+                qtimer( atime, 0 );
+                comm->CommPostMessage( Communicator::NUM_STEPS, 2 );
+                comm->CommPostMessage( Communicator::CURRENT_STEP, 1 );
+                comm->CommPostMessage( Communicator::NUM_RECORDS, filled.size());
+            }
+
+            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+            for ( i = 0; i < N; ++i ) {
+
+                Point& p = getPoint( filled[size_t(i)] );
+                if ((p.contextfilled() && !filled[size_t(i)].iseven()) ||
+                    (options.gates_only)) {
+                    count++;
+                    continue;
+                }
+
+                bool * totalHood = new bool[N];
+//                std::vector<bool> totalHood(N);
+                for(int j = 0; j < N; j++) {
+                    totalHood[j] = false;
+                }
+
+                int cluster = 0;
+                float control = 0.0f;
+
+                int hoodSize = 0;
+                for (int j = 0; j < N; j++) {
+                    if(hoods[i*N + j]) {
+                        hoodSize++;
+                        totalHood[j] = true;
+                        int retHood = 0;
+                        for (int k = 0; k < N; k++) {
+                            if(hoods[j*N+k]) {
+                                totalHood[k] = true;
+                                retHood++;
+                                if(hoods[i*N+k]) cluster++;
+                            }
+                        }
+                        control += 1.0f / float(retHood);
+                    }
+                }
+                int totalReach = 0;
+                for (int j = 0; j < N; j++) {
+                    if(totalHood[j]) totalReach++;
+                }
+                delete [] totalHood;
+                #pragma omp critical(add_to_col)
+                {
+                if (hoodSize > 1) {
+                    cluster_col_data[size_t(i)] = float(cluster / double(hoodSize * (hoodSize - 1.0)));
+                    control_col_data[size_t(i)] = float(control);
+                    controllability_col_data[size_t(i)] = float( double(hoodSize) / double(totalReach));
+                } else {
+                    cluster_col_data[size_t(i)] = -1.0f;
+                    control_col_data[size_t(i)] = -1.0f;
+                    controllability_col_data[size_t(i)] = hoodSize;
+                }
+                }
+
+                #pragma omp critical(count)
+                {
+                count++;    // <- increment count
+                if (comm) {
+                    if (qtimer( atime, 500 )) {
+                        if (comm->IsCancelled()) {
+                            throw Communicator::CancelledException();
+                        }
+                        comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+                    }
+                }
                 }
             }
+            delete [] hoods;
+        } else {
+
+            if (comm) {
+                qtimer( atime, 0 );
+                comm->CommPostMessage( Communicator::NUM_STEPS, 1 );
+                comm->CommPostMessage( Communicator::CURRENT_STEP, 1 );
+                comm->CommPostMessage( Communicator::NUM_RECORDS, filled.size() );
+            }
+            std::vector<std::set<int>> hoods(filled.size());
+
+
+            int i, N = int(filled.size());
+            std::map<PixelRef, int> refToFilled;
+            for ( i = 0; i < N; ++i ) {
+                refToFilled.insert(std::make_pair(filled[size_t(i)], i));
+            }
+            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+            for ( i = 0; i < N; ++i ) {
+                Point& p = getPoint( filled[size_t(i)] );
+                std::set<PixelRef> neighbourhood;
+                #pragma omp critical(dumpNeighbourhood)
+                {
+                p.m_node->dumpNeighbourhood(neighbourhood);
+                }
+                for(auto& neighbour: neighbourhood) {
+                    if (getPoint(neighbour).m_node) {
+                        hoods[size_t(i)].insert(refToFilled[neighbour]);
+                    }
+                }
+            }
+
+            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+            for ( i = 0; i < N; ++i ) {
+
+                Point& p = getPoint( filled[size_t(i)] );
+                if ((p.contextfilled() && !filled[size_t(i)].iseven()) ||
+                    (options.gates_only)) {
+                    count++;
+                    continue;
+                }
+
+                // This is much easier to do with a straight forward list:
+                std::set<int>& neighbourhood = hoods[size_t(i)];
+                std::set<int> totalneighbourhood;
+                int cluster = 0;
+                float control = 0.0f;
+
+                for (auto& neighbour: neighbourhood) {
+                        std::set<int>& retneighbourhood = hoods[size_t(neighbour)];
+                        std::set<int> intersect;
+                        std::set_intersection(neighbourhood.begin(),neighbourhood.end(),
+                                              retneighbourhood.begin(),retneighbourhood.end(),
+                                              std::inserter(intersect,intersect.begin()));
+                        totalneighbourhood.insert(retneighbourhood.begin(), retneighbourhood.end());
+                        control += 1.0f / float(retneighbourhood.size());
+                        cluster += intersect.size();
+                }
+                #pragma omp critical(add_to_col)
+                {
+                if (neighbourhood.size() > 1) {
+                    cluster_col_data[size_t(i)] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
+                    control_col_data[size_t(i)] = float(control);
+                    controllability_col_data[size_t(i)] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
+                } else {
+                    cluster_col_data[size_t(i)] = -1.0f;
+                    control_col_data[size_t(i)] = -1.0f;
+                    controllability_col_data[size_t(i)] = neighbourhood.size();
+                }
+                }
+
+                #pragma omp critical(count)
+                {
+                count++;    // <- increment count
+                if (comm) {
+                    if (qtimer( atime, 500 )) {
+                        if (comm->IsCancelled()) {
+                            throw Communicator::CancelledException();
+                        }
+                        comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+                    }
+                }
+                }
             }
         }
 
