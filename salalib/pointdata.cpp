@@ -1800,7 +1800,6 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
     count = 0;
 
     if (options.local && !simple_version) {
-
         std::vector<float> cluster_col_data(filled.size());
         std::vector<float> control_col_data(filled.size());
         std::vector<float> controllability_col_data(filled.size());
@@ -1810,18 +1809,15 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
         if(adjMatrix) {
 
             int i;
-            const int N = int(filled.size());
-            bool* hoods = new bool[N*N];
-//            std::vector<bool> hoods(N*N);
-//            std::bitset hoods(N*N);
-            for(int i = 0; i < N*N; i++) {
-                hoods[i] = false;
-            }
+            const long N = long(filled.size());
 
             std::map<PixelRef, int> refToFilled;
             for ( i = 0; i < N; ++i ) {
                 refToFilled.insert(std::make_pair(filled[size_t(i)], i));
             }
+
+            std::vector<bool> hoods(N*N);
+
             #pragma omp parallel for default(shared) private(i) schedule(dynamic)
             for ( i = 0; i < N; ++i ) {
                 Point& p = getPoint( filled[size_t(i)] );
@@ -1832,30 +1828,13 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 }
                 for(auto& neighbour: neighbourhood) {
                     if (getPoint(neighbour).m_node) {
-                        hoods[size_t(i)*N + size_t(refToFilled[neighbour])] = true;
+                        hoods[long(i*N + refToFilled[neighbour])] = true;
                     }
                 }
-//                #pragma omp critical(count)
-//                {
-//                count++;    // <- increment count
-//                if (comm) {
-//                    if (qtimer( atime, 500 )) {
-//                        if (comm->IsCancelled()) {
-//                            throw Communicator::CancelledException();
-//                        }
-//                        comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-//                    }
-//                }
-//                }
             }
 
 
-            if (comm) {
-                qtimer( atime, 0 );
-                comm->CommPostMessage( Communicator::NUM_STEPS, 2 );
-                comm->CommPostMessage( Communicator::CURRENT_STEP, 1 );
-                comm->CommPostMessage( Communicator::NUM_RECORDS, filled.size());
-            }
+
 
             #pragma omp parallel for default(shared) private(i) schedule(dynamic)
             for ( i = 0; i < N; ++i ) {
@@ -1867,11 +1846,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                     continue;
                 }
 
-                bool * totalHood = new bool[N];
-//                std::vector<bool> totalHood(N);
-                for(int j = 0; j < N; j++) {
-                    totalHood[j] = false;
-                }
+                std::vector<bool> totalHood(N);
 
                 int cluster = 0;
                 float control = 0.0f;
@@ -1896,7 +1871,6 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 for (int j = 0; j < N; j++) {
                     if(totalHood[j]) totalReach++;
                 }
-                delete [] totalHood;
                 #pragma omp critical(add_to_col)
                 {
                 if (hoodSize > 1) {
@@ -1923,7 +1897,6 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
                 }
                 }
             }
-            delete [] hoods;
         } else {
 
             if (comm) {
