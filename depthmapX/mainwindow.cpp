@@ -379,6 +379,15 @@ void MainWindow::OnAxialConnectionsExportAsDot()
     }
 }
 
+void MainWindow::OnDrawingExportAsDXF()
+{
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnDrawingExportAsDXF();
+    }
+}
+
 void MainWindow::OnAxialConnectionsExportAsPairCSV()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -2514,6 +2523,7 @@ void MainWindow::updateMapMenu()
         importAct->setEnabled(0);
         exportAct->setEnabled(0);
         exportLinksAct->setEnabled(0);
+        exportDrawingDXFAct->setEnabled(false);
         exportAxialConnectionsDotAct->setEnabled(0);
         exportAxialConnectionsPairAct->setEnabled(0);
         exportSegmentConnectionsPairAct->setEnabled(0);
@@ -2541,6 +2551,7 @@ void MainWindow::updateMapMenu()
     {
         exportAct->setEnabled(true);
         exportLinksAct->setEnabled(true);
+        exportDrawingDXFAct->setEnabled(true);
         exportAxialConnectionsDotAct->setEnabled(true);
         exportAxialConnectionsPairAct->setEnabled(true);
         exportSegmentConnectionsPairAct->setEnabled(true);
@@ -2549,6 +2560,7 @@ void MainWindow::updateMapMenu()
     {
         exportAct->setEnabled(0);
         exportLinksAct->setEnabled(0);
+        exportDrawingDXFAct->setEnabled(false);
         exportAxialConnectionsDotAct->setEnabled(0);
         exportAxialConnectionsPairAct->setEnabled(0);
         exportSegmentConnectionsPairAct->setEnabled(0);
@@ -2984,6 +2996,10 @@ void MainWindow::createActions()
     exportLinksAct = new QAction(tr("&Export links..."), this);
     exportLinksAct->setStatusTip(tr("Export the links of the active map"));
     connect(exportLinksAct, SIGNAL(triggered()), this, SLOT(OnFileExportLinks()));
+
+    exportDrawingDXFAct = new QAction(tr("Drawing layers as DXF..."), this);
+    exportDrawingDXFAct->setStatusTip(tr("Export the active drawing layers as DXF"));
+    connect(exportDrawingDXFAct, SIGNAL(triggered()), this, SLOT(OnDrawingExportAsDXF()));
 
     exportAxialConnectionsPairAct = new QAction(tr("&Axial Connections as CSV..."), this);
     exportAxialConnectionsPairAct->setStatusTip(tr("Export a list of line-line intersections"));
@@ -3505,6 +3521,7 @@ void MainWindow::createMenus()
     exportSubMenu = mapMenu->addMenu(tr("&Export"));
     exportSubMenu->addAction(exportAct);
     exportSubMenu->addAction(exportLinksAct);
+    exportSubMenu->addAction(exportDrawingDXFAct);
     exportSubMenu->addAction(exportAxialConnectionsDotAct);
     exportSubMenu->addAction(exportAxialConnectionsPairAct);
     exportSubMenu->addAction(exportSegmentConnectionsPairAct);

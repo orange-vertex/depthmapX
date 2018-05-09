@@ -273,6 +273,7 @@ public:
     void OnFileImport();
 	void OnFileExport();
     void OnFileExportLinks();
+    void OnDrawingExportAsDXF();
     void OnAxialConnectionsExportAsDot();
     void OnAxialConnectionsExportAsPairCSV();
     void OnSegmentConnectionsExportAsPairCSV();

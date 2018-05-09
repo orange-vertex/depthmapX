@@ -228,6 +228,7 @@ public:
    bool readDataMaps(istream &stream, int version );
    bool writeDataMaps( ofstream& stream, int version, bool displayedmaponly = false );
 
+   void writeDrawingLayersAsDXF(std::ostream& stream);
    //
    int getDisplayedMapType();
    //

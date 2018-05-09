@@ -2509,3 +2509,52 @@ bool MetaGraph::writeDataMaps( ofstream& stream, int version, bool displayedmapo
    }
    return true;
 }
+
+void MetaGraph::writeDrawingLayersAsDXF(std::ostream& stream) {
+
+    stream.precision(12);
+
+    stream << "0" << std::endl << "SECTION" << std::endl;
+    stream << "2" << std::endl << "ENTITIES" << std::endl;
+
+    for (const auto& pixelGroup: m_spacePixels) {
+        for (const auto& pixel: pixelGroup.m_spacePixels) {
+            if (pixel.isShown()) {
+                for (const auto& shape: pixel.getAllShapes()) {
+                    if(shape.second.isLine()) {
+                        stream << "0" << std::endl << "LINE" << std::endl;
+                        stream << "8" << std::endl << pixel.getName() << std::endl;
+                        stream << "10" << std::endl << shape.second.getLine().ax() << std::endl;
+                        stream << "20" << std::endl << shape.second.getLine().ay() << std::endl;
+                        stream << "30" << std::endl << "0" << std::endl;
+                        stream << "11" << std::endl << shape.second.getLine().bx() << std::endl;
+                        stream << "21" << std::endl << shape.second.getLine().by() << std::endl;
+                        stream << "31" << std::endl << "0" << std::endl;
+                    } else if(shape.second.isPoint()) {
+                        stream << "0" << std::endl << "POINT" << std::endl;
+                        stream << "8" << std::endl << pixel.getName() << std::endl;
+                        stream << "10" << std::endl << shape.second.getCentroid().x << std::endl;
+                        stream << "20" << std::endl << shape.second.getCentroid().y << std::endl;
+                        stream << "30" << std::endl << "0" << std::endl;
+                    } else {
+                        stream << "0" << std::endl << "POLYLINE" << std::endl;
+                        stream << "8" << std::endl << pixel.getName() << std::endl;
+                        stream << "66" << std::endl << "1" << std::endl;
+                        stream << "70" << std::endl << (shape.second.isClosed() ? "1" : "0") << std::endl;
+                        for(const auto& point: shape.second.m_points) {
+                            stream << "0" << std::endl << "VERTEX" << std::endl;
+                            stream << "8" << std::endl << pixel.getName() << std::endl;
+                            stream << "10" << std::endl << point.x << std::endl;
+                            stream << "20" << std::endl << point.y << std::endl;
+                            stream << "30" << std::endl << "0" << std::endl;
+                        }
+                        stream << "0" << std::endl << "SEQEND" << std::endl;
+                        stream << "8" << std::endl << pixel.getName() << std::endl;
+                    }
+                }
+            }
+        }
+    }
+    stream << "0" << std::endl << "ENDSEC" << std::endl;
+    stream << "0" << std::endl << "EOF" << std::endl;
+}
