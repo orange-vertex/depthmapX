@@ -96,12 +96,19 @@ QGraphDoc::QGraphDoc(const QString &author, const QString &organisation)
     connect(&m_thread, &RenderThread::showWarningMessage, this, &QGraphDoc::messageFromRenderThread);
     connect(&m_thread, &RenderThread::closeWaitDialog, this, &QGraphDoc::DestroyWaitDialog);
 }
-void QGraphDoc::exceptionThrownInRenderThread(int type, std::string message) {
+void QGraphDoc::exceptionThrownInRenderThread(int type, std::string exceptionMessage) {
     if(type == depthmapX::PointMapExceptionType::NO_ISOVIST_ANALYSIS) {
         std::stringstream message;
         message << "This operation requires isovist analysis. To run it go to: ";
         message << "Tools -> Visibility -> Run Visibility Graph Analysis... ";
         message << "and select \"Calculate isovist properties\"";
+        message << flush;
+        QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
+                             QMessageBox::Ok, QMessageBox::Ok);
+    } else if(type == depthmapX::PointMapExceptionType::BAD_POINTMAP) {
+        std::stringstream message;
+        message << "This pointmap is corrupted:";
+        message << exceptionMessage;
         message << flush;
         QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
                              QMessageBox::Ok, QMessageBox::Ok);

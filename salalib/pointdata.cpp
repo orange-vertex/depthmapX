@@ -31,8 +31,10 @@
 #include <salalib/mgraph.h>
 #include <salalib/ngraph.h>
 
+#include "genlib/exceptions.h"
 #include "genlib/stringutils.h"
 #include "genlib/containerutils.h"
+#include <sstream>
 #include <unordered_set>
 
 
@@ -2236,6 +2238,14 @@ bool PointMap::findDistinctGraphs(Communicator *comm) {
                             Point& p = getPoint(search_tree[level][n]);
                             if (p.filled() && p.m_misc != ~0) {
                                 int row = m_attributes.getRowid(search_tree[level][n]);
+                                if(search_tree[level][n] != curs && m_attributes.getValue(m_attributes.getRowid(search_tree[level][n]),distinct_graph_col) != -1) {
+                                    std::stringstream message;
+                                    message << "Non reciprocal tie found between nodes "
+                                            << curs
+                                            << " and "
+                                            << search_tree[level][n];
+                                    throw depthmapX::PointMapException(depthmapX::PointMapExceptionType::BAD_POINTMAP, message.str());
+                                }
                                 m_attributes.setValue(row,distinct_graph_col,currGraph);
                                 if (!p.contextfilled() || search_tree[level][n].iseven() || level == 0) {
                                     p.m_node->extractUnseen(search_tree[level+1],this,p.m_misc);
@@ -2244,6 +2254,14 @@ bool PointMap::findDistinctGraphs(Communicator *comm) {
                                         Point& p2 = getPoint(p.m_merge);
                                         if (p2.m_misc != ~0) {
                                             int row = m_attributes.getRowid(p.m_merge);
+                                            if(m_attributes.getValue(m_attributes.getRowid(p.m_merge),distinct_graph_col) != -1) {
+                                                std::stringstream message;
+                                                message << "Non reciprocal tie found between nodes "
+                                                        << search_tree[level][n]
+                                                        << " and "
+                                                        << p.m_merge;
+                                                throw depthmapX::PointMapException(depthmapX::PointMapExceptionType::BAD_POINTMAP, message.str());
+                                            }
                                             m_attributes.setValue(row,distinct_graph_col,currGraph);
                                             p2.m_node->extractUnseen(search_tree[level+1],this,p2.m_misc); // did say p.misc
                                             p2.m_misc = ~0;

@@ -56,7 +56,7 @@ class sparkSieve2;
 
 namespace depthmapX
 {
-    enum PointMapExceptionType{NO_ISOVIST_ANALYSIS};
+    enum PointMapExceptionType{NO_ISOVIST_ANALYSIS, BAD_POINTMAP};
     class PointMapException: public depthmapX::RuntimeException {
     private:
         PointMapExceptionType m_errorType;
