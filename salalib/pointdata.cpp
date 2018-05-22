@@ -2195,6 +2195,89 @@ bool PointMap::analyseVisualPointDepth(Communicator *comm)
    return true;
 }
 
+/**
+ * @brief findDistinctGraphs
+ * Finds distinct (unconnected) graphs and notes them in the relevant attribute
+ * Pick a random point and traverse the graph. Any points touched set to 1.
+ * Pick a random point that is not within the ones and traverse. Set to 2 etc.
+ */
+bool PointMap::findDistinctGraphs(Communicator *comm) {
+
+    time_t atime = 0;
+    if (comm) {
+       qtimer( atime, 0 );
+       comm->CommPostMessage( Communicator::NUM_RECORDS, m_point_count );
+    }
+
+    int distinct_graph_col = m_attributes.insertColumn("Distinct Graph");
+
+    int currGraph = 0;
+    int count = 0;
+    for (int i = 0; i < m_cols; i++) {
+        for (int j = 0; j < m_rows; j++) {
+            PixelRef curs = PixelRef( i, j );
+            if ( getPoint( curs ).filled()) {
+                if(m_attributes.getValue(m_attributes.getRowid(curs),distinct_graph_col) == -1) {
+                    m_attributes.setValue(m_attributes.getRowid(curs),distinct_graph_col, currGraph);
+                    for (int i = 0; i < m_attributes.getRowCount(); i++) {
+                        PixelRef pix = m_attributes.getRowKey(i);
+                        getPoint(pix).m_misc = 0;
+                        getPoint(pix).m_extent = pix;
+                    }
+
+                    prefvec<PixelRefVector> search_tree;
+                    search_tree.push_back(PixelRefVector());
+                    search_tree.tail().push_back(curs);
+
+                    int level = 0;
+                    while (search_tree[level].size()) {
+                        search_tree.push_back(PixelRefVector());
+                        for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
+                            Point& p = getPoint(search_tree[level][n]);
+                            if (p.filled() && p.m_misc != ~0) {
+                                int row = m_attributes.getRowid(search_tree[level][n]);
+                                m_attributes.setValue(row,distinct_graph_col,currGraph);
+                                if (!p.contextfilled() || search_tree[level][n].iseven() || level == 0) {
+                                    p.m_node->extractUnseen(search_tree[level+1],this,p.m_misc);
+                                    p.m_misc = ~0;
+                                    if (!p.m_merge.empty()) {
+                                        Point& p2 = getPoint(p.m_merge);
+                                        if (p2.m_misc != ~0) {
+                                            int row = m_attributes.getRowid(p.m_merge);
+                                            m_attributes.setValue(row,distinct_graph_col,currGraph);
+                                            p2.m_node->extractUnseen(search_tree[level+1],this,p2.m_misc); // did say p.misc
+                                            p2.m_misc = ~0;
+                                        }
+                                    }
+                                } else {
+                                    p.m_misc = ~0;
+                                }
+                            }
+                        }
+                        level++;
+                    }
+                    currGraph++;
+                }
+                count++;    // <- increment count
+                if (comm) {
+                   if (qtimer( atime, 500 )) {
+                      if (comm->IsCancelled()) {
+                         throw Communicator::CancelledException();
+                      }
+                      comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
+                   }
+                }
+            }
+        }
+    }
+
+    // force redisplay:
+    m_displayed_attribute = -2;
+    setDisplayedAttribute(distinct_graph_col);
+
+    return true;
+}
+
 // This is a slow algorithm, but should give the correct answer
 // for demonstrative purposes
 

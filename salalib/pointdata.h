@@ -166,6 +166,7 @@ public:
    bool analyseIsovist(Communicator *comm, MetaGraph& mgraph, bool simple_version);
    bool analyseVisual(Communicator *comm, Options& options, bool simple_version);
    bool analyseVisualPointDepth(Communicator *comm);
+   bool findDistinctGraphs(Communicator *comm);
    bool analyseMetric(Communicator *comm, Options& options);
    bool analyseMetricPointDepth(Communicator *comm);
    bool analyseAngular(Communicator *comm, Options& options);

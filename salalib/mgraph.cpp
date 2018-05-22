@@ -264,6 +264,9 @@ bool MetaGraph::makeGraph( Communicator *communicator, int algorithm, double max
 
    return retvar;
 }
+bool MetaGraph::findDistinctGraphs(Communicator *communicator) {
+    return getDisplayedPointMap().findDistinctGraphs(communicator);
+}
 
 bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool simple_version )   // <- options copied to keep thread safe
 {

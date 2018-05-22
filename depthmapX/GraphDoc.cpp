@@ -1647,6 +1647,20 @@ void QGraphDoc::OnToolsRun()
    m_thread.render(this);
 }
 
+void QGraphDoc::OnToolsFindDistinctGraphs() {    
+    if (m_communicator) {
+        QMessageBox::warning(this, tr("Warning"), tr("Please wait, another task is running"), QMessageBox::Ok, QMessageBox::Ok);
+       return;
+    }
+
+    // This is easy too... too easy... hmm... crossed-fingers, here goes:
+    m_communicator = new CMSCommunicator();
+    CreateWaitDialog(tr("Analysing graph..."));
+    m_communicator->SetFunction( CMSCommunicator::FINDDISTINCTGRAPHS );
+
+    m_thread.render(this);
+}
+
 void QGraphDoc::OnToolsPD() 
 {
    if (m_communicator) {

@@ -150,6 +150,12 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
 
+      case CMSCommunicator::FINDDISTINCTGRAPHS:
+         ok = pDoc->m_meta_graph->findDistinctGraphs(comm);
+         pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+         pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
+         break;
+
       case CMSCommunicator::MAKEISOVIST:
          if (comm->GetSeedAngle() == -1.0) {
             ok = pDoc->m_meta_graph->makeIsovist( comm, comm->GetSeedPoint() );

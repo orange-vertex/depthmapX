@@ -143,6 +143,7 @@ private slots:
     void OnToolsIsovistpath();
     void OnToolsAgentLoadProgram();
     void OnToolsRunAxa();
+    void OnToolsFindDistinctGraphs();
     void OnToolsPD();
     void OnToolsAPD();
     void OnToolsMakeFewestLineMap();
@@ -357,6 +358,7 @@ private:
     QAction *importVGALinksAct;
     QAction *makeIsovistPathAct;
     QAction *runVisibilityGraphAnalysisAct;
+    QAction *runFindDistinctGraphsAct;
     QAction *visibilityStepAct;
     QAction *metricStepAct;
     QAction *angularStepAct;

@@ -533,6 +533,14 @@ void MainWindow::OnToolsRunAxa()
     }
 }
 
+void MainWindow::OnToolsFindDistinctGraphs() {
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnToolsFindDistinctGraphs();
+    }
+}
+
 void MainWindow::OnToolsPD()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -2301,6 +2309,7 @@ void MainWindow::updateVisibilitySubMenu()
         importVGALinksAct->setEnabled(0);
         makeIsovistPathAct->setEnabled(0);
         runVisibilityGraphAnalysisAct->setEnabled(0);
+        runFindDistinctGraphsAct->setEnabled(false);
         convertDataMapLinesAct->setEnabled(0);
         return;
     }
@@ -2320,11 +2329,13 @@ void MainWindow::updateVisibilitySubMenu()
     if (m_p->m_meta_graph->viewingProcessedPoints()) {
         importVGALinksAct->setEnabled(true);
         runVisibilityGraphAnalysisAct->setEnabled(true);
+        runFindDistinctGraphsAct->setEnabled(true);
     }
     else
     {
         importVGALinksAct->setEnabled(0);
         runVisibilityGraphAnalysisAct->setEnabled(0);
+        runFindDistinctGraphsAct->setEnabled(false);
     }
 
     if ( !m_p->m_communicator &&
@@ -3023,6 +3034,9 @@ void MainWindow::createActions()
     runVisibilityGraphAnalysisAct = new QAction(tr("&Run Visibility Graph Analysis..."), this);
     connect(runVisibilityGraphAnalysisAct, SIGNAL(triggered()), this, SLOT(OnToolsRun()));
 
+    runFindDistinctGraphsAct = new QAction(tr("&Find Distinct Graphs..."), this);
+    connect(runFindDistinctGraphsAct, SIGNAL(triggered()), this, SLOT(OnToolsFindDistinctGraphs()));
+
     visibilityStepAct = new QAction(tr("&Visibility Step"), this);
     visibilityStepAct->setStatusTip(tr("Step depth from current selection\nStep Depth"));
     connect(visibilityStepAct, SIGNAL(triggered()), this, SLOT(OnToolsPD()));
@@ -3528,6 +3542,7 @@ void MainWindow::createMenus()
     visibilitySubMenu->addAction(makeIsovistPathAct);
     visibilitySubMenu->addSeparator();
     visibilitySubMenu->addAction(runVisibilityGraphAnalysisAct);
+    visibilitySubMenu->addAction(runFindDistinctGraphsAct);
     stepDepthSubMenu = visibilitySubMenu->addMenu(tr("Step &Depth"));
     stepDepthSubMenu->addAction(visibilityStepAct);
     stepDepthSubMenu->addAction(metricStepAct);
