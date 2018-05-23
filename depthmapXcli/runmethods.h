@@ -40,5 +40,6 @@ namespace dm_runmethods{
     void runIsovists(const CommandLineParser &cmdP, const std::vector<IsovistDefinition> &isovists, IPerformanceSink &perfWriter );
     void exportData(const CommandLineParser &cmdP, const ExportParser &exportP, IPerformanceSink &perfWriter );
     void runStepDepth(const CommandLineParser &clp, const std::vector<Point2f> &stepDepthPoints, IPerformanceSink &perfWriter);
+    void findDistinctGraphs(const CommandLineParser &clp, IPerformanceSink &perfWriter);
 }
 #endif // RUNMETHODS_H

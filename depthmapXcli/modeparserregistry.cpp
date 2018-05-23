@@ -23,6 +23,7 @@
 #include "isovistparser.h"
 #include "exportparser.h"
 #include "stepdepthparser.h"
+#include "findgraphsparser.h"
 
 
 void ModeParserRegistry::populateParsers()
@@ -37,5 +38,6 @@ void ModeParserRegistry::populateParsers()
     REGISTER_PARSER(ExportParser);
     REGISTER_PARSER(ImportParser);
     REGISTER_PARSER(StepDepthParser);
+    REGISTER_PARSER(FindGraphsParser);
     // *********
 }

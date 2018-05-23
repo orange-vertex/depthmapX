@@ -141,6 +141,7 @@ namespace dm_runmethods
             case VgaParser::VgaMode::THRU_VISION:
                 options->output_type = Options::OUTPUT_THRU_VISION;
                 break;
+
             default:
                 throw depthmapX::SetupCheckException("Unsupported VGA mode");
         }
@@ -485,6 +486,21 @@ namespace dm_runmethods
         std::unique_ptr<Communicator> comm(new ICommunicator());
 
         DO_TIMED("Calculating step-depth", mGraph->analyseGraph( comm.get(), options, false))
+
+        std::cout << " ok\nWriting out result..." << std::flush;
+        DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(),METAGRAPH_VERSION, false))
+                std::cout << " ok" << std::endl;
+    }
+
+    void findDistinctGraphs(
+            const CommandLineParser &clp,
+            IPerformanceSink &perfWriter)
+    {
+        auto mGraph = loadGraph(clp.getFileName().c_str(),perfWriter);
+
+        std::unique_ptr<Communicator> comm(new ICommunicator());
+
+        DO_TIMED("Finding distinct graphs...", mGraph->findDistinctGraphs( comm.get() ))
 
         std::cout << " ok\nWriting out result..." << std::flush;
         DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(),METAGRAPH_VERSION, false))
