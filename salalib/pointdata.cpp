@@ -34,6 +34,7 @@
 #include "genlib/stringutils.h"
 #include "genlib/containerutils.h"
 #include <unordered_set>
+#include <iomanip>
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -559,7 +560,9 @@ bool PointMap::makePoints(const Point2f& seed, int fill_type, Communicator *comm
       int result = 0;
       result |= expand( currpix, currpix.up(), surface.b(), filltype );
       result |= expand( currpix, currpix.down(), surface.b(), filltype );
+      std::cout << "left" << std::endl;
       result |= expand( currpix, currpix.left(), surface.b(), filltype );
+      std::cout << "right" << std::endl;
       result |= expand( currpix, currpix.right(), surface.b(), filltype );
       result |= expand( currpix, currpix.up().left(), surface.b(), filltype );
       result |= expand( currpix, currpix.up().right(),  surface.b(), filltype );
@@ -594,6 +597,17 @@ int PointMap::expand( const PixelRef p1, const PixelRef p2, PixelRefVector& list
    Line l(depixelate(p1),depixelate(p2));
    for (auto& line: getPoint(p1).m_lines)
    {
+      std::cout << l.bottom_left.x << ", " << l.bottom_left.y << " "
+                << l.top_right.x << ", " << l.top_right.y << std::endl
+                << l.ax() << ", " << l.ay() << " "
+                << l.bx() << ", " << l.by() << std::endl
+                << line.bottom_left.x << ", " << line.bottom_left.y << " "
+                << line.top_right.x << ", " << line.top_right.y << std::endl
+                << line.ax() << ", " << line.ay() << " "
+                << line.bx() << ", " << line.by() << std::endl
+                << m_spacing * 1e-10 << std::endl
+                << intersect_region(l, line, m_spacing * 1e-10) << " "
+                << intersect_line(l, line, m_spacing * 1e-10) << std::endl << std::endl;
       if (intersect_region(l, line, m_spacing * 1e-10) && intersect_line(l, line, m_spacing * 1e-10)) {
          // 4 = blocked
          return 4;
@@ -1602,6 +1616,7 @@ bool PointMap::sparkPixel2(PixelRef curs, int make, double maxdist)
 
    Point2f centre0 = depixelate(curs);
 
+   std::cout << std::endl << curs << std::endl;
    for (int q = 0; q < 8; q++) {
 
       if (!((getPoint(curs).m_processflag) & (1 << q)) ) {
@@ -1658,8 +1673,23 @@ bool PointMap::sparkPixel2(PixelRef curs, int make, double maxdist)
             lines0.push_back(l);
          }
       }
+
+      if(sieve.m_gaps.size() > 0 || q == 0) {
+          std::cout << std::setprecision(17) << "q: " << q << std::endl;
+      }
       sieve.block(lines0, q);
       sieve.collectgarbage();
+
+
+      for(auto& gap: sieve.m_gaps) {
+          std::cout << " gap: " << gap.start << " " << gap.end << std::endl;
+      }
+      if(sieve.m_gaps.size() > 0 || q == 0) {
+          for(auto& l: lines0) {
+              std::cout << " line: " << l.start().x << " " << l.start().y
+                         << l.end().x << " " << l.end().y << std::endl;
+          }
+      }
 
       std::vector<PixelRef> addlist;
 
@@ -1670,7 +1700,7 @@ bool PointMap::sparkPixel2(PixelRef curs, int make, double maxdist)
          {
             break;
          }
-
+         std::cout << "sieve2" << std::endl;
          for (size_t n = 0; n < addlist.size(); n++)
          {
             if (getPoint(addlist[n]).getState() & Point::FILLED)
@@ -1733,12 +1763,16 @@ bool PointMap::sieve2(sparkSieve2& sieve, std::vector<PixelRef>& addlist, int q,
       if (iter->remove) {
          continue;
       }
+
+      std::cout << "testing gap: " << iter->start << " " << iter->end << std::endl;
       for (int ind = (int)ceil(iter->start * (depth - 0.5) - 0.5);
                ind <= (int) floor(iter->end * (depth + 0.5) + 0.5); ind++) {
          if (ind < firstind) {
+             std::cout << "ind < firstind" << std::endl;
             continue;
          }
          if (ind > depth) {
+             std::cout << "ind > depth" << std::endl;
             break;
          }
          // this did say first = ind + 1, but I needed to change it to cope with vertical lines
@@ -1754,12 +1788,20 @@ bool PointMap::sieve2(sparkSieve2& sieve, std::vector<PixelRef>& addlist, int q,
                            curs.x + (q % 2 ? x : -x), curs.y + (q <= 1 || q >= 6 ? y : -y) );
 
          if (includes(here)) {
+             std::cout << "includes(here) " << here << std::endl;
             hasgaps = true;
             // centre gap checks to see if the point is blocked itself
             bool centregap = (double(ind) >= (iter->start * depth) &&
                               double(ind) <= (iter->end * depth));
 
+            std::cout << "centregap " << centregap << std::endl;
+            std::cout << "ind " << ind << std::endl;
+            std::cout << "depth " << depth << std::endl;
+            std::cout << "double(ind) >= (iter->start * depth) " << (double(ind) >= (iter->start * depth)) << std::endl;
+            std::cout << "double(ind) <= (iter->end * depth) " << (double(ind) <= (iter->end * depth)) << std::endl;
+
             if (centregap && (getPoint(here).m_state & Point::FILLED)) {
+
                // don't repeat axes / diagonals
                if ((ind != 0 || q == 0 || q == 1 || q == 5 || q == 6) && (ind != depth || q < 4)) {
                   // block test as usual [tested 31.10.04 -- MUST use 1e-10 for Gassin at 10 grid spacing]

@@ -10,7 +10,8 @@ SOURCES += convertertest.cpp \
     dxfptest.cpp \
     teststringutils.cpp \
     testbspnode.cpp \
-    testcontainerutils.cpp
+    testcontainerutils.cpp \
+    testp2dpoly.cpp
 
 HEADERS +=
 

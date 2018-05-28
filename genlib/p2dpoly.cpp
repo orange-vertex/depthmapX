@@ -22,6 +22,7 @@
 #include <genlib/paftl.h>
 #include <genlib/comm.h> // used in BSP construction
 #include <genlib/p2dpoly.h>
+#include <iomanip>
 
 //////////////////////////////////////////////////////////////////////////////////////
 
@@ -375,6 +376,23 @@ bool intersect_line(const Line& a, const Line& b, double tolerance)
 {
    g_count++;
 
+   std::cout  << std::setprecision(17) << (((a.ay() - a.by()) * (b.ax() - a.ax()) +
+                (a.bx() - a.ax()) * (b.ay() - a.ay())) *
+               ((a.ay() - a.by()) * (b.bx() - a.ax()) +
+                (a.bx() - a.ax()) * (b.by() - a.ay()))) << std::endl;
+   std::cout  << std::setprecision(17) << ((((a.ay() - a.by()) * (b.ax() - a.ax()) +
+                (a.bx() - a.ax()) * (b.ay() - a.ay())) *
+               ((a.ay() - a.by()) * (b.bx() - a.ax()) +
+                (a.bx() - a.ax()) * (b.by() - a.ay()))) <= tolerance) << std::endl;
+   std::cout  << std::setprecision(17) << (((b.ay() - b.by()) * (a.ax() - b.ax()) +
+                  (b.bx() - b.ax()) * (a.ay() - b.ay())) *
+                 ((b.ay() - b.by()) * (a.bx() - b.ax()) +
+                  (b.bx() - b.ax()) * (a.by() - b.ay()))) << std::endl;
+   std::cout  << std::setprecision(17) << ((((b.ay() - b.by()) * (a.ax() - b.ax()) +
+                  (b.bx() - b.ax()) * (a.ay() - b.ay())) *
+                 ((b.ay() - b.by()) * (a.bx() - b.ax()) +
+                  (b.bx() - b.ax()) * (a.by() - b.ay()))) <= tolerance) << std::endl;
+   std::cout << std::endl;
    if ( ((a.ay() - a.by()) * (b.ax() - a.ax()) +
          (a.bx() - a.ax()) * (b.ay() - a.ay())) *
         ((a.ay() - a.by()) * (b.bx() - a.ax()) +

@@ -80,6 +80,7 @@ void sparkSieve2::block( const std::vector<Line>& lines, int q )
          block.end = a + 1e-10;
       }
       // this creates a list of blocks sorted by start location
+      std::cout << " block: " << block.start << " " << block.end << std::endl;
       m_blocks.push_back(block);
    }
    std::sort( m_blocks.begin(), m_blocks.end() );
