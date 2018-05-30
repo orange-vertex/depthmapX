@@ -2097,7 +2097,7 @@ bool PointMap::findDistinctGraphs(Communicator *comm) {
     time_t atime = 0;
     if (comm) {
        qtimer( atime, 0 );
-       comm->CommPostMessage( Communicator::NUM_RECORDS, m_point_count );
+       comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
     }
 
     int distinct_graph_col = m_attributes.insertColumn("Distinct Graph");
