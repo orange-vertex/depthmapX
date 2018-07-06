@@ -43,7 +43,10 @@ SOURCES += \
     importutils.cpp \
     point.cpp \
     pafcolor.cpp \
-    spacepixfile.cpp
+    spacepixfile.cpp \
+    mapconvert.cpp \
+    alllinemap.cpp \
+    mapgenerator.cpp
 
 HEADERS += \
     attributes.h \
@@ -82,7 +85,10 @@ HEADERS += \
     displayparams.h \
     pafcolor.h \
     options.h \
-    spacepixfile.h
+    spacepixfile.h \
+    mapconvert.h \
+    alllinemap.h \
+    mapgenerator.h
 
 DISTFILES += \
     salascript-tests.txt

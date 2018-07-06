@@ -85,7 +85,9 @@ public:
    //
 public:
    std::vector<ShapeMap> m_dataMaps;
-   ShapeGraphs m_shape_graphs;
+   std::vector<ShapeGraph> m_shapeGraphs;
+   int m_displayed_shapegraph;
+   int m_all_line_map = -1;
 public:
    MetaGraph(std::string name = "");
    ~MetaGraph();
@@ -107,6 +109,8 @@ public:
    { m_displayed_pointmap = i; }
    int getDisplayedPointMapRef() const
    { return m_displayed_pointmap; }
+   int getDisplayedShapeGraphRef() const
+   { return m_displayed_shapegraph; }
    void redoPointMapBlockLines()   // (flags blockedlines, but also flags that you need to rebuild a bsp tree if you have one)
    { for (auto& pointMap: m_pointMaps) { pointMap.m_blockedlines = false; } }
    int addNewPointMap(const std::string& name = std::string("VGA Map"));
@@ -187,7 +191,7 @@ public:
    bool analyseTopoMet( Communicator *communicator, Options options ); // <- options copied to keep thread safe
    //
    bool hasAllLineMap()
-   { return m_shape_graphs.hasAllLineMap(); }
+   { return m_all_line_map != -1; }
    //
    enum { PUSH_FUNC_MAX = 0, PUSH_FUNC_MIN = 1, PUSH_FUNC_AVG = 2, PUSH_FUNC_TOT = 3};
    bool pushValuesToLayer(int desttype, int destlayer, int push_func, bool count_col = false);
@@ -201,7 +205,9 @@ public:
    void undo();
    //
    ShapeGraph& getDisplayedShapeGraph()
-   { return m_shape_graphs.getDisplayedMap(); }
+   { return m_shapeGraphs[size_t(m_displayed_shapegraph)]; }
+   const ShapeGraph& getDisplayedShapeGraph() const
+   { return m_shapeGraphs[size_t(m_displayed_shapegraph)]; }
    size_t m_displayed_datamap = -1;
    ShapeMap& getDisplayedDataMap()
    { return m_dataMaps[m_displayed_datamap]; }
@@ -212,6 +218,9 @@ public:
 
    void removeDataMap(int i)
    { if (m_displayed_datamap >= i) m_displayed_datamap--; m_dataMaps.erase(m_dataMaps.begin() + i); }
+
+   void removeShapeGraph(int i)
+   { if (m_displayed_shapegraph >= i) m_displayed_shapegraph--; m_shapeGraphs.erase(m_shapeGraphs.begin() + i); }
 
    void setDisplayedDataMapRef(size_t map)
    {
@@ -231,10 +240,13 @@ public:
       return -1;
    }
 
-   ShapeGraphs& getShapeGraphs()
-   { return m_shape_graphs; }
+   std::vector<ShapeGraph>& getShapeGraphs()
+   { return m_shapeGraphs; }
    std::vector<ShapeMap>& getDataMaps()
    { return m_dataMaps; }
+
+   bool readShapeGraphs(std::istream &stream, int version );
+   bool writeShapeGraphs(std::ofstream& stream, int version, bool displayedmaponly = false );
 
    bool readDataMaps(std::istream &stream, int version );
    bool writeDataMaps( std::ofstream& stream, int version, bool displayedmaponly = false );
@@ -319,7 +331,7 @@ public:
    {  if (m_view_class & VIEWVGA) 
          return getDisplayedPointMap().isSelected();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().isSelected();
+         return getDisplayedShapeGraph().isSelected();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().isSelected();
       else 
@@ -327,7 +339,7 @@ public:
    }
    bool setCurSel( QtRegion& r, bool add = false )  // set current selection
    {  if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().setCurSel(r, add);
+         return getDisplayedShapeGraph().setCurSel(r, add);
       else if (m_view_class & VIEWDATA)
          return getDisplayedDataMap().setCurSel( r, add );
       else if (m_view_class & VIEWVGA)
@@ -345,7 +357,7 @@ public:
       if (m_view_class & VIEWVGA)
          return getDisplayedPointMap().clearSel();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().clearSel();
+         return getDisplayedShapeGraph().clearSel();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().clearSel();
       else
@@ -356,7 +368,7 @@ public:
       if (m_view_class & VIEWVGA)
          return getDisplayedPointMap().getSelCount();
       else if (m_view_class & VIEWAXIAL) 
-         return (int) m_shape_graphs.getDisplayedMap().getSelCount();
+         return (int) getDisplayedShapeGraph().getSelCount();
       else if (m_view_class & VIEWDATA) 
          return (int) getDisplayedDataMap().getSelCount();
       else
@@ -367,7 +379,7 @@ public:
       if (m_view_class & VIEWVGA)
          return (float)getDisplayedPointMap().getAttributeTable().getSelAvg();
       else if (m_view_class & VIEWAXIAL) 
-         return (float)m_shape_graphs.getDisplayedMap().getAttributeTable().getSelAvg();
+         return (float)getDisplayedShapeGraph().getAttributeTable().getSelAvg();
       else if (m_view_class & VIEWDATA) 
          return (float)getDisplayedDataMap().getAttributeTable().getSelAvg();
       else
@@ -378,7 +390,7 @@ public:
       if (m_view_class & VIEWVGA)
          return getDisplayedPointMap().getSelBounds();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().getSelBounds();
+         return getDisplayedShapeGraph().getSelBounds();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelBounds();
       else
@@ -389,21 +401,21 @@ public:
    { if (m_view_class & VIEWVGA && m_state & POINTMAPS)
          getDisplayedPointMap().setCurSel(selset,add);
       else if (m_view_class & VIEWAXIAL) 
-         m_shape_graphs.getDisplayedMap().setCurSel(selset,add);
+         getDisplayedShapeGraph().setCurSel(selset,add);
       else // if (m_view_class & VIEWDATA) 
          getDisplayedDataMap().setCurSel(selset,add); }
    std::set<int>& getSelSet()
    {  if (m_view_class & VIEWVGA && m_state & POINTMAPS)
          return getDisplayedPointMap().getSelSet();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().getSelSet();
+         return getDisplayedShapeGraph().getSelSet();
       else // if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelSet(); }
    const std::set<int>& getSelSet() const
    {  if (m_view_class & VIEWVGA && m_state & POINTMAPS)
          return getDisplayedPointMap().getSelSet();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().getSelSet();
+         return getDisplayedShapeGraph().getSelSet();
       else // if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelSet(); }
 //

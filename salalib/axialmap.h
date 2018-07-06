@@ -34,11 +34,11 @@ class AxialPolygons : public SpacePixel
 {
    friend class ShapeGraphs;
 protected:
-   std::map<Point2f,pqvector<Point2f>> m_vertex_possibles;
    pvecint m_vertex_polys;
    pvecint **m_pixel_polys;
    pqvector<AxialVertex> m_handled_list;
 public:
+   std::map<Point2f,pqvector<Point2f>> m_vertex_possibles;
    AxialPolygons();
    virtual ~AxialPolygons();
    //
@@ -223,6 +223,12 @@ public:
    void writeSegmentConnectionsAsPairsCSV(std::ostream &stream);
    //
    void unlinkFromShapeMap(const ShapeMap& shapemap);
+   void setMapType(int type) {
+       m_map_type = type;
+   }
+   prefvec<pvecint> getKeyvertices() const {
+       return m_keyvertices;
+   }
 };
 
 class ShapeGraphs : public ShapeMaps<ShapeGraph>
@@ -231,24 +237,10 @@ protected:
    // helpful to know this for creating fewest line maps, although has to be reread at input
    int m_all_line_map;
    //
-   // For all line map work:
-   AxialPolygons m_polygons;
-   prefvec<PolyConnector> m_poly_connections;
-   pqvector<RadialLine> m_radial_lines;
 public:
    ShapeGraphs() { m_all_line_map = -1; }
    virtual ~ShapeGraphs() {;}
    //
-   // ShapeGraphs just have extra functionality over ShapeMaps here:
-   bool makeAllLineMap(Communicator *comm, std::vector<SpacePixelFile> &drawingLayers, const Point2f& seed);
-   bool makeFewestLineMap(Communicator *comm, bool replace_existing);
-   int convertDrawingToAxial(Communicator *comm, const std::string& name, std::vector<SpacePixelFile> &drawingFiles);
-   int convertDataToAxial(Communicator *comm, const std::string& name, ShapeMap& shapemap, bool copydata = false);
-   int convertDrawingToConvex(Communicator *comm, const std::string& name, std::vector<SpacePixelFile> &drawingFiles);
-   int convertDataToConvex(Communicator *comm, const std::string& name, ShapeMap& shapemap, bool copydata = false);
-   int convertDrawingToSegment(Communicator *comm, const std::string& name, std::vector<SpacePixelFile> &drawingFiles);
-   int convertDataToSegment(Communicator *comm, const std::string& name, ShapeMap& shapemap, bool copydata = false);
-   int convertAxialToSegment(Communicator *comm, const std::string& name, bool keeporiginal = true, bool pushvalues = false, double stubremoval = 0.0);
    //
    bool hasAllLineMap()
    { return m_all_line_map != -1; }
@@ -260,40 +252,7 @@ public:
 
 // helpers... a class to tidy up ugly maps people may give me...
 
-class TidyLines : public SpacePixel
-{
-public:
-   TidyLines() {;}
-   virtual ~TidyLines() {;}
-   void tidy(std::vector<Line> &lines, const QtRegion& region);
-   void quicktidy(std::map<int, Line> &lines, const QtRegion& region);
-};
 
-// helpers... a class to reduce all line maps to fewest line maps
-
-class AxialMinimiser
-{
-protected:
-   ShapeGraph *m_alllinemap;
-   //
-   ValueTriplet *m_vps;
-   bool *m_removed;
-   bool *m_affected;
-   bool *m_vital;
-   int *m_radialsegcounts;
-   int *m_keyvertexcounts;
-   std::vector<Connector> m_axialconns; // <- uses a copy of axial lines as it will remove connections
-public:
-   AxialMinimiser(const ShapeGraph& alllinemap, int no_of_axsegcuts, int no_of_radialsegs);
-   ~AxialMinimiser();
-   void removeSubsets(std::map<int,pvecint>& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey,pvecint>& rlds, pqvector<RadialLine>& radial_lines, prefvec<pvecint>& keyvertexconns, int *keyvertexcounts);
-   void fewestLongest(std::map<int,pvecint>& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey,pvecint>& rlds, pqvector<RadialLine>& radial_lines, prefvec<pvecint>& keyvertexconns, int *keyvertexcounts);
-   // advanced topological testing:
-   bool checkVital(int checkindex,pvecint& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey,pvecint>& rlds, pqvector<RadialLine>& radial_lines);
-   //
-   bool removed(int i) const
-   { return m_removed[i]; }
-};
 
 struct ValueTriplet
 {
