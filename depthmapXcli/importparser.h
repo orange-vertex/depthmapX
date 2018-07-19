@@ -50,6 +50,7 @@ public:
     virtual void run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const;
 
     const std::vector<std::string> & getFilesToImport() const { return m_filesToImport; }
+    const depthmapX::ImportType & getNewMapType() const { return m_newMapType; }
 
 private:
     std::vector<std::string> m_filesToImport;
