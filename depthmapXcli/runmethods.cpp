@@ -86,12 +86,15 @@ namespace dm_runmethods
                 importFileType = depthmapX::ImportFileType::DXF;
             }
 
-            depthmapX::importFile(*mgraph,
+            int mapParsed = depthmapX::importFile(*mgraph,
                                   file,
                                   false,
                                   cmdP.getFileName(),
-                                  depthmapX::ImportType::DRAWINGMAP,
+                                  depthmapX::ImportType::DATAMAP,
                                   importFileType);
+            mgraph->setDisplayedDataMapRef(0);
+            QtRegion reg = mgraph->getDataMaps()[0].getRegion();
+            mgraph->setRegion(reg.bottom_left, reg.top_right);
         }
         DO_TIMED("Writing graph", mgraph->write(cmdP.getOuputFile().c_str(),METAGRAPH_VERSION, false);)
     }
