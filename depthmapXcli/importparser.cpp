@@ -32,10 +32,34 @@ void ImportParser::parse(int argc, char *argv[])
             ENFORCE_ARGUMENT("-if", i)
             m_filesToImport.push_back(argv[i]);
         }
+        else if ( strcmp ("-it", argv[i]) == 0)
+        {
+            if (m_newMapType != depthmapX::ImportType::NONE)
+            {
+                throw CommandLineException("-it can only be used once, types are mutually exclusive");
+            }
+            ENFORCE_ARGUMENT("-it", i)
+            if ( std::strcmp(argv[i], "drawing") == 0 )
+            {
+                m_newMapType = depthmapX::ImportType::DRAWINGMAP;
+            }
+            else if ( std::strcmp(argv[i], "data") == 0 )
+            {
+                m_newMapType = depthmapX::ImportType::DATAMAP;
+            }
+            else
+            {
+                throw CommandLineException(std::string("Invalid map output (-it) type: ") + argv[i]);
+            }
+        }
+    }
+    if (m_newMapType == depthmapX::ImportType::NONE)
+    {
+        throw CommandLineException("A valid new map type (-it) is required");
     }
 }
 
 void ImportParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const
 {
-    dm_runmethods::importFiles(clp, m_filesToImport, perfWriter);
+    dm_runmethods::importFiles(clp, m_filesToImport, m_newMapType, perfWriter);
 }

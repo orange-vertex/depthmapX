@@ -53,7 +53,7 @@ namespace dm_runmethods
         return mgraph;
     }
 
-    void importFiles(const CommandLineParser &cmdP, const std::vector<std::string> &filesToImport, IPerformanceSink &perfWriter)
+    void importFiles(const CommandLineParser &cmdP, const std::vector<std::string> &filesToImport, depthmapX::ImportType newMapType, IPerformanceSink &perfWriter)
     {
         std::ifstream mainFileStream(cmdP.getFileName().c_str());
         if(!mainFileStream.good()) {
@@ -86,15 +86,18 @@ namespace dm_runmethods
                 importFileType = depthmapX::ImportFileType::DXF;
             }
 
-            int mapParsed = depthmapX::importFile(*mgraph,
+            depthmapX::importFile(*mgraph,
                                   file,
                                   false,
                                   cmdP.getFileName(),
-                                  depthmapX::ImportType::DATAMAP,
+                                  newMapType,
                                   importFileType);
-            mgraph->setDisplayedDataMapRef(0);
-            QtRegion reg = mgraph->getDataMaps()[0].getRegion();
-            mgraph->setRegion(reg.bottom_left, reg.top_right);
+
+            if(newMapType == depthmapX::ImportType::DATAMAP) {
+                mgraph->setDisplayedDataMapRef(0);
+                QtRegion reg = mgraph->getDataMaps()[0].getRegion();
+                mgraph->setRegion(reg.bottom_left, reg.top_right);
+            }
         }
         DO_TIMED("Writing graph", mgraph->write(cmdP.getOuputFile().c_str(),METAGRAPH_VERSION, false);)
     }
