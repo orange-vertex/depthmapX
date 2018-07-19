@@ -17,12 +17,17 @@
 
 #include "imodeparser.h"
 #include "commandlineparser.h"
+#include "salalib/importtypedefs.h"
 #include <string>
 #include <vector>
 
 class ImportParser : public IModeParser
 {
 public:
+    ImportParser():
+        m_newMapType(depthmapX::ImportType::NONE)
+    {}
+
     virtual std::string getModeName() const
     {
         return "IMPORT";
@@ -33,7 +38,11 @@ public:
         return  "Mode options for IMPORT:\n"\
                 "   The file provided by -f here will be used as the base. If that file"\
                 "is not a graph, a new graph will be created and the file will be imported\n"\
-                "   -if <file(s) to import> one or more files to import\n";
+                "   -if <file(s) to import> one or more files to import\n"\
+                "   -it <type> New map type\n"\
+                "              Possible input/output map types:\n"\
+                "               - drawing\n"\
+                "               - data\n";
     }
 
 public:
@@ -44,4 +53,5 @@ public:
 
 private:
     std::vector<std::string> m_filesToImport;
+    depthmapX::ImportType m_newMapType;
 };

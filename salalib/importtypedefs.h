@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "genlib/p2dpoly.h"
 #include <vector>
 #include <map>
 
@@ -32,7 +33,7 @@ namespace depthmapX {
     };
 
     enum ImportType {
-        DRAWINGMAP, DATAMAP
+        NONE, DRAWINGMAP, DATAMAP
     };
 
     enum ImportFileType {
