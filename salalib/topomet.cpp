@@ -28,7 +28,7 @@
 #include "genlib/stringutils.h"
 #include "topomet.h"
 
-bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double radius, bool sel_only)
+bool ShapeGraphDirected::analyseTopoMet(Communicator *comm, int analysis_type, double radius, bool sel_only)
 {
    bool retvar = true;
 
@@ -233,7 +233,7 @@ bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double ra
    return retvar;
 }
 
-bool ShapeGraph::analyseTopoMetPD(Communicator *comm, int analysis_type)
+bool ShapeGraphDirected::analyseTopoMetPD(Communicator *comm, int analysis_type)
 {
    bool retvar = true;
 

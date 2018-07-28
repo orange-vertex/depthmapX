@@ -50,47 +50,99 @@ struct AnalysisInfo
 
 class MapInfoData;
 
+
 class ShapeGraph : public ShapeMap
 {
    friend class AxialMinimiser;
    friend class MapInfoData;
 protected:
-   prefvec<pvecint> m_keyvertices;       // but still need to return keyvertices here
-   int m_keyvertexcount;
 protected:
 public:
-   bool outputMifPolygons(std::ostream& miffile, std::ostream& midfile) const;
-   void outputNet(std::ostream& netfile) const;
-public:
-   ShapeGraph(const std::string& name = "<axial map>", int type = ShapeMap::AXIALMAP);
-   virtual ~ShapeGraph() {;}
-   void initialiseAttributesAxial();
-   void makeConnections(const prefvec<pvecint>& keyvertices = prefvec<pvecint>());
-   //void initAttributes();
-   bool integrate(Communicator *comm = NULL, const pvecint& radius = pvecint(), bool choice = false, bool local = false, bool fulloutput = false, int weighting_col = -1, bool simple_version = true);
-   bool stepdepth(Communicator *comm = NULL);
-   bool analyseAngular(Communicator *comm, const pvecdouble& radius);
-   // extra parameters for selection_only and interactive are for parallel process extensions
-   int analyseTulip(Communicator *comm, int tulip_bins, bool choice, int radius_type, const pvecdouble& radius, int weighting_col, int weighting_col2 = -1, int routeweight_col = -1, bool selection_only = false, bool interactive = true);
-   bool angularstepdepth(Communicator *comm);
-   // the two topomet analyses can be found in topomet.cpp:
-   bool analyseTopoMet(Communicator *comm, int analysis_type, double radius, bool sel_only);
-   bool analyseTopoMetPD(Communicator *comm, int analysis_type);
-   // lineset and connectionset are filled in by segment map
-   void makeNewSegMap();
-   void makeSegmentMap(std::vector<Line> &lineset, prefvec<Connector>& connectionset, double stubremoval);
-   void initialiseAttributesSegment();
-   void makeSegmentConnections(prefvec<Connector>& connectionset);
-   void pushAxialValues(ShapeGraph& axialmap);
+//   //void initAttributes();
+//   // extra parameters for selection_only and interactive are for parallel process extensions
    //
-   virtual bool read( std::istream& stream, int version );
-   bool readold( std::istream& stream, int version );
-   virtual bool write( std::ofstream& stream, int version );
-   void writeAxialConnectionsAsDotGraph(std::ostream &stream);
-   void writeAxialConnectionsAsPairsCSV(std::ostream &stream);
-   void writeSegmentConnectionsAsPairsCSV(std::ostream &stream);
    //
-   void unlinkFromShapeMap(const ShapeMap& shapemap);
 };
+
+class ShapeGraphUndirected : public ShapeGraph
+{
+protected:
+    // for graph functionality
+    // Note: this list is stored PACKED for optimal performance on graph analysis
+    // ALWAYS check it is in the same order as the shape list and attribute table
+    std::vector<Connector> m_connectors;
+    prefvec<pvecint> m_keyvertices;       // but still need to return keyvertices here
+    int m_keyvertexcount;
+public:
+    ShapeGraphUndirected(const std::string& name = "<axial map>", int type = ShapeMap::AXIALMAP) {
+        m_keyvertexcount = 0;
+    }
+    const std::vector<Connector>& getConnections() const
+    { return m_connectors; }
+    std::vector<Connector>& getConnections()
+    { return m_connectors; }
+    void makeConnections(const prefvec<pvecint>& keyvertices = prefvec<pvecint>());
+    void unlinkFromShapeMap(const ShapeMap& shapemap);
+
+    void makeSegmentMap(std::vector<Line> &lineset, prefvec<Connector>& connectionset, double stubremoval);
+
+    void initialiseAttributesAxial();
+    bool integrate(Communicator *comm = NULL, const pvecint& radius = pvecint(),
+                   bool choice = false, bool local = false, bool fulloutput = false,
+                   int weighting_col = -1, bool simple_version = true);
+    bool angularstepdepth(Communicator *comm);
+
+    void writeAxialConnectionsAsDotGraph(std::ostream &stream);
+    void writeAxialConnectionsAsPairsCSV(std::ostream &stream);
+    void clearAll() { ShapeMap::clearAll(); m_connectors.clear(); }
+    void outputNet(std::ostream& netfile) const;
+    bool outputMifPolygons(std::ostream& miffile, std::ostream& midfile) const;
+
+    bool moveShape(int shaperef, const Line& line, bool undoing = false);
+
+    virtual bool read( std::istream& stream, int version );
+    virtual bool write( std::ofstream& stream, int version );
+};
+
+class ShapeGraphDirected : public ShapeGraph
+{
+protected:
+    // for graph functionality
+    // Note: this list is stored PACKED for optimal performance on graph analysis
+    // ALWAYS check it is in the same order as the shape list and attribute table
+    std::vector<Connector> m_connectors;
+    prefvec<pvecint> m_keyvertices;       // but still need to return keyvertices here
+    int m_keyvertexcount;
+public:
+    ShapeGraphDirected(const std::string& name = "<segment map>", int type = ShapeMap::SEGMENTMAP);
+    const std::vector<Connector>& getConnections() const
+    { return m_connectors; }
+    std::vector<Connector>& getConnections()
+    { return m_connectors; }
+    void makeConnections(const prefvec<pvecint>& keyvertices = prefvec<pvecint>());
+    // lineset and connectionset are filled in by segment map
+    void makeNewSegMap();
+    void makeSegmentConnections(prefvec<Connector>& connectionset);
+
+    void initialiseAttributesSegment();
+
+    bool stepdepth(Communicator *comm = NULL);
+    int analyseTulip(Communicator *comm, int tulip_bins, bool choice, int radius_type,
+                     const pvecdouble& radius, int weighting_col, int weighting_col2 = -1,
+                     int routeweight_col = -1, bool selection_only = false, bool interactive = true);
+    // the two topomet analyses can be found in topomet.cpp:
+    bool analyseTopoMet(Communicator *comm, int analysis_type, double radius, bool sel_only);
+    bool analyseTopoMetPD(Communicator *comm, int analysis_type);
+    bool analyseAngular(Communicator *comm, const pvecdouble& radius);
+    void pushAxialValues(ShapeGraph& axialmap);
+
+    void writeSegmentConnectionsAsPairsCSV(std::ostream &stream);
+    void clearAll() { ShapeMap::clearAll(); m_connectors.clear(); }
+    void outputNet(std::ostream& netfile) const;
+
+    virtual bool read( std::istream& stream, int version );
+    virtual bool write( std::ofstream& stream, int version );
+};
+
 
 #endif

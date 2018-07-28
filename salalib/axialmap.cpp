@@ -79,19 +79,11 @@ static std::string makeRadiusText(int radius_type, double radius)
    return radius_text;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-
-ShapeGraph::ShapeGraph(const std::string& name, int type) : ShapeMap(name,type)
-{
-   m_keyvertexcount = 0;
-   m_hasgraph = true;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void ShapeGraph::initialiseAttributesAxial()
+void ShapeGraphUndirected::initialiseAttributesAxial()
 {
     m_attributes.clear();
     // note, expects these to be numbered 0, 1...
@@ -100,7 +92,38 @@ void ShapeGraph::initialiseAttributesAxial()
 
 }
 
-void ShapeGraph::makeConnections(const prefvec<pvecint>& keyvertices)
+void ShapeGraphUndirected::makeConnections(const prefvec<pvecint>& keyvertices)
+{
+   m_connectors.clear();
+   m_links.clear();
+   m_unlinks.clear();
+   m_keyvertices.clear();
+
+   // note, expects these to be numbered 0, 1...
+   int conn_col = m_attributes.getColumnIndex("Connectivity");
+   int leng_col = m_attributes.getColumnIndex("Line Length");
+
+   int i = -1;
+   for (auto shape: m_shapes) {
+      i++;
+      int key = shape.first;
+      int rowid = m_attributes.getRowid(key);
+      // all indices should match...
+      m_connectors.push_back( Connector() );
+      int connectivity = getLineConnections( key, m_connectors[i].m_connections, TOLERANCE_B*__max(m_region.height(),m_region.width()));
+      m_attributes.setValue(rowid, conn_col, (float) connectivity );
+      m_attributes.setValue(rowid, leng_col, (float) shape.second.getLine().length() );
+      if (keyvertices.size()) {
+         // note: depends on lines being recorded in same order as keyvertices...
+         m_keyvertices.push_back( keyvertices[i] );
+      }
+   }
+
+   m_displayed_attribute = -1; // <- override if it's already showing
+   setDisplayedAttribute(conn_col);
+}
+
+void ShapeGraphDirected::makeConnections(const prefvec<pvecint>& keyvertices)
 {
    m_connectors.clear();
    m_links.clear();
@@ -133,7 +156,7 @@ void ShapeGraph::makeConnections(const prefvec<pvecint>& keyvertices)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-bool ShapeGraph::outputMifPolygons(std::ostream& miffile, std::ostream& midfile) const
+bool ShapeGraphUndirected::outputMifPolygons(std::ostream& miffile, std::ostream& midfile) const
 {
    // take lines from lines layer and make into regions (using the axial polygons)
    std::vector<Line> lines;
@@ -156,73 +179,74 @@ bool ShapeGraph::outputMifPolygons(std::ostream& miffile, std::ostream& midfile)
    return true;
 }
 
-void ShapeGraph::outputNet(std::ostream& netfile) const
+void ShapeGraphDirected::outputNet(std::ostream& netfile) const
 {
-   double maxdim = __max(m_region.width(),m_region.height());
-   Point2f offset = Point2f((maxdim - m_region.width())/(2.0*maxdim),(maxdim - m_region.height())/(2.0*maxdim));
-   if (isSegmentMap()) {
-      netfile << "*Vertices " << m_shapes.size() * 2 << std::endl;
-      int i = -1;
-      for (auto shape: m_shapes) {
-         i++;
-         Line li = shape.second.getLine();
-         Point2f p1 = li.start();
-         Point2f p2 = li.end();
-         p1.x = offset.x + (p1.x - m_region.bottom_left.x) / maxdim;
-         p2.x = offset.x + (p2.x - m_region.bottom_left.x) / maxdim;
-         p1.y = 1.0 - (offset.y + (p1.y - m_region.bottom_left.y) / maxdim);
-         p2.y = 1.0 - (offset.y + (p2.y - m_region.bottom_left.y) / maxdim);
-         netfile << (i * 2 + 1) << " \"" << i << "a\" " << p1.x << " " << p1.y << std::endl;
-         netfile << (i * 2 + 2) << " \"" << i << "b\" " << p2.x << " " << p2.y << std::endl;
-      }
-      netfile << "*Edges" << std::endl;
-      for (size_t i = 0; i < m_shapes.size(); i++) {
-         netfile << (i * 2 + 1) << " " << (i * 2 + 2) << " 2" << std::endl;
-      }
-      netfile << "*Arcs" << std::endl;
-      // this makes an assumption about which is the "start" and which is the "end"
-      // it works for an automatically converted axial map, I'm not sure it works for others...
-      for (size_t j = 0; j < m_connectors.size(); j++) {
-         const Connector& conn = m_connectors[j];
-         for (size_t k1 = 0; k1 < conn.m_forward_segconns.size(); k1++) {
-            SegmentRef ref = conn.m_forward_segconns.key(k1);
-            float weight = conn.m_forward_segconns.value(k1);
-            netfile << (j * 2 + 1) << " " << (ref.ref * 2 + ((ref.dir == 1) ? 1 : 2)) << " " << weight << std::endl;
-         }
-         for (size_t k2 = 0; k2 < conn.m_back_segconns.size(); k2++) {
-            SegmentRef ref = conn.m_back_segconns.key(k2);
-            float weight = conn.m_back_segconns.value(k2);
-            netfile << (j * 2 + 2) << " " << (ref.ref * 2 + ((ref.dir == 1) ? 1 : 2)) << " " << weight << std::endl;
-         }
-      }
-   }
-   else {
-      netfile << "*Vertices " << m_shapes.size() << std::endl;
-      int i = -1;
-      for (auto shape: m_shapes) {
-         i++;
-         Point2f p = shape.second.getCentroid();
-         p.x = offset.x + (p.x - m_region.bottom_left.x) / maxdim;
-         p.y = 1.0 - (offset.y + (p.y - m_region.bottom_left.y) / maxdim);
-         netfile << (i + 1) << " \"" << i << "\" " << p.x << " " << p.y << std::endl;
-      }
-      netfile << "*Edges" << std::endl;
-      for (size_t j = 0; j < m_connectors.size(); j++) {
-         const Connector& conn = m_connectors[j];
-         for (size_t k = 0; k < conn.m_connections.size(); k++) {
+    double maxdim = __max(m_region.width(),m_region.height());
+    Point2f offset = Point2f((maxdim - m_region.width())/(2.0*maxdim),(maxdim - m_region.height())/(2.0*maxdim));
+    netfile << "*Vertices " << m_shapes.size() * 2 << std::endl;
+    int i = -1;
+    for (auto shape: m_shapes) {
+       i++;
+       Line li = shape.second.getLine();
+       Point2f p1 = li.start();
+       Point2f p2 = li.end();
+       p1.x = offset.x + (p1.x - m_region.bottom_left.x) / maxdim;
+       p2.x = offset.x + (p2.x - m_region.bottom_left.x) / maxdim;
+       p1.y = 1.0 - (offset.y + (p1.y - m_region.bottom_left.y) / maxdim);
+       p2.y = 1.0 - (offset.y + (p2.y - m_region.bottom_left.y) / maxdim);
+       netfile << (i * 2 + 1) << " \"" << i << "a\" " << p1.x << " " << p1.y << std::endl;
+       netfile << (i * 2 + 2) << " \"" << i << "b\" " << p2.x << " " << p2.y << std::endl;
+    }
+    netfile << "*Edges" << std::endl;
+    for (size_t i = 0; i < m_shapes.size(); i++) {
+       netfile << (i * 2 + 1) << " " << (i * 2 + 2) << " 2" << std::endl;
+    }
+    netfile << "*Arcs" << std::endl;
+    // this makes an assumption about which is the "start" and which is the "end"
+    // it works for an automatically converted axial map, I'm not sure it works for others...
+    for (size_t j = 0; j < m_connectors.size(); j++) {
+       const Connector& conn = m_connectors[j];
+       for (size_t k1 = 0; k1 < conn.m_forward_segconns.size(); k1++) {
+          SegmentRef ref = conn.m_forward_segconns.key(k1);
+          float weight = conn.m_forward_segconns.value(k1);
+          netfile << (j * 2 + 1) << " " << (ref.ref * 2 + ((ref.dir == 1) ? 1 : 2)) << " " << weight << std::endl;
+       }
+       for (size_t k2 = 0; k2 < conn.m_back_segconns.size(); k2++) {
+          SegmentRef ref = conn.m_back_segconns.key(k2);
+          float weight = conn.m_back_segconns.value(k2);
+          netfile << (j * 2 + 2) << " " << (ref.ref * 2 + ((ref.dir == 1) ? 1 : 2)) << " " << weight << std::endl;
+       }
+    }
+}
+void ShapeGraphUndirected::outputNet(std::ostream& netfile) const
+{
+    double maxdim = __max(m_region.width(),m_region.height());
+    Point2f offset = Point2f((maxdim - m_region.width())/(2.0*maxdim),(maxdim - m_region.height())/(2.0*maxdim));
+    netfile << "*Vertices " << m_shapes.size() << std::endl;
+    int i = -1;
+    for (auto shape: m_shapes) {
+        i++;
+        Point2f p = shape.second.getCentroid();
+        p.x = offset.x + (p.x - m_region.bottom_left.x) / maxdim;
+        p.y = 1.0 - (offset.y + (p.y - m_region.bottom_left.y) / maxdim);
+        netfile << (i + 1) << " \"" << i << "\" " << p.x << " " << p.y << std::endl;
+    }
+    netfile << "*Edges" << std::endl;
+    for (size_t j = 0; j < m_connectors.size(); j++) {
+        const Connector& conn = m_connectors[j];
+        for (size_t k = 0; k < conn.m_connections.size(); k++) {
             size_t to = conn.m_connections[k];
             if (j < to) {
-               netfile << (j+1) << " " << (to + 1) << " 1" << std::endl;
+                netfile << (j+1) << " " << (to + 1) << " 1" << std::endl;
             }
-         }
-      }
-   }
+        }
+    }
 }
 
 typedef pvector<IntPair> IntPairVector;
 
 // n.b., translate radius list before entry
-bool ShapeGraph::integrate(Communicator *comm, const pvecint& radius_list, bool choice, bool local, bool fulloutput, int weighting_col, bool simple_version)
+bool ShapeGraphUndirected::integrate(Communicator *comm, const pvecint& radius_list, bool choice, bool local, bool fulloutput, int weighting_col, bool simple_version)
 {
    // note, from 10.0, Depthmap no longer includes *self* connections on axial lines
    // self connections are stripped out on loading graph files, as well as no longer made
@@ -711,7 +735,7 @@ bool ShapeGraph::integrate(Communicator *comm, const pvecint& radius_list, bool 
    return true;
 }
 
-bool ShapeGraph::stepdepth(Communicator *comm)
+bool ShapeGraphDirected::stepdepth(Communicator *comm)
 {
    std::string stepdepth_col_text = std::string("Step Depth");
    int stepdepth_col = m_attributes.insertColumn(stepdepth_col_text.c_str());
@@ -752,7 +776,7 @@ bool ShapeGraph::stepdepth(Communicator *comm)
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-bool ShapeGraph::read(std::istream &stream, int version )
+bool ShapeGraphUndirected::read(std::istream &stream, int version )
 {
    m_attributes.clear();
    m_connectors.clear();
@@ -774,77 +798,7 @@ bool ShapeGraph::read(std::istream &stream, int version )
    return true;
 }
 
-bool ShapeGraph::readold( std::istream& stream, int version )
-{
-   // read in from old base class
-   SpacePixel linemap;
-   linemap.read(stream, version);
-   const std::map<int,LineTest>& lines = linemap.getAllLines();
-
-   m_name = linemap.getName();
-
-   // now copy to new base class:
-   init(lines.size(),linemap.getRegion());
-   for (auto line: lines) {
-      makeLineShape(line.second.line);
-   }
-   // n.b., we now have to reclear attributes!
-   m_attributes.clear();
-
-   // continue old read:
-   int pushmap = -1;
-
-   char segmentmapc = stream.get();
-   if (segmentmapc == '1') {
-      m_map_type = ShapeMap::SEGMENTMAP;
-   }
-   else {
-      m_map_type = ShapeMap::AXIALMAP;
-   }
-
-   char gatemapc = stream.get();
-   if (gatemapc == '1') {
-      m_map_type = ShapeMap::DATAMAP;
-   }
-   stream.read((char *)&pushmap,sizeof(pushmap));
-
-
-   int displayed_attribute;  // n.b., temp variable necessary to force recalc below
-   stream.read((char *)&displayed_attribute,sizeof(displayed_attribute));
-
-   m_attributes.read(stream,version);
-   int size;
-   stream.read((char *)&size,sizeof(size));
-   for (int j = 0; j < size; j++) {
-      m_keyvertices.push_back(pvecint());    // <- these were stored with the connector
-      int key;
-      stream.read((char *)&key,sizeof(key)); // <- key deprecated
-      m_connectors.push_back(Connector());
-      m_connectors[j].read(stream,version,&(m_keyvertices[j]));
-   }
-   stream.read((char *)&m_keyvertexcount,sizeof(m_keyvertexcount));
-
-
-   m_links.read(stream);
-   m_unlinks.read(stream);
-
-   char x = stream.get();
-   if (x == 'm') {
-      m_mapinfodata = MapInfoData();
-      m_mapinfodata.read(stream,version);
-      m_hasMapInfoData = true;
-   }
-
-
-   // now, as soon as loaded, must recalculate our screen display:
-   // note m_displayed_attribute should be -2 in order to force recalc...
-   m_displayed_attribute = -2;
-   setDisplayedAttribute(displayed_attribute);
-
-   return true;
-}
-
-bool ShapeGraph::write( std::ofstream& stream, int version )
+bool ShapeGraphUndirected::write( std::ofstream& stream, int version )
 {
    // note keyvertexcount and keyvertices are different things!  (length keyvertices not the same as keyvertexcount!)
    stream.write((char *)&m_keyvertexcount,sizeof(m_keyvertexcount));
@@ -860,9 +814,48 @@ bool ShapeGraph::write( std::ofstream& stream, int version )
    return true;
 }
 
-void ShapeGraph::writeAxialConnectionsAsDotGraph(std::ostream &stream)
+
+bool ShapeGraphDirected::read(std::istream &stream, int version )
 {
-    const std::vector<Connector>& connectors = ShapeMap::getConnections();
+   m_attributes.clear();
+   m_connectors.clear();
+   m_selection = false;
+   m_map_type = ShapeMap::EMPTYMAP;
+
+   bool segmentmap = false;
+   // note that keyvertexcount and keyvertices are different things! (length keyvertices not the same as keyvertexcount!)
+   stream.read((char *)&m_keyvertexcount,sizeof(m_keyvertexcount));
+   int size;
+   stream.read((char *)&size,sizeof(size));
+   for (int i = 0; i < size; i++) {
+      m_keyvertices.push_back(pvecint());
+      m_keyvertices[i].read(stream);
+   }
+   // now base class read:
+   ShapeMap::read(stream,version);
+
+   return true;
+}
+
+bool ShapeGraphDirected::write( std::ofstream& stream, int version )
+{
+   // note keyvertexcount and keyvertices are different things!  (length keyvertices not the same as keyvertexcount!)
+   stream.write((char *)&m_keyvertexcount,sizeof(m_keyvertexcount));
+   int size = m_keyvertices.size();
+   stream.write((char *)&size,sizeof(size));
+   for (size_t i = 0; i < m_keyvertices.size(); i++) {
+      m_keyvertices[i].write(stream);
+   }
+
+   // now simply run base class write:
+   ShapeMap::write(stream,version);
+
+   return true;
+}
+
+void ShapeGraphUndirected::writeAxialConnectionsAsDotGraph(std::ostream &stream)
+{
+    const std::vector<Connector>& connectors = getConnections();
 
     stream << "strict graph {" << std::endl;
 
@@ -877,9 +870,9 @@ void ShapeGraph::writeAxialConnectionsAsDotGraph(std::ostream &stream)
     stream << "}" << std::endl;
 }
 
-void ShapeGraph::writeAxialConnectionsAsPairsCSV(std::ostream &stream)
+void ShapeGraphUndirected::writeAxialConnectionsAsPairsCSV(std::ostream &stream)
 {
-    const std::vector<Connector>& connectors = ShapeMap::getConnections();
+    const std::vector<Connector>& connectors = getConnections();
 
     stream.precision(12);
 
@@ -895,9 +888,9 @@ void ShapeGraph::writeAxialConnectionsAsPairsCSV(std::ostream &stream)
     }
 }
 
-void ShapeGraph::writeSegmentConnectionsAsPairsCSV(std::ostream &stream)
+void ShapeGraphDirected::writeSegmentConnectionsAsPairsCSV(std::ostream &stream)
 {
-    const std::vector<Connector>& connectors = ShapeMap::getConnections();
+    const std::vector<Connector>& connectors = getConnections();
 
     stream.precision(12);
 
@@ -929,7 +922,7 @@ void ShapeGraph::writeSegmentConnectionsAsPairsCSV(std::ostream &stream)
 // this unlink options was originally excised on the version 7 recode
 // however, it is *very specific* to axial maps, and so have been reincluded here
 
-void ShapeGraph::unlinkFromShapeMap(const ShapeMap& shapemap)
+void ShapeGraphUndirected::unlinkFromShapeMap(const ShapeMap& shapemap)
 {
    // used to make a shape map from every axial intersection,
 
@@ -992,7 +985,7 @@ void ShapeGraph::unlinkFromShapeMap(const ShapeMap& shapemap)
 
 // Method 1: direct linkage of endpoints where they touch
 
-void ShapeGraph::makeNewSegMap()
+void ShapeGraphDirected::makeNewSegMap()
 {
    // now make a connection set from the ends of lines:
    prefvec<Connector> connectionset;
@@ -1072,7 +1065,7 @@ void ShapeGraph::makeNewSegMap()
 // identify the original axial line this line segment is
 // associated with
 
-void ShapeGraph::makeSegmentMap(std::vector<Line>& lineset, prefvec<Connector>& connectionset, double stubremoval)
+void ShapeGraphUndirected::makeSegmentMap(std::vector<Line>& lineset, prefvec<Connector>& connectionset, double stubremoval)
 {
    // the first (key) pair is the line / line intersection, second is the pair of associated segments for the first line
    std::map<OrderedIntPair,IntPair> segmentlist;
@@ -1226,7 +1219,7 @@ void ShapeGraph::makeSegmentMap(std::vector<Line>& lineset, prefvec<Connector>& 
    }
 }
 
-void ShapeGraph::initialiseAttributesSegment()
+void ShapeGraphDirected::initialiseAttributesSegment()
 {
     m_attributes.clear();
 
@@ -1238,7 +1231,7 @@ void ShapeGraph::initialiseAttributesSegment()
 // now segments and connections are listed separately...
 // put them together in a new map
 
-void ShapeGraph::makeSegmentConnections(prefvec<Connector>& connectionset)
+void ShapeGraphDirected::makeSegmentConnections(prefvec<Connector>& connectionset)
 {
    m_connectors.clear();
 
@@ -1280,7 +1273,7 @@ void ShapeGraph::makeSegmentConnections(prefvec<Connector>& connectionset)
 // this pushes axial map values to a segment map
 // the segment map is 'this', the axial map is passed:
 
-void ShapeGraph::pushAxialValues(ShapeGraph& axialmap)
+void ShapeGraphDirected::pushAxialValues(ShapeGraph& axialmap)
 {
    if (m_attributes.getColumnIndex("Axial Line Ref") == -1) {
       // this should never happen
@@ -1289,21 +1282,21 @@ void ShapeGraph::pushAxialValues(ShapeGraph& axialmap)
    }
 
    pvecint colindices;
-   for (int i = 0; i < axialmap.m_attributes.getColumnCount(); i++) {
-      std::string colname = std::string("Axial ") + axialmap.m_attributes.getColumnName(i);
+   for (int i = 0; i < axialmap.getAttributeTable().getColumnCount(); i++) {
+      std::string colname = std::string("Axial ") + axialmap.getAttributeTable().getColumnName(i);
       colindices.push_back(m_attributes.insertColumn(colname));
    }
    for (int j = 0; j < m_attributes.getRowCount(); j++) {
       int axialref = (int) m_attributes.getValue(j,"Axial Line Ref");
-      for (int k = 0; k < axialmap.m_attributes.getColumnCount(); k++) {
-         float val = axialmap.m_attributes.getValue(axialref,k);
+      for (int k = 0; k < axialmap.getAttributeTable().getColumnCount(); k++) {
+         float val = axialmap.getAttributeTable().getValue(axialref,k);
          // need to look up the column index:
          m_attributes.setValue(j,colindices[k],val);
       }
    }
 }
 
-bool ShapeGraph::analyseAngular(Communicator *comm, const pvecdouble& radius_list)
+bool ShapeGraphDirected::analyseAngular(Communicator *comm, const pvecdouble& radius_list)
 {
    if (m_map_type != ShapeMap::SEGMENTMAP) {
       return false;
@@ -1451,7 +1444,7 @@ bool ShapeGraph::analyseAngular(Communicator *comm, const pvecdouble& radius_lis
 }
 
 // extra parameters for selection_only and interactive are for parallel process extensions
-int ShapeGraph::analyseTulip(Communicator *comm, int tulip_bins, bool choice, int radius_type, const pvecdouble& radius_list, int weighting_col, int weighting_col2, int routeweight_col, bool selection_only, bool interactive)
+int ShapeGraphDirected::analyseTulip(Communicator *comm, int tulip_bins, bool choice, int radius_type, const pvecdouble& radius_list, int weighting_col, int weighting_col2, int routeweight_col, bool selection_only, bool interactive)
 {
    int processed_rows = 0;
 
@@ -2104,7 +2097,7 @@ int ShapeGraph::analyseTulip(Communicator *comm, int tulip_bins, bool choice, in
 
 // revised to use tulip bins for faster analysis of large spaces
 
-bool ShapeGraph::angularstepdepth(Communicator *comm)
+bool ShapeGraphUndirected::angularstepdepth(Communicator *comm)
 {
    std::string stepdepth_col_text = "Angular Step Depth";
    int stepdepth_col = m_attributes.insertColumn(stepdepth_col_text.c_str());
@@ -2189,4 +2182,94 @@ bool ShapeGraph::angularstepdepth(Communicator *comm)
    setDisplayedAttribute(stepdepth_col);
 
    return true;
+}
+
+bool ShapeGraphUndirected::moveShape(int shaperef, const Line& line, bool undoing) {
+    ShapeMap::moveShape(shaperef, line, undoing);
+    auto shapeIter = m_shapes.find(shaperef);
+    int rowid = std::distance(m_shapes.begin(), shapeIter);
+    pvecint oldconnections = m_connectors[rowid].m_connections;
+    m_connectors[rowid].m_connections.clear();
+    pvecint& newconnections = m_connectors[rowid].m_connections;
+
+    int conn_col = m_attributes.getOrInsertLockedColumnIndex("Connectivity");
+    int leng_col = -1;
+
+    int connectivity = 0;
+    if (isAxialMap()) {
+        // line connections optimised for line-line intersection
+        connectivity = getLineConnections( shaperef, newconnections, TOLERANCE_B*__max(m_region.height(),m_region.width()));
+    }
+    else {
+        connectivity = getShapeConnections( shaperef, newconnections, TOLERANCE_B*__max(m_region.height(),m_region.width()));
+    }
+    m_attributes.setValue(rowid, conn_col, (float) connectivity );
+    if (isAxialMap()) {
+        leng_col = m_attributes.getOrInsertLockedColumnIndex("Line Length");
+        m_attributes.setValue(rowid, leng_col, (float) depthmapX::getMapAtIndex(m_shapes, rowid)->second.getLength() );
+    }
+    //
+    size_t k = 0;
+    // now go through our old connections, and remove ourself:
+    for (k = 0; k < oldconnections.size(); k++) {
+        int myplace = oldconnections[k];
+        if (myplace != rowid) { // <- exclude self!
+            m_connectors[myplace].m_connections.remove(rowid);
+            m_attributes.decrValue(myplace,conn_col);
+        }
+    }
+    // now go through our new connections, and add ourself:
+    for (k = 0; k < newconnections.size(); k++) {
+        int myplace = newconnections[k];
+        if (myplace != rowid) { // <- exclude self!
+            m_connectors[myplace].m_connections.add(rowid);
+            m_attributes.incrValue(myplace,conn_col);
+        }
+    }
+    // now check any unlinks still exist in our newconnections are unlinked again (argh...)
+    for (k = m_unlinks.size() - 1; k != paftl::npos; k--) {
+        int connb = -1;
+        if (m_unlinks[k].a == rowid)
+            connb = m_unlinks[k].b;
+        else if (m_unlinks[k].b == rowid)
+            connb = m_unlinks[k].a;
+        if (connb != -1) {
+            if (newconnections.searchindex(connb) == paftl::npos) {
+                // no longer required:
+                m_unlinks.remove_at(k);
+            } else {
+                // enforce:
+                newconnections.remove(connb);
+                m_connectors[connb].m_connections.remove(rowid);
+                m_attributes.decrValue(connb,conn_col);
+                m_attributes.decrValue(rowid,conn_col);
+            }
+        }
+    }
+    // now check any links are actually required (argh...)
+    for (k = m_links.size() - 1; k != paftl::npos; k--) {
+        int connb = -1;
+        if (m_links[k].a == rowid)
+            connb = m_links[k].b;
+        else if (m_links[k].b == rowid)
+            connb = m_links[k].a;
+        if (connb != -1) {
+            if (newconnections.searchindex(connb) != paftl::npos) {
+                // no longer required:
+                m_links.remove_at(k);
+            }
+            else {
+                // enforce:
+                newconnections.add(connb);
+                m_connectors[connb].m_connections.add(rowid);
+                m_attributes.incrValue(connb,conn_col);
+                m_attributes.incrValue(rowid,conn_col);
+            }
+        }
+    }
+    // update displayed attribute for any changes:
+    invalidateDisplayedAttribute();
+    setDisplayedAttribute(m_displayed_attribute);
+
+    return true;
 }

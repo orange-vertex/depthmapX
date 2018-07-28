@@ -219,7 +219,6 @@ public:
 protected:
    std::string m_name;
    int m_map_type;
-   bool m_hasgraph;
    // counters
    int m_obj_ref;
    mutable bool m_newshape;   // if a new shape has been added
@@ -237,11 +236,6 @@ protected:
    std::vector<SalaEvent> m_undobuffer;
    //
    AttributeTable m_attributes;
-   //
-   // for graph functionality
-   // Note: this list is stored PACKED for optimal performance on graph analysis
-   // ALWAYS check it is in the same order as the shape list and attribute table
-   std::vector<Connector> m_connectors;
    //
    // for geometric operations
    double m_tolerance;
@@ -356,11 +350,6 @@ public:
    void makeShapeConnections();
    //
    bool makeBSPtree() const;
-   //
-   const std::vector<Connector>& getConnections() const
-   { return m_connectors; }
-   std::vector<Connector>& getConnections()
-   { return m_connectors; }
    //
    bool isAllLineMap() const
    { return m_map_type == ALLLINEMAP; }

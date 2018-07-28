@@ -3,7 +3,7 @@
 #include "salalib/axialmap.h"
 #include "salalib/axialpolygons.h"
 
-class AllLineMap: public ShapeGraph
+class AllLineMap: public ShapeGraphUndirected
 {
 public:
     AllLineMap(Communicator *comm,
@@ -11,7 +11,7 @@ public:
                const Point2f& seed,
                const std::string& name = "All-Line Map");
     AllLineMap(const std::string& name = "All-Line Map"):
-        ShapeGraph(name, ShapeMap::ALLLINEMAP) {};
+        ShapeGraphUndirected(name, ShapeMap::ALLLINEMAP) {};
     AxialPolygons m_polygons;
     prefvec<PolyConnector> m_poly_connections;
     pqvector<RadialLine> m_radial_lines;

@@ -40,7 +40,7 @@ friend class ShapeGraph;
 friend class ShapeGraphs;
 friend class ShapeMap;
    //
-protected:
+public:
    std::string m_version;
    std::string m_charset;
    char m_delimiter;

@@ -144,7 +144,6 @@ ShapeMap::ShapeMap(const std::string& name, int type) : m_attributes(name)
 {
    m_name = name;
    m_map_type = type;
-   m_hasgraph = false;
 
    // shape and object counters
    m_obj_ref = -1;
@@ -258,7 +257,6 @@ void ShapeMap::clearAll()
    m_shapes.clear();
    m_objects.clear();
    m_undobuffer.clear();
-   m_connectors.clear();
    m_attributes.clear();
    m_links.clear();
    m_unlinks.clear();
@@ -668,95 +666,6 @@ bool ShapeMap::moveShape(int shaperef, const Line& line, bool undoing)
       for (auto shape: m_shapes) {
          makePolyPixels(shape.first);
       }
-   }
-
-   int rowid = std::distance(m_shapes.begin(), shapeIter);
-   // change connections:
-   if (m_hasgraph) {
-      //
-      pvecint oldconnections = m_connectors[rowid].m_connections;
-      m_connectors[rowid].m_connections.clear();
-      pvecint& newconnections = m_connectors[rowid].m_connections;
-      //
-      int conn_col = m_attributes.getOrInsertLockedColumnIndex("Connectivity");
-      int leng_col = -1;
-      //
-      int connectivity = 0;
-      if (isAxialMap()) {
-         // line connections optimised for line-line intersection
-         connectivity = getLineConnections( shaperef, newconnections, TOLERANCE_B*__max(m_region.height(),m_region.width()));
-      }
-      else {
-         connectivity = getShapeConnections( shaperef, newconnections, TOLERANCE_B*__max(m_region.height(),m_region.width()));
-      }
-      m_attributes.setValue(rowid, conn_col, (float) connectivity );
-      if (isAxialMap()) {
-         leng_col = m_attributes.getOrInsertLockedColumnIndex("Line Length");
-         m_attributes.setValue(rowid, leng_col, (float) depthmapX::getMapAtIndex(m_shapes, rowid)->second.getLength() );
-      }
-      //
-      size_t k = 0;
-      // now go through our old connections, and remove ourself:
-      for (k = 0; k < oldconnections.size(); k++) {
-         int myplace = oldconnections[k];
-         if (myplace != rowid) { // <- exclude self!
-            m_connectors[myplace].m_connections.remove(rowid);
-            m_attributes.decrValue(myplace,conn_col);
-         }
-      }
-      // now go through our new connections, and add ourself:
-      for (k = 0; k < newconnections.size(); k++) {
-         int myplace = newconnections[k];
-         if (myplace != rowid) { // <- exclude self!
-            m_connectors[myplace].m_connections.add(rowid);
-            m_attributes.incrValue(myplace,conn_col);
-         }
-      }
-      // now check any unlinks still exist in our newconnections are unlinked again (argh...)
-      for (k = m_unlinks.size() - 1; k != paftl::npos; k--) {
-         int connb = -1;
-         if (m_unlinks[k].a == rowid)
-            connb = m_unlinks[k].b;
-         else if (m_unlinks[k].b == rowid) 
-            connb = m_unlinks[k].a;
-         if (connb != -1) {
-            if (newconnections.searchindex(connb) == paftl::npos) {
-               // no longer required:
-               m_unlinks.remove_at(k);
-            }
-            else {
-               // enforce:
-               newconnections.remove(connb);
-               m_connectors[connb].m_connections.remove(rowid);
-               m_attributes.decrValue(connb,conn_col);
-               m_attributes.decrValue(rowid,conn_col);
-            }
-         }
-      }
-      // now check any links are actually required (argh...)
-      for (k = m_links.size() - 1; k != paftl::npos; k--) {
-         int connb = -1;
-         if (m_links[k].a == rowid)
-            connb = m_links[k].b;
-         else if (m_links[k].b == rowid) 
-            connb = m_links[k].a;
-         if (connb != -1) {
-            if (newconnections.searchindex(connb) != paftl::npos) {
-               // no longer required:
-               m_links.remove_at(k);
-            }
-            else {
-               // enforce:
-               newconnections.add(connb);
-               m_connectors[connb].m_connections.add(rowid);
-               m_attributes.incrValue(connb,conn_col);
-               m_attributes.incrValue(rowid,conn_col);
-            }
-         }
-      }
-      // update displayed attribute for any changes:
-      invalidateDisplayedAttribute();
-      setDisplayedAttribute(m_displayed_attribute);
    }
 
    return true;

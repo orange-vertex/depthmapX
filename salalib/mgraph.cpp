@@ -288,10 +288,12 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
          }
          else if (m_view_class & VIEWAXIAL) {
             if (!getDisplayedShapeGraph().isSegmentMap()) {
-               getDisplayedShapeGraph().stepdepth( communicator );
+               ShapeGraphDirected* segmentmap = dynamic_cast<ShapeGraphDirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
+               segmentmap->stepdepth( communicator );
             }
             else {
-               getDisplayedShapeGraph().angularstepdepth( communicator );
+                ShapeGraphUndirected* axialmap = dynamic_cast<ShapeGraphUndirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
+                axialmap->angularstepdepth( communicator );
             }
          }
          // REPLACES:
@@ -302,7 +304,8 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
             getDisplayedPointMap().analyseMetricPointDepth( communicator );
          }
          else if (m_view_class & VIEWAXIAL && getDisplayedShapeGraph().isSegmentMap()) {
-            getDisplayedShapeGraph().analyseTopoMetPD( communicator, 1 ); // 1 is metric step depth
+            ShapeGraphDirected* segmentmap = dynamic_cast<ShapeGraphDirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
+            segmentmap->analyseTopoMetPD( communicator, 1 ); // 1 is metric step depth
          }
       }
       else if (options.point_depth_selection == 3) {
@@ -313,7 +316,8 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
             getDisplayedPointMap().binDisplay( communicator );
          }
          else if (m_view_class & VIEWAXIAL && getDisplayedShapeGraph().isSegmentMap()) {
-            getDisplayedShapeGraph().analyseTopoMetPD( communicator, 0 ); // 0 is topological step depth
+            ShapeGraphDirected* segmentmap = dynamic_cast<ShapeGraphDirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
+            segmentmap->analyseTopoMetPD( communicator, 0 ); // 0 is topological step depth
          }
       }
       else if (options.output_type == Options::OUTPUT_ISOVIST) {
@@ -674,8 +678,14 @@ int MetaGraph::addShapeGraph(std::unique_ptr<ShapeGraph>& shapeGraph) {
 
 int MetaGraph::addShapeGraph(const std::string& name, int type)
 {
-    std::unique_ptr<ShapeGraph> shapeGraph(new ShapeGraph(name, type));
-    int mapref = addShapeGraph(shapeGraph);
+    int mapref = -1;
+    if(type == ShapeMap::SEGMENTMAP) {
+        std::unique_ptr<ShapeGraph> shapeGraph(new ShapeGraphDirected(name, type));
+        mapref = addShapeGraph(shapeGraph);
+    } else {
+        std::unique_ptr<ShapeGraph> shapeGraph(new ShapeGraphDirected(name, type));
+        mapref = addShapeGraph(shapeGraph);
+    }
     // add a couple of default columns:
     AttributeTable& table = m_shapeGraphs[size_t(mapref)]->getAttributeTable();
     table.insertLockedColumn("Connectivity");
@@ -1243,7 +1253,8 @@ bool MetaGraph::analyseAxial( Communicator *communicator, Options options, bool 
       for (size_t i = 0; i < options.radius_list.size(); i++) {
          radius.push_back( (int) options.radius_list[i] );
       }
-      retvar = getDisplayedShapeGraph().integrate( communicator, radius, options.choice, options.local, options.fulloutput, options.weighted_measure_col, simple_version );
+      ShapeGraphUndirected* axialmap = dynamic_cast<ShapeGraphUndirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
+      retvar = axialmap->integrate( communicator, radius, options.choice, options.local, options.fulloutput, options.weighted_measure_col, simple_version );
    } 
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1261,12 +1272,13 @@ bool MetaGraph::analyseSegmentsTulip( Communicator *communicator, Options option
    bool retvar = false;
 
    try {
-       retvar = getDisplayedShapeGraph().analyseTulip(communicator,
-                                                              options.tulip_bins,
-                                                              options.choice,
-                                                              options.radius_type,
-                                                              options.radius_list,
-                                                              options.weighted_measure_col);
+       ShapeGraphDirected* segmentmap = dynamic_cast<ShapeGraphDirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
+       retvar = segmentmap->analyseTulip(communicator,
+                                         options.tulip_bins,
+                                         options.choice,
+                                         options.radius_type,
+                                         options.radius_list,
+                                         options.weighted_measure_col);
    }
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1284,7 +1296,8 @@ bool MetaGraph::analyseSegmentsAngular( Communicator *communicator, Options opti
    bool retvar = false;
 
    try {
-       retvar = getDisplayedShapeGraph().analyseAngular(communicator, options.radius_list);
+       ShapeGraphDirected* segmentmap = dynamic_cast<ShapeGraphDirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
+       retvar = segmentmap->analyseAngular(communicator, options.radius_list);
    }
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1302,8 +1315,9 @@ bool MetaGraph::analyseTopoMet( Communicator *communicator, Options options ) //
    bool retvar = false;
 
    try {
+       ShapeGraphDirected* segmentmap = dynamic_cast<ShapeGraphDirected*>(m_shapeGraphs[size_t(m_displayed_shapegraph)].get());
       // note: "output_type" reused for analysis type (either 0 = topological or 1 = metric)
-      retvar = getDisplayedShapeGraph().analyseTopoMet(communicator, options.output_type, options.radius, options.sel_only);
+      retvar = segmentmap->analyseTopoMet(communicator, options.output_type, options.radius, options.sel_only);
    } 
    catch (Communicator::CancelledException) {
       retvar = false;
