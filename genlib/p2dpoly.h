@@ -36,17 +36,17 @@ enum {
 };
 
 class  Point2f;
-bool approxeq(const Point2f& p1, const Point2f& p2, double tolerance = 0.0);
+bool approxeq(const Point2f& p1, const Point2f& p2, double tolerance = 1e-9);
 class  QtRegion;
-bool intersect_region(const QtRegion& a, const QtRegion& b, double tolerance = 0.0);
-bool overlap_x(const QtRegion& a, const QtRegion& b, double tolerance = 0.0);
-bool overlap_y(const QtRegion& a, const QtRegion& b, double tolerance = 0.0);
+bool intersect_region(const QtRegion& a, const QtRegion& b, double tolerance = 1e-9);
+bool overlap_x(const QtRegion& a, const QtRegion& b, double tolerance = 1e-9);
+bool overlap_y(const QtRegion& a, const QtRegion& b, double tolerance = 1e-9);
 class Line;
-bool intersect_line(const Line& a, const Line& b, double tolerance = 0.0);
-bool intersect_line_no_touch(const Line& a, const Line& b, double tolerance = 0.0);
-int  intersect_line_distinguish(const Line& a, const Line& b, double tolerance = 0.0);
-int  intersect_line_b(const Line& a, const Line& b, double tolerance = 0.0);
-Point2f intersection_point(const Line& a, const Line& b, double tolerance = 0.0);
+bool intersect_line(const Line& a, const Line& b, double tolerance = 1e-9);
+bool intersect_line_no_touch(const Line& a, const Line& b, double tolerance = 1e-9);
+int  intersect_line_distinguish(const Line& a, const Line& b, double tolerance = 1e-9);
+int  intersect_line_b(const Line& a, const Line& b, double tolerance = 1e-9);
+Point2f intersection_point(const Line& a, const Line& b, double tolerance = 1e-9);
 
 // NaN on Intel:
 // Quick mod - TV
@@ -100,7 +100,7 @@ public:
    friend Point2f pointfromangle(double angle);
    // a couple of useful tests
    bool intriangle(const Point2f& p1, const Point2f& p2, const Point2f& p3);
-   bool insegment(const Point2f& key, const Point2f& p2, const Point2f& p3, double tolerance = 0.0);
+   bool insegment(const Point2f& key, const Point2f& p2, const Point2f& p3, double tolerance = 1e-9);
    // for OS transformation (note: accurate only to 5 metres according to OS)
    Point2f longlat2os(const Point2f& p);
 public:

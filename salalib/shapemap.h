@@ -334,8 +334,8 @@ public:
    bool pointInPoly(const Point2f& p, int shaperef) const;
    // retrieve lists of polys point intersects:
    void pointInPolyList(const Point2f& p, pvecint& shapeindexlist) const;
-   void lineInPolyList(const Line& li, pvecint& shapeindexlist, int lineref = -1, double tolerance = 0.0) const;
-   void polyInPolyList(int polyref, pvecint& shapeindexlist, double tolerance = 0.0) const;
+   void lineInPolyList(const Line& li, pvecint& shapeindexlist, int lineref = -1, double tolerance = 1e-9) const;
+   void polyInPolyList(int polyref, pvecint& shapeindexlist, double tolerance = 1e-9) const;
    void shapeInPolyList(const SalaShape& shape, pvecint& shapeindexlist);
    // helper to make actual test of point in shape:
    int testPointInPoly(const Point2f& p, const ShapeRef& shape) const;
