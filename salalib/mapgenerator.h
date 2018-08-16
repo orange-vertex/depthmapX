@@ -19,6 +19,7 @@
 #include "salalib/axialmap.h"
 #include "salalib/spacepixfile.h"
 #include "salalib/axialpolygons.h"
+#include "salalib/axialminimiser.h"
 #include "genlib/p2dpoly.h"
 #include "genlib/comm.h"
 
@@ -61,22 +62,12 @@ std::tuple<prefvec<pvecint>, int *> getVertexConns(
 ShapeGraph makeFewestSubsetsLineMap(
         const ShapeGraph& allLineMap,
         const QtRegion& polygonsRegion,
-        const pqvector<RadialLine> radial_lines,
-        const std::map<int,pvecint>& ax_seg_cuts,
-        const std::map<RadialKey,RadialSegment>& radialsegs,
-        const std::map<RadialKey,pvecint>& radialdivisions,
-        const prefvec<pvecint>& keyvertexconns,
-        int *keyvertexcounts);
+        const AxialMinimiser& minimiser);
 
 ShapeGraph makeFewestMinimalLineMap(
         const ShapeGraph& allLineMap,
         const QtRegion& polygonsRegion,
-        const pqvector<RadialLine> radial_lines,
-        const std::map<int,pvecint>& ax_seg_cuts,
-        const std::map<RadialKey,RadialSegment>& radialsegs,
-        const std::map<RadialKey,pvecint>& radialdivisions,
-        const prefvec<pvecint>& keyvertexconns,
-        int *keyvertexcounts);
+        const AxialMinimiser &minimiser);
 
 std::tuple<std::unique_ptr<ShapeGraph>,
            std::unique_ptr<ShapeGraph>,

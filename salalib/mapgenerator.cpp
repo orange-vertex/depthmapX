@@ -15,7 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "salalib/mapgenerator.h"
-#include "salalib/axialminimiser.h"
 #include "salalib/tolerances.h"
 #include "genlib/exceptions.h"
 
@@ -356,17 +355,8 @@ std::tuple<prefvec<pvecint>, int*> MapGenerator::getVertexConns(const ShapeGraph
 
 ShapeGraph MapGenerator::makeFewestSubsetsLineMap(const ShapeGraph& allLineMap,
                                                   const QtRegion& polygonsRegion,
-                                                  const pqvector<RadialLine> radial_lines,
-                                                  const std::map<int,pvecint>& ax_seg_cuts,
-                                                  const std::map<RadialKey,RadialSegment>& radialsegs,
-                                                  const std::map<RadialKey,pvecint>& radialdivisions,
-                                                  const prefvec<pvecint>& keyvertexconns,
-                                                  int *keyvertexcounts) {
-
-    AxialMinimiser minimiser(allLineMap, int(ax_seg_cuts.size()), int(radialsegs.size()));
+                                                  const AxialMinimiser& minimiser) {
     prefvec<Line> lines_s;
-
-    minimiser.removeSubsets(ax_seg_cuts, radialsegs, radialdivisions, radial_lines, keyvertexconns, keyvertexcounts);
 
     // make new lines here (assumes line map has only lines)
     int k = -1;
@@ -393,27 +383,16 @@ ShapeGraph MapGenerator::makeFewestSubsetsLineMap(const ShapeGraph& allLineMap,
 
 ShapeGraph MapGenerator::makeFewestMinimalLineMap(const ShapeGraph &allLineMap,
                                                   const QtRegion &polygonsRegion,
-                                                  const pqvector<RadialLine> radial_lines,
-                                                  const std::map<int, pvecint> &ax_seg_cuts,
-                                                  const std::map<RadialKey, RadialSegment> &radialsegs,
-                                                  const std::map<RadialKey, pvecint> &radialdivisions,
-                                                  const prefvec<pvecint> &keyvertexconns,
-                                                  int *keyvertexcounts) {
+                                                  const AxialMinimiser& minimiser) {
 
-    AxialMinimiser minimiser(allLineMap, int(ax_seg_cuts.size()), int(radialsegs.size()));
+
 
     prefvec<Line> lines_m;
 
-
-    minimiser.fewestLongest(ax_seg_cuts, radialsegs, radialdivisions, radial_lines, keyvertexconns, keyvertexcounts);
-
     // make new lines here (assumes line map has only lines
-    auto& allLineMapShapes = allLineMap.getAllShapes();
-    int k = -1;
-    for (auto& shape: allLineMapShapes) {
-        k++;
+    for (int k = 0; k < int(allLineMap.getAllShapes().size()); k++) {
        if (!minimiser.removed(k)) {
-          lines_m.push_back( shape.second.getLine() );
+          lines_m.push_back( depthmapX::getMapAtIndex(allLineMap.getAllShapes(), k)->second.getLine() );
        }
     }
 
@@ -475,18 +454,19 @@ std::tuple<std::unique_ptr<ShapeGraph>,
         // ok, after this fairly tedious set up, we are ready to go...
         // note axradialcuts aren't required anymore...
 
+        AxialMinimiser minimiser(*allLineMap, int(ax_seg_cuts.size()), int(radialsegs.size()));
+
+        minimiser.removeSubsets(ax_seg_cuts, radialsegs, radialdivisions, radial_lines, keyvertexconns, keyvertexcounts);
+
         if(fewest_line_subsets) {
             fewestlinemap_subsets = std::unique_ptr<ShapeGraph>(
-                        new ShapeGraph(std::move(makeFewestMinimalLineMap(*allLineMap, polygons.getRegion(), radial_lines,
-                                                                          ax_seg_cuts, radialsegs, radialdivisions,
-                                                                          keyvertexconns, keyvertexcounts))));
+                        new ShapeGraph(std::move(makeFewestSubsetsLineMap(*allLineMap, polygons.getRegion(), minimiser))));
         }
 
         if(fewest_line_minimal) {
+            minimiser.fewestLongest(ax_seg_cuts, radialsegs, radialdivisions, radial_lines, keyvertexconns, keyvertexcounts);
             fewestlinemap_minimal = std::unique_ptr<ShapeGraph>(
-                        new ShapeGraph(std::move(makeFewestMinimalLineMap(*allLineMap, polygons.getRegion(), radial_lines,
-                                                                          ax_seg_cuts, radialsegs, radialdivisions,
-                                                                          keyvertexconns, keyvertexcounts))));
+                        new ShapeGraph(std::move(makeFewestMinimalLineMap(*allLineMap, polygons.getRegion(), minimiser))));
         }
         delete [] keyvertexcounts;
     }
