@@ -57,8 +57,12 @@ class ShapeGraph : public ShapeMap
 protected:
    prefvec<pvecint> m_keyvertices;       // but still need to return keyvertices here
    int m_keyvertexcount;
-protected:
 public:
+   void setKeyVertexCount(int keyvertexcount) {
+       m_keyvertexcount = keyvertexcount;
+   }
+   int getKeyVertexCount() const { return m_keyvertexcount; }
+   const prefvec<pvecint>& getKeyVertices() const { return m_keyvertices; }
    bool outputMifPolygons(std::ostream& miffile, std::ostream& midfile) const;
    void outputNet(std::ostream& netfile) const;
 public:

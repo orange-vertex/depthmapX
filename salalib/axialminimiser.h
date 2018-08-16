@@ -1,6 +1,7 @@
 #pragma once
 
-#include "salalib/alllinemap.h"
+#include "salalib/axialmap.h"
+#include "salalib/axialpolygons.h"
 
 struct ValueTriplet
 {
@@ -12,7 +13,7 @@ struct ValueTriplet
 class AxialMinimiser
 {
 protected:
-   AllLineMap *m_alllinemap;
+   ShapeGraph *m_alllinemap;
    //
    ValueTriplet *m_vps;
    bool *m_removed;
@@ -22,12 +23,26 @@ protected:
    int *m_keyvertexcounts;
    std::vector<Connector> m_axialconns; // <- uses a copy of axial lines as it will remove connections
 public:
-   AxialMinimiser(const AllLineMap& alllinemap, int no_of_axsegcuts, int no_of_radialsegs);
+   AxialMinimiser(const ShapeGraph& alllinemap, int no_of_axsegcuts, int no_of_radialsegs);
    ~AxialMinimiser();
-   void removeSubsets(std::map<int,pvecint>& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey,pvecint>& rlds, pqvector<RadialLine>& radial_lines, prefvec<pvecint>& keyvertexconns, int *keyvertexcounts);
-   void fewestLongest(std::map<int,pvecint>& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey,pvecint>& rlds, pqvector<RadialLine>& radial_lines, prefvec<pvecint>& keyvertexconns, int *keyvertexcounts);
+   void removeSubsets(const std::map<int, pvecint> &axsegcuts,
+                      const std::map<RadialKey, RadialSegment> &radialsegs,
+                      const std::map<RadialKey, pvecint> &rlds,
+                      const pqvector<RadialLine> &radial_lines,
+                      const prefvec<pvecint> &keyvertexconns,
+                      int *keyvertexcounts);
+   void fewestLongest(const std::map<int,pvecint>& axsegcuts,
+                      const std::map<RadialKey,RadialSegment>& radialsegs,
+                      const std::map<RadialKey,pvecint>& rlds,
+                      const pqvector<RadialLine>& radial_lines,
+                      const prefvec<pvecint>& keyvertexconns,
+                      int *keyvertexcounts);
    // advanced topological testing:
-   bool checkVital(int checkindex,pvecint& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey,pvecint>& rlds, pqvector<RadialLine>& radial_lines);
+   bool checkVital(const int checkindex,
+                   const pvecint& axsegcuts,
+                   const std::map<RadialKey,RadialSegment>& radialsegs,
+                   const std::map<RadialKey,pvecint>& rlds,
+                   const pqvector<RadialLine>& radial_lines);
    //
    bool removed(int i) const
    { return m_removed[i]; }

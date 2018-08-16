@@ -544,11 +544,8 @@ void MainWindow::OnToolsPD()
 
 void MainWindow::OnToolsMakeFewestLineMap()
 {
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
-        m_p->OnToolsMakeFewestLineMap();
-    }
+    m_selected_mapbar_item = ID_MAPBAR_ITEM_AL2;
+    activeMapView()->OnModeSeedAxial();
 }
 
 void MainWindow::OnToolsAxialConvShapeMap()

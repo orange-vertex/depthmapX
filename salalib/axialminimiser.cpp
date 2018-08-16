@@ -10,9 +10,9 @@ static int compareValueTriplet(const void *p1, const void *p2)
           (vp1->value2 > vp2->value2 ? 1 : vp1->value2 < vp2->value2 ? -1 : 0));
 }
 
-AxialMinimiser::AxialMinimiser(const AllLineMap& alllinemap, int no_of_axsegcuts, int no_of_radialsegs)
+AxialMinimiser::AxialMinimiser(const ShapeGraph& alllinemap, int no_of_axsegcuts, int no_of_radialsegs)
 {
-   m_alllinemap = (AllLineMap *) &alllinemap;
+   m_alllinemap = (ShapeGraph *) &alllinemap;
 
    m_vps = new ValueTriplet[no_of_axsegcuts];
    m_removed = new bool [no_of_axsegcuts];
@@ -32,7 +32,12 @@ AxialMinimiser::~AxialMinimiser()
 
 // Alan and Bill's algo...
 
-void AxialMinimiser::removeSubsets(std::map<int,pvecint>& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey,pvecint>& rlds,  pqvector<RadialLine>& radial_lines, prefvec<pvecint>& keyvertexconns, int *keyvertexcounts)
+void AxialMinimiser::removeSubsets(const std::map<int,pvecint>& axsegcuts,
+                                   const std::map<RadialKey,RadialSegment>& radialsegs,
+                                   const std::map<RadialKey,pvecint>& rlds,
+                                   const pqvector<RadialLine>& radial_lines,
+                                   const prefvec<pvecint>& keyvertexconns,
+                                   int *keyvertexcounts)
 {
    bool removedflag = true;
    int counterrors = 0;
@@ -176,7 +181,12 @@ void AxialMinimiser::removeSubsets(std::map<int,pvecint>& axsegcuts, std::map<Ra
 
 // My algo... v. simple... fewest longest
 
-void AxialMinimiser::fewestLongest(std::map<int,pvecint>& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey, pvecint> &rlds, pqvector<RadialLine>& radial_lines, prefvec<pvecint>& keyvertexconns, int *keyvertexcounts)
+void AxialMinimiser::fewestLongest(const std::map<int,pvecint>& axsegcuts,
+                                   const std::map<RadialKey,RadialSegment>& radialsegs,
+                                   const std::map<RadialKey, pvecint> &rlds,
+                                   const pqvector<RadialLine>& radial_lines,
+                                   const prefvec<pvecint>& keyvertexconns,
+                                   int *keyvertexcounts)
 {
    //m_axialconns = m_alllinemap->m_connectors;
    int livecount = 0;
@@ -261,7 +271,11 @@ void AxialMinimiser::fewestLongest(std::map<int,pvecint>& axsegcuts, std::map<Ra
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-bool AxialMinimiser::checkVital(int checkindex, pvecint& axsegcuts, std::map<RadialKey,RadialSegment>& radialsegs, std::map<RadialKey, pvecint> &rlds, pqvector<RadialLine>& radial_lines)
+bool AxialMinimiser::checkVital(const int checkindex,
+                                const pvecint &axsegcuts,
+                                const std::map<RadialKey, RadialSegment> &radialsegs,
+                                const std::map<RadialKey, pvecint> &rlds,
+                                const pqvector<RadialLine> &radial_lines)
 {
    std::map<int,SalaShape>& axiallines = m_alllinemap->m_shapes;
 
@@ -274,11 +288,11 @@ bool AxialMinimiser::checkVital(int checkindex, pvecint& axsegcuts, std::map<Rad
          vitalsegs++;
          auto radialSegIter = depthmapX::getMapAtIndex(radialsegs, axsegcuts[k]);
          const RadialKey& key = radialSegIter->first;
-         RadialSegment& seg = radialSegIter->second;
-         pvecint& divisorsa = rlds.find(key)->second;
-         pvecint& divisorsb = rlds.find(seg.radial_b)->second;
-         RadialLine& rlinea = radial_lines.search(key);
-         RadialLine& rlineb = radial_lines.search(seg.radial_b);
+         const RadialSegment& seg = radialSegIter->second;
+         const pvecint& divisorsa = rlds.find(key)->second;
+         const pvecint& divisorsb = rlds.find(seg.radial_b)->second;
+         const RadialLine& rlinea = radial_lines.search(key);
+         const RadialLine& rlineb = radial_lines.search(seg.radial_b);
          for (size_t divi = 0; divi < divisorsa.size(); divi++) {
             if (divisorsa[divi] == checkindex || m_removed[divisorsa[divi]]) {
                continue;

@@ -561,6 +561,8 @@ public:
    bool importPolylines(const std::vector<depthmapX::Polyline> &lines, const depthmapX::Table &data);
    bool importPolylinesWithRefs(const std::map<int, depthmapX::Polyline> &lines, const depthmapX::Table &data);
    void copyMapInfoBaseData(const ShapeMap& sourceMap);
+   std::vector<std::vector<ShapeRef> > getPixelShapes() const { return m_pixel_shapes; }
+
 private:
    bool importData(const depthmapX::Table &data, std::vector<int> shape_refs);
 };

@@ -124,11 +124,15 @@ public:
    void makeVertexPossibles(const std::vector<Line> &lines, const prefvec<Connector>& connectionset);
    void makePixelPolys();
    //
-   AxialVertex makeVertex(const AxialVertexKey& vertexkey, const Point2f& openspace);
+   AxialVertex makeVertex(const AxialVertexKey& vertexkey, const Point2f& openspace) const;
    // find a polygon corner visible from seed:
-   AxialVertexKey seedVertex(const Point2f& seed);
+   AxialVertexKey seedVertex(const Point2f& seed) const;
    // make axial lines from corner vertices, visible from openspace
-   void makeAxialLines(pqvector<AxialVertex>& openvertices, prefvec<Line>& lines, prefvec<pvecint>& keyvertices, prefvec<PolyConnector>& poly_connections, pqvector<RadialLine>& radial_lines);
+   void makeAxialLines(pqvector<AxialVertex>& openvertices,
+                       prefvec<Line>& lines,
+                       prefvec<pvecint>& keyvertices,
+                       prefvec<PolyConnector>& poly_connections,
+                       pqvector<RadialLine>& radial_lines);
    // extra: make all the polygons possible from the set of m_vertex_possibles
    void makePolygons(prefvec<pqvector<Point2f>>& polygons);
 };

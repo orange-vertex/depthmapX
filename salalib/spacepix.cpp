@@ -665,7 +665,7 @@ bool SpacePixel::intersect( const Line& l, double tolerance )
    return false;
 }
 
-bool SpacePixel::intersect_exclude( const Line& l, double tolerance )
+bool SpacePixel::intersect_exclude( const Line& l, double tolerance ) const
 {
    m_test++;  // note loops! (but vary rarely: inevitabley, lines will have been marked before it loops)
 
@@ -675,7 +675,7 @@ bool SpacePixel::intersect_exclude( const Line& l, double tolerance )
       for (size_t j = 0; j < m_pixel_lines[ list[i].x ][ list[i].y ].size(); j++) {
          int lineref = m_pixel_lines[ list[i].x ][ list[i].y ][j];
          try {
-            LineTest& linetest = m_lines.find(lineref)->second;
+            const LineTest& linetest = m_lines.find(lineref)->second;
             if (linetest.test != m_test) {
                if ( intersect_region(linetest.line, l) ) {
                   if ( intersect_line(linetest.line, l, tolerance) ) {

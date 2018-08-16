@@ -44,11 +44,11 @@ SOURCES += \
     point.cpp \
     pafcolor.cpp \
     spacepixfile.cpp \
-    alllinemap.cpp \
     axialminimiser.cpp \
     axialpolygons.cpp \
     tidylines.cpp \
-    mapconverter.cpp
+    mapconverter.cpp \
+    mapgenerator.cpp
 
 HEADERS += \
     attributes.h \
@@ -88,12 +88,12 @@ HEADERS += \
     pafcolor.h \
     options.h \
     spacepixfile.h \
-    alllinemap.h \
     axialminimiser.h \
     tolerances.h \
     axialpolygons.h \
     tidylines.h \
-    mapconverter.h
+    mapconverter.h \
+    mapgenerator.h
 
 DISTFILES += \
     salascript-tests.txt

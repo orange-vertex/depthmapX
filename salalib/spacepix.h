@@ -66,7 +66,7 @@ public:
 
 struct LineTest {
    Line line;
-   unsigned int test;
+   mutable unsigned int test;
    LineTest(const Line& l = Line(), int t = -1)
    { line = l; test = t; }
 // operator Line() {return line;}
@@ -154,7 +154,7 @@ public:
    virtual const Line& getNextLine() const;
    //
    bool intersect(const Line& l, double tolerance = 0.0);
-   bool intersect_exclude(const Line& l, double tolerance = 0.0);
+   bool intersect_exclude(const Line& l, double tolerance = 0.0) const;
    //
    // Point2f getFirstCrossingPoint(const Line& l, int fromend, pvecint& ignorelist = pvecint());
    void cutLine(Line& l, short dir);

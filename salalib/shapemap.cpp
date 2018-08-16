@@ -142,8 +142,8 @@ double SalaShape::getAngDev() const
 
 ShapeMap::ShapeMap(const std::string& name, int type) : m_attributes(name)
 {
-   m_name = name;
-   m_map_type = type;
+    m_name = name;
+    m_map_type = type;
    m_hasgraph = false;
 
    // shape and object counters

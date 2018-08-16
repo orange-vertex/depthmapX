@@ -58,7 +58,8 @@ HEADERS       = depthmapView.h \
     glshapemap.h \
     gldynamicrect.h \
     gldynamicline.h \
-    mapview.h
+    mapview.h \
+    AllFewestLineMapDlg.h
 
 SOURCES       = depthmapView.cpp \
                 GraphDoc.cpp \
@@ -112,7 +113,8 @@ SOURCES       = depthmapView.cpp \
     glshapemap.cpp \
     gldynamicrect.cpp \
     gldynamicline.cpp \
-    mapview.cpp
+    mapview.cpp \
+    AllFewestLineMapDlg.cpp
 
 RESOURCES     = resource.qrc
 
@@ -150,5 +152,6 @@ FORMS += \
     UI/AttributeChooserDlg.ui \
     UI/AgentAnalysisDlg.ui \
     UI/AboutDlg.ui \
-    UI/licenseagreement.ui
+    UI/licenseagreement.ui \
+    UI/AllFewestLineMapDlg.ui
 

@@ -20,13 +20,13 @@ AxialPolygons::~AxialPolygons()
    }
 }
 
-AxialVertex AxialPolygons::makeVertex(const AxialVertexKey& vertexkey, const Point2f& openspace)
+AxialVertex AxialPolygons::makeVertex(const AxialVertexKey& vertexkey, const Point2f& openspace) const
 {
    auto vertPossIter = depthmapX::getMapAtIndex(m_vertex_possibles, vertexkey.m_ref_key);
    AxialVertex av(vertexkey, vertPossIter->first, openspace);
 
    // n.b., at this point, vertex key m_a and m_b are unfixed
-   pqvector<Point2f>& pointlist = vertPossIter->second;
+   const pqvector<Point2f>& pointlist = vertPossIter->second;
    if (pointlist.size() < 2) {
       return av;
    }
@@ -272,7 +272,7 @@ void AxialPolygons::makePixelPolys()
 
 // almost identical to original!
 
-AxialVertexKey AxialPolygons::seedVertex(const Point2f& seed)
+AxialVertexKey AxialPolygons::seedVertex(const Point2f& seed) const
 {
    AxialVertexKey seedvertex = NoVertex;
    PixelRef seedref = pixelate(seed);
@@ -335,7 +335,10 @@ AxialVertexKey AxialPolygons::seedVertex(const Point2f& seed)
 
 // adds any axial lines from this point to the list of lines, adds any unhandled visible vertices it finds to the openvertices list
 // axial lines themselves are added to the lines list - the axial line is only there to record the key vertices that comprise the line
-void AxialPolygons::makeAxialLines(pqvector<AxialVertex>& openvertices, prefvec<Line>& lines, prefvec<pvecint>& keyvertices, prefvec<PolyConnector>& poly_connections, pqvector<RadialLine>& radial_lines)
+void AxialPolygons::makeAxialLines(pqvector<AxialVertex>& openvertices, prefvec<Line>& lines,
+                                   prefvec<pvecint>& keyvertices,
+                                   prefvec<PolyConnector>& poly_connections,
+                                   pqvector<RadialLine>& radial_lines)
 {
    AxialVertex vertex = openvertices.tail();
    openvertices.pop_back();

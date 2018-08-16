@@ -1078,7 +1078,7 @@ void QDepthmapView::mouseReleaseEvent(QMouseEvent *e)
 		  }
 		  break;
 	   case SEEDAXIAL:
-          m_pDoc.OnToolsAxialMap( location );
+          m_pDoc.OnToolsAllFewestLineMap( location );
 		  // switch to select mode (stops you accidently pressing twice)
 	      OnEditSelect();
 		  break;

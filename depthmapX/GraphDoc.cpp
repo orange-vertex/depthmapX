@@ -27,6 +27,7 @@
 
 #include "MakeLayerDlg.h"
 #include "OptionsDlg.h"
+#include "AllFewestLineMapDlg.h"
 #include "AxialAnalysisOptionsDlg.h"
 #include "SegmentAnalysisDlg.h"
 #include "GridDialog.h"
@@ -1275,9 +1276,7 @@ void QGraphDoc::OnToolsIsovistpath()
 }
 
 
-
-// all line map
-void QGraphDoc::OnToolsAxialMap(const Point2f& seed) 
+void QGraphDoc::OnToolsAllFewestLineMap(const Point2f& seed)
 {
    int state = m_meta_graph->getState();
    if (m_communicator) {
@@ -1298,52 +1297,19 @@ void QGraphDoc::OnToolsAxialMap(const Point2f& seed)
 	  if(ret != QMessageBox::Yes) return;
    }
 
-   // This is easy too... too easy... hmm... crossed-fingers, here goes:
-   m_communicator = new CMSCommunicator();
-   m_communicator->SetSeedPoint( seed );
-   CreateWaitDialog(tr("Constructing all line axial map..."));
-   m_communicator->SetFunction( CMSCommunicator::MAKEALLLINEMAP );
-   m_thread.render(this);
-}
 
-// fewest line map
-void QGraphDoc::OnToolsMakeFewestLineMap() 
-{
-   int state = m_meta_graph->getState();
-   if (m_communicator) {
-	   QMessageBox::warning(this, tr("Warning"), tr("Please wait, another task is running"), QMessageBox::Ok, QMessageBox::Ok);
-      return;
-   }
-   if (~state & MetaGraph::SHAPEGRAPHS) {
-      QMessageBox::warning(this, tr("Warning"), tr("Sorry, all line map must exist in order to construct fewest line map"), QMessageBox::Ok, QMessageBox::Ok);
-      return;
-   }
-   else if (!m_meta_graph->hasAllLineMap()) {
-      QMessageBox::warning(this, tr("Warning"), tr("Sorry, all line map must exist in order to construct fewest line map"), QMessageBox::Ok, QMessageBox::Ok);
-      return;
-   }
+   CAllFewestLineMapDlg dlg;
 
-   int replace = 0;
-
-   // check for existing axial maps and warn user if necessary:
-   if (m_meta_graph->hasFewestLineMaps()) {
-      CPromptReplace dlg;
-      dlg.m_message = tr("There is already a fewest line axial map, would you like to add to it or replace it?");
-      int result = dlg.exec();
-	  if (result == QDialog::Rejected) {
-         return;
-      }
-      else if (result == 2) {
-         replace = 1;
-      }
+   if(QDialog::Accepted == dlg.exec()) {
+       m_communicator = new CMSCommunicator();
+       m_communicator->SetSeedPoint( seed );
+       m_communicator->SetOption( dlg.m_all_line ? 1 : 0, 0 );
+       m_communicator->SetOption( dlg.m_fewest_line_subsets ? 1 : 0, 1 );
+       m_communicator->SetOption( dlg.m_fewest_line_minimal ? 1 : 0, 2 );
+       CreateWaitDialog(tr("Constructing all line axial map..."));
+       m_communicator->SetFunction( CMSCommunicator::MAKEALLFEWESTLINEMAP );
+       m_thread.render(this);
    }
-
-   // This is easy too... too easy... hmm... crossed-fingers, here goes:
-   m_communicator = new CMSCommunicator();
-   CreateWaitDialog(tr("Constructing fewest line axial map..."));
-   m_communicator->SetFunction( CMSCommunicator::MAKEFEWESTLINEMAP );
-   m_communicator->SetOption( replace );
-   m_thread.render(this);
 }
 
 void QGraphDoc::OnToolsRunAxa() 

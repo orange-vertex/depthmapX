@@ -182,8 +182,12 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
 
-      case CMSCommunicator::MAKEALLLINEMAP:
-         ok = pDoc->m_meta_graph->makeAllLineMap( comm, comm->GetSeedPoint() );
+      case CMSCommunicator::MAKEALLFEWESTLINEMAP: {
+         bool all_line = comm->GetOption(0) == 1;
+         bool fewest_line_subsets = comm->GetOption(1) == 1;
+         bool fewest_line_minimal = comm->GetOption(2) == 1;
+         ok = pDoc->m_meta_graph->makeAllFewestLineMap( comm, comm->GetSeedPoint(), all_line,
+                                                        fewest_line_subsets, fewest_line_minimal );
          if (ok) {
             pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
          }
@@ -191,15 +195,7 @@ void RenderThread::run()
          QApplication::postEvent(pMain, new QmyEvent((enum QEvent::Type)FOCUSGRAPH, (void*)pDoc, QGraphDoc::CONTROLS_LOADGRAPH));
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
-
-      case CMSCommunicator::MAKEFEWESTLINEMAP:
-         ok = pDoc->m_meta_graph->makeFewestLineMap( comm, comm->GetOption() );
-         if (ok) {
-            pDoc->SetUpdateFlag(QGraphDoc::NEW_TABLE);
-         }
-         pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
-         break;
-
+      }
       case CMSCommunicator::MAKEDRAWING: {
          // option 1 is: 0 a data map, 1 an axial map
          ok = pDoc->m_meta_graph->convertToDrawing( comm, comm->GetString().toStdString(), (comm->GetOption(1) == 0));

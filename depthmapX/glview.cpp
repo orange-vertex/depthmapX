@@ -308,7 +308,7 @@ void GLView::mouseReleaseEvent(QMouseEvent *event)
         }
         case MOUSE_MODE_SEED_AXIAL:
         {
-            m_pDoc.OnToolsAxialMap( worldPoint );
+            m_pDoc.OnToolsAllFewestLineMap( worldPoint );
             break;
         }
         case MOUSE_MODE_LINE_TOOL:

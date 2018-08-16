@@ -295,30 +295,16 @@ namespace dm_runmethods
         auto mGraph = loadGraph(clp.getFileName().c_str(), perfWriter);
 
         auto state = mGraph->getState();
-        if ( ap.runAllLines())
+        if ( ap.runAllLines() || ap.runFewestLines())
         {
            if (~state & MetaGraph::LINEDATA)
            {
                throw depthmapX::RuntimeException("Line drawing must be loaded before axial map can be constructed");
            }
            std::cout << "Making all line map... " << std::flush;
-           DO_TIMED("Making all axes map", for_each (ap.getAllAxesRoots().begin(),ap.getAllAxesRoots().end(), [&mGraph](const Point2f &point)->void{mGraph->makeAllLineMap(0, point);} ))
+           DO_TIMED("Making all axes map", for_each (ap.getAllAxesRoots().begin(),ap.getAllAxesRoots().end(), [&mGraph, ap](const Point2f &point)->void{
+               mGraph->makeAllFewestLineMap(0, point, ap.runAllLines(), ap.runFewestLines(), ap.runFewestLines());} ))
            std::cout << "ok" << std::endl;
-        }
-
-        if (ap.runFewestLines())
-        {
-            if (~state & MetaGraph::LINEDATA)
-            {
-                throw depthmapX::RuntimeException("Line drawing must be loaded before fewest line map can be constructed");
-            }
-            if (!mGraph->hasAllLineMap())
-            {
-                throw depthmapX::RuntimeException("All line map must be constructed before fewest lines can be constructed. Use -aa to do this");
-            }
-            std::cout << "Constructing fewest line map... " << std::flush;
-            DO_TIMED("Fewest line map", mGraph->makeFewestLineMap(0,1))
-            std::cout << "ok" << std::endl;
         }
 
         if (ap.runAnalysis())

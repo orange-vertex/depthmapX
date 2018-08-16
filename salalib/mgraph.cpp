@@ -18,8 +18,8 @@
 
 // The meta graph 
 
-#include "salalib/alllinemap.h"
 #include "salalib/mapconverter.h"
+#include "salalib/mapgenerator.h"
 #include "salalib/isovist.h"
 #include "salalib/ntfp.h"
 #include "salalib/tigerp.h"
@@ -1133,7 +1133,8 @@ int MetaGraph::loadMifMap(Communicator *comm, std::istream& miffile, std::istrea
    return retvar;
 }  
 
-bool MetaGraph::makeAllLineMap( Communicator *communicator, const Point2f& seed )
+bool MetaGraph::makeAllFewestLineMap( Communicator *communicator, const Point2f& seed, bool all_line,
+                                      bool fewest_line_subsets, bool fewest_line_minimal )
 {
    int oldstate = m_state;
    m_state &= ~SHAPEGRAPHS;      // Clear axial map data flag (stops accidental redraw during reload) 
@@ -1148,7 +1149,22 @@ bool MetaGraph::makeAllLineMap( Communicator *communicator, const Point2f& seed 
           m_all_line_map = -1;
        }
 
-      m_shapeGraphs.push_back(std::unique_ptr<AllLineMap>(new AllLineMap(communicator, m_drawingFiles, seed)));
+       std::unique_ptr<ShapeGraph> allLineMap;
+       std::unique_ptr<ShapeGraph> fewestLineSubsetsMap;
+       std::unique_ptr<ShapeGraph> fewestLineMinimalMap;
+       std::tie(allLineMap, fewestLineSubsetsMap, fewestLineMinimalMap)
+               = MapGenerator::makeAllFewestLineMaps(communicator, m_drawingFiles, seed, all_line,
+                                                     fewest_line_subsets, fewest_line_minimal);
+       if(allLineMap != nullptr) {
+           m_shapeGraphs.push_back(std::move(allLineMap));
+       }
+       if(fewestLineSubsetsMap != nullptr) {
+           m_shapeGraphs.push_back(std::move(fewestLineSubsetsMap));
+       }
+       if(fewestLineMinimalMap != nullptr) {
+           m_shapeGraphs.push_back(std::move(fewestLineMinimalMap));
+       }
+
 
       m_all_line_map = int(m_shapeGraphs.size() - 1);
       setDisplayedShapeGraphRef(m_all_line_map);
@@ -1161,75 +1177,6 @@ bool MetaGraph::makeAllLineMap( Communicator *communicator, const Point2f& seed 
 
    if (retvar) {
       m_state |= SHAPEGRAPHS;
-      setViewClass(SHOWAXIALTOP);
-   }
-
-   return retvar;
-}
-
-
-bool MetaGraph::makeFewestLineMap( Communicator *communicator, int replace )
-{
-   int oldstate= m_state;
-   m_state &= ~SHAPEGRAPHS;      // Clear axial map data flag (stops accidental redraw during reload) 
-
-   bool retvar = true;
-
-   try {
-       // no all line map
-       if (m_all_line_map == -1) {
-          return false;
-       }
-
-       AllLineMap* alllinemap = dynamic_cast<AllLineMap*>(m_shapeGraphs[size_t(m_all_line_map)].get());
-
-       if(alllinemap == nullptr) {
-           throw depthmapX::RuntimeException("Failed to cast from ShapeGraph to AllLineMap");
-       }
-
-       // waiting for C++17...
-       std::unique_ptr<ShapeGraph> fewestlinemap_subsets, fewestlinemap_minimal;
-       std::tie(fewestlinemap_subsets, fewestlinemap_minimal) = alllinemap->extractFewestLineMaps(communicator);
-
-       if (replace != 0) {
-           int index = -1;
-
-           for(size_t i = 0; i < m_shapeGraphs.size(); i++) {
-               if(m_shapeGraphs[i]->getName() == "Fewest-Line Map (Subsets)" ||
-                       m_shapeGraphs[i]->getName() == "Fewest Line Map (Subsets)") {
-                   index = int(i);
-               }
-           }
-
-           if(index != -1) {
-               removeShapeGraph(index);
-           }
-
-           for(size_t i = 0; i < m_shapeGraphs.size(); i++) {
-               if(m_shapeGraphs[i]->getName() == "Fewest-Line Map (Subsets)" ||
-                         m_shapeGraphs[i]->getName() == "Fewest Line Map (Subsets)") {
-                   index = int(i);
-               }
-           }
-
-           if(index != -1) {
-               removeShapeGraph(index);
-           }
-       }
-       addShapeGraph(fewestlinemap_subsets);
-       addShapeGraph(fewestlinemap_minimal);
-
-       setDisplayedShapeGraphRef(int(m_shapeGraphs.size() - 2));
-
-   } 
-   catch (Communicator::CancelledException) {
-      retvar = false;
-   }
-
-   m_state = oldstate;
-
-   if (retvar) {
-      m_state |= SHAPEGRAPHS;   // note: should originally have at least one axial map
       setViewClass(SHOWAXIALTOP);
    }
 
@@ -2599,66 +2546,18 @@ bool MetaGraph::readShapeGraphs(std::istream& stream, int version )
 
     for (size_t j = 0; j < size_t(count); j++) {
         m_shapeGraphs.push_back(std::unique_ptr<ShapeGraph>(new ShapeGraph()));
-
-        // P.K. Hairy solution given that we don't know the type/name of the shapegraph
-        // before we actually read it: mark the beginning of the shapegraph in the stream
-        // and if it's found to be an AllLineMap then just roll the stream back and read
-        // from the mark again
-
-        long mark = stream.tellg();
         m_shapeGraphs.back()->read(stream,version);
-        std::string name = m_shapeGraphs.back()->getName();
 
-        if(name == "All-Line Map" ||
-                name == "All Line Map") {
-            m_shapeGraphs.pop_back();
-            m_shapeGraphs.push_back(std::unique_ptr<AllLineMap>(new AllLineMap()));
-            stream.seekg(mark);
-            m_shapeGraphs.back()->read(stream,version);
-        }
     }
 
-    // P.K: ideally this should be read together with the
-    // all-line map, but the way the graph file is structured
-    // this is not possible
-    // TODO: Fix on next graph file update
+    // Nothing special about All-Line maps anymore, these are old dummy variables
 
-    bool foundAllLineMap = false;
-    for(size_t i = 0; i < m_shapeGraphs.size(); i++) {
-        ShapeGraph* shapeGraph = m_shapeGraphs[i].get();
-        if(shapeGraph->getName() == "All-Line Map" ||
-                shapeGraph->getName() == "All Line Map") {
-            foundAllLineMap = true;
-            AllLineMap* alllinemap = dynamic_cast<AllLineMap *>(shapeGraph);
-            if(alllinemap == nullptr) {
-                throw depthmapX::RuntimeException("Failed to cast from ShapeGraph to AllLineMap");
-            }
-            // these are additional essentially for all line axial maps
-            // should probably be kept *with* the all line axial map...
-            alllinemap->m_poly_connections.clear();
-            alllinemap->m_poly_connections.read(stream);
-            alllinemap->m_radial_lines.clear();
-            alllinemap->m_radial_lines.read(stream);
+    // READ / WRITE USES 32-bit LENGTHS (number of elements)
+    // n.b., do not change this to size_t as it will cause 32-bit to 64-bit conversion problems
+    unsigned int length;
+    stream.read( (char *) &length, sizeof(unsigned int) );
+    stream.read( (char *) &length, sizeof(unsigned int) );
 
-            // this is an index to look up the all line map, used by UI to determine if can make fewest line map
-            // note: it is not saved for historical reasons
-            // will get confused by more than one all line map
-            m_all_line_map = int(i);
-
-            // there is currently only one:
-            break;
-        }
-    }
-    if(!foundAllLineMap) {
-        // P.K. This is just a dummy read to cover cases where there is no All-Line Map
-        // The below is taken from pmemvec<T>::read
-
-        // READ / WRITE USES 32-bit LENGTHS (number of elements)
-        // n.b., do not change this to size_t as it will cause 32-bit to 64-bit conversion problems
-        unsigned int length;
-        stream.read( (char *) &length, sizeof(unsigned int) );
-        stream.read( (char *) &length, sizeof(unsigned int) );
-    }
     return true;
 }
 
@@ -2688,22 +2587,12 @@ bool MetaGraph::writeShapeGraphs( std::ofstream& stream, int version, bool displ
         m_shapeGraphs[getDisplayedShapeGraphRef()]->write(stream,version);
     }
 
-    if(m_all_line_map == -1) {
-        prefvec<PolyConnector> temp_poly_connections;
-        pqvector<RadialLine> temp_radial_lines;
+    prefvec<PolyConnector> temp_poly_connections;
+    pqvector<RadialLine> temp_radial_lines;
 
-        temp_poly_connections.write(stream);
-        temp_radial_lines.write(stream);
-    } else {
-        AllLineMap* alllinemap = dynamic_cast<AllLineMap *>(m_shapeGraphs[size_t(m_all_line_map)].get());
+    temp_poly_connections.write(stream);
+    temp_radial_lines.write(stream);
 
-        if(alllinemap == nullptr) {
-            throw depthmapX::RuntimeException("Failed to cast from ShapeGraph to AllLineMap");
-        }
-
-        alllinemap->m_poly_connections.write(stream);
-        alllinemap->m_radial_lines.write(stream);
-    }
     return true;
 }
 

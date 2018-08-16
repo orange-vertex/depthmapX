@@ -18,7 +18,7 @@
 
 // This is my code to make a set of axial lines from a set of boundary lines
 
-#include "salalib/alllinemap.h"
+#include "salalib/axialpolygons.h"
 #include "salalib/tolerances.h"
 #include <math.h>
 #include <float.h>

@@ -77,7 +77,7 @@ public:
    enum { IMPORT, IMPORTMIF, MAKEPOINTS, MAKEGRAPH, ANALYSEGRAPH, 
           POINTDEPTH, METRICPOINTDEPTH, ANGULARPOINTDEPTH, TOPOLOGICALPOINTDEPTH,
           MAKEISOVIST, MAKEISOVISTPATH,
-          MAKEALLLINEMAP, MAKEFEWESTLINEMAP, MAKEDRAWING,
+          MAKEALLFEWESTLINEMAP, MAKEDRAWING,
           MAKEUSERMAP, MAKEUSERMAPSHAPE, MAKEUSERSEGMAP, MAKEUSERSEGMAPSHAPE, MAKEGATESMAP, MAKEBOUNDARYMAP, MAKESEGMENTMAP,
           MAKECONVEXMAP, 
           AXIALANALYSIS, SEGMENTANALYSISTULIP, SEGMENTANALYSISANGULAR, TOPOMETANALYSIS, AGENTANALYSIS };
@@ -256,7 +256,7 @@ public:
 
    void OnFillPoints(const Point2f& p, int fill_type = 0 );
    void OnMakeIsovist(const Point2f& seed, double angle = -1.0);
-   void OnToolsAxialMap( const Point2f& seed );
+   void OnToolsAllFewestLineMap( const Point2f& seed );
    int RenameColumn(AttributeTable *tab, int col);
    bool ReplaceColumnContents(PointMap* pointmap, ShapeMap *shapemap, int col);
    bool SelectByQuery(PointMap* pointmap, ShapeMap *shapemap);
@@ -283,7 +283,6 @@ public:
 	void OnPushToLayer();
 	void OnEditGrid();
     void OnToolsMPD();
-	void OnToolsMakeFewestLineMap();
 	void OnToolsRunSeg();
     void OnAddColumn();
     void OnRemoveColumn();
