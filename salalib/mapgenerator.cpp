@@ -154,7 +154,7 @@ std::tuple<prefvec<Line>, prefvec<pvecint>, prefvec<PolyConnector>, pqvector<Rad
 ShapeGraph MapGenerator::makeAllLineMap(const prefvec<Line>& axiallines,
                                         const prefvec<pvecint>& preaxialdata,
                                         const AxialPolygons& polygons) {
-    ShapeGraph allLineMap;
+    ShapeGraph allLineMap("All-Line Map", ShapeMap::ALLLINEMAP);
     allLineMap.init(int(axiallines.size()), polygons.getRegion());  // used to be double density here
     allLineMap.initialiseAttributesAxial();
     for (size_t k = 0; k < axiallines.size(); k++) {
