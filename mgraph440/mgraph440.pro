@@ -5,7 +5,7 @@ QT       -= qt
 QT -= gui
 CONFIG   -= qt warn_on
 
-CONFIG += staticlib c++11 console
+CONFIG += staticlib c++11 console warn_off
 CONFIG -= app_bundle
 TARGET = mgraph440
 TEMPLATE = lib
