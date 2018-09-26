@@ -3,13 +3,16 @@ include(../defaults.pri)
 
 QT       -= qt
 QT -= gui
-CONFIG   -= qt
-
+CONFIG   -= qt warn_on
 
 CONFIG += staticlib c++11 console
 CONFIG -= app_bundle
 TARGET = mgraph440
 TEMPLATE = lib
+
+# suppress warning about std::set<int> and pointer truncation - not going to fix bad legacy code in this library
+# as the whole point is to provide a legacy compatibility layer.
+win32: QMAKE_CXXFLAGS += -wd4800 -wd4311
 
 DEFINES += MGRAPH440_LIBRARY
 
