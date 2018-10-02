@@ -95,8 +95,8 @@ void ShapeGraph::initialiseAttributesAxial()
 {
     m_attributes.clear();
     // note, expects these to be numbered 0, 1...
-    int conn_col = m_attributes.insertLockedColumn("Connectivity");
-    int leng_col = m_attributes.insertLockedColumn("Line Length");
+    m_attributes.insertLockedColumn("Connectivity");
+    m_attributes.insertLockedColumn("Line Length");
 
 }
 

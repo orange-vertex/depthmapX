@@ -21,9 +21,10 @@
 #include "salalib/mgraph_consts.h"
 #include "salalib/pafcolor.h"
 
-#include "genlib/paftl.h"
+#include "genlib/containerutils.h"
 
 #include <string>
+#include <unordered_map>
 
 // yet another way to do attributes, but one that is easily expandable
 // it's slow to look for a column, since you have to find the column
@@ -37,7 +38,7 @@ struct ValuePair
 {
    double value;  // needs to be double for sorting in index at higher resolution than the stored data
    int index;
-   ValuePair(int i = -1, double v = -1.0) 
+   ValuePair(int i = -1, double v = -1.0)
    { index = i; value = v; }
    friend bool operator < (const ValuePair& vp1, const ValuePair& vp2);
    friend bool operator > (const ValuePair& vp1, const ValuePair& vp2);
@@ -59,7 +60,7 @@ int compareValuePair(const void *p1, const void *p2);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// These aren't really to do with attributes per se, but helpful to have 
+// These aren't really to do with attributes per se, but helpful to have
 // them around ValuePair definition
 
 // note! unsorted
@@ -135,24 +136,26 @@ inline bool operator > (const OrderedIntPair& x, const OrderedIntPair& y)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class AttributeRow : public pvector<float>
+class AttributeRow
 {
    friend class AttributeTable;
 protected:
    mutable bool m_selected;
    mutable ValuePair m_display_info;
    // this is for recording layers (up to 64 are possible)
-   int64 m_layers;
+   long m_layers;
 public:
    AttributeRow()
       { m_selected = false; m_layers = 1; }
    void init(size_t length);
+
+   std::vector<float> cells;
 };
 
 class AttributeTable;
 
 // note pvector: this is stored in order, reorder by qsort
-class AttributeIndex : public pvector<ValuePair>
+class AttributeIndex
 {
    friend class AttributeTable;
 protected:
@@ -161,6 +164,7 @@ public:
    AttributeIndex();
    void clear();
    int makeIndex(const AttributeTable& table, int col, bool setdisplayinfo);
+   std::vector<ValuePair> valuePairs;
 };
 
 class AttributeColumn
@@ -247,18 +251,20 @@ inline bool operator < (const AttributeColumn& a, const AttributeColumn& b)
 inline bool operator > (const AttributeColumn& a, const AttributeColumn& b)
 { return a.m_name > b.m_name; }
 
-class AttributeTable : protected pqmap<int,AttributeRow>
+class AttributeTable
 {
 protected:
+   std::unordered_map<int, AttributeRow> rows;
+   std::vector<int> rowKeys;
    std::string m_name;
-   pqvector<AttributeColumn> m_columns;
-   pqmap<int,AttributeRow> m_data;
+   std::vector<AttributeColumn> m_columns;
+   std::vector<std::pair<int,AttributeRow> > m_data;
    // display parameters for the reference id column
    DisplayParams m_ref_display_params;
    //
-   int64 m_available_layers;
-   pqmap<int64,std::string> m_layers;
-   mutable int64 m_visible_layers;
+   long m_available_layers;
+   std::map<long,std::string> m_layers;
+   mutable long m_visible_layers;
    mutable int m_visible_size;
    //
    std::string g_ref_number_name;    // = std::string("Ref Number");
@@ -268,94 +274,122 @@ public:
    //
    AttributeTable(const std::string& name = std::string());
    //
-   int insertColumn(const std::string& name = std::string());
+   std::vector<AttributeColumn>::iterator insertColumn(const std::string& name = std::string());
    void removeColumn(int col);
    int renameColumn(int col, const std::string& name = std::string());
    int insertRow(int key);
    void removeRow(int key);
-   void removeRowids(const pvecint& list)
-      { remove_at(list); }
-   //
+   void removeRowids(const std::vector<int>& list) {
+       int count = 0;
+       rows.erase(std::remove_if(rows.begin(), rows.end(), [&count,&list]() {
+           return find(list.begin(), list.end(), count) != list.end();
+       }));
+   }
+
    // note... retrieves from column index (which are sorted by name), not physical column
    const std::string& getColumnName(int col) const
-      { return col != -1 ? m_columns[col].m_name : g_ref_number_name; } 
+      { return col != -1 ? m_columns[col].m_name : g_ref_number_name; }
    int getColumnIndex(const std::string& name) const
-      { size_t index = m_columns.searchindex(name); return (index == paftl::npos) ? -1 : int(index);} // note use -1 rather than paftl::npos for return value
+      { auto iter = std::find(m_columns.begin(), m_columns.end(), name);
+        return (iter == m_columns.end()) ? -1 : int(std::distance(m_columns.begin(), iter));} // note use -1 rather than paftl::npos for return value
    int getColumnCount() const
       { return (int) m_columns.size(); }
-   int getOrInsertColumnIndex(const std::string& name)
-      { size_t col = m_columns.searchindex(name); if (col == paftl::npos) return insertColumn(name); else return (int) col; }
-   int getOrInsertLockedColumnIndex(const std::string& name)
-      { size_t col = m_columns.searchindex(name); if (col == paftl::npos) return insertLockedColumn(name); else return (int) col; }
+   int getOrInsertColumnIndex(const std::string& name) {
+       return int(std::distance(m_columns.begin(), insertColumn(name)));
+   }
+   int getOrInsertLockedColumnIndex(const std::string& name) {
+       auto iter = std::find(m_columns.begin(), m_columns.end(), name);
+       if (iter == m_columns.end()) {
+           iter = insertColumn(name);
+           iter->setLock(true);
+       }
+       return int(std::distance(m_columns.begin(), iter));
+   }
    bool isValidColumn(const std::string& name) const
-      { return m_columns.searchindex(name) != paftl::npos || name == g_ref_number_name; }
+      { return std::find(m_columns.begin(), m_columns.end(), name) == m_columns.end() || name == g_ref_number_name; }
    //
    int getRowKey(int index) const
-      { return key(index); }
+      { return rowKeys[size_t(index)]; }
    int getRowid(const int key) const
-      { size_t i = searchindex(key); return (i == paftl::npos) ? -1 : int(i);} // note use -1 rather than paftl::npos for return value
+      { auto iter = std::find(rowKeys.begin(), rowKeys.end(), key); return (iter == rowKeys.end()) ? -1 : int(std::distance(rowKeys.begin(), iter));} // note use -1 rather than paftl::npos for return value
    int getRowCount() const
-      { return (int) size(); }
+      { return int(rowKeys.size()); }
    int getVisibleRowCount() const
       { return m_visible_size; }
-   int getMaxRowKey() const 
-      { return key(size()-1); }
+   int getMaxRowKey() const
+      { return rowKeys.back(); }
+
+   float getValue(int key, const AttributeRow &row, int col) const
+      { return col != -1 ? row.cells[size_t(m_columns[size_t(col)].m_physical_col)] : key; }
    // this version uses known row and col indices
-   float getValue(int row, int col) const
-      { return col != -1 ? value(row).at(m_columns[col].m_physical_col) : key(row); }
+   float getValue(int rowIdx, int col) const
+      { int key = rowKeys[size_t(rowIdx)]; return getValue(key, rows.at(key), col); }
    // this version is meant to use row key and col name
-   float getValue(int row, const std::string& name) const
-      { int col = getColumnIndex(name); return col != -1 ? value(row).at(m_columns[col].m_physical_col) : key(row); }
-   float getNormValue(int row, int col) const
-      { return col != -1 ? m_columns[col].makeNormValue(value(row).at(m_columns[col].m_physical_col)) : (float) (double(getRowKey(row))/double(getRowKey(int(size()-1)))); }
-   void setValue(int row, int col, float val)
-      { value(row).at(m_columns[col].m_physical_col) = val; m_columns[col].setValue(val); }
-   void setValue(int row, const std::string& name, float val)
-      { int col = getColumnIndex(name); if (col != -1) setValue(row,col,val); }
-   void changeValue(int row, int col, float val)
-      { float& theval = value(row).at(m_columns[col].m_physical_col); m_columns[col].changeValue(theval,val); theval = val; }
-   void changeValue(int row, const std::string& name, float val)
-      { int col = getColumnIndex(name); if (col != -1) changeValue(row,col,val); }
-   void changeSelValues(int col, float val) 
-      { for (size_t i = 0; i < size(); i++) { if (value(i).m_selected) changeValue((int)i,col,val);} }
-   void incrValue(int row, int col, float amount = 1.0f) 
-      { float& v = value(row).at(m_columns[col].m_physical_col); v = (v == -1.0f) ? amount : v+amount ; m_columns[col].changeValue(v-amount,v); }
-   void incrValue(int row, const std::string& name, float amount = 1.0f)
-      { int col = getColumnIndex(name);  if (col != -1) incrValue(row,col,amount); }
-   void decrValue(int row, int col, float amount = 1.0f) 
-      { float& v = value(row).at(m_columns[col].m_physical_col); v = (v != -1.0f) ? v-amount : -1.0f; m_columns[col].changeValue(v+amount,v); }
-   void decrValue(int row, const std::string& name, float amount = 1.0f)
-      { int col = getColumnIndex(name);  if (col != -1) decrValue(row,col,amount); }
+   float getValue(int rowIdx, const std::string& name) const
+      { return getValue(rowIdx, getColumnIndex(name)); }
+
+   float getNormValue(int key, const AttributeRow &row, int col) const
+      { return col != -1 ? m_columns[col].makeNormValue(row.cells.at(m_columns[col].m_physical_col)) : (float) (double(key)/double(rowKeys.back())); }
+   float getNormValue(int rowIdx, int col) const
+      { int key = rowKeys[size_t(rowIdx)]; return getNormValue(key, rows.at(rowKeys[size_t(rowIdx)]), col); }
+
+   void setValue(AttributeRow &row, int col, float val)
+      { row.cells[size_t(m_columns[size_t(col)].m_physical_col)] = val; m_columns[size_t(col)].setValue(val); }
+   void setValue(int rowIdx, int col, float val)
+      { setValue(rows.at(rowKeys[size_t(rowIdx)]), col, val); }
+   void setValue(int rowIdx, const std::string& name, float val)
+      { int col = getColumnIndex(name); if (col != -1) setValue(rowIdx,col,val); }
+
+   void changeValue(AttributeRow &row, int col, float val)
+      { float& theval = row.cells[size_t(m_columns[size_t(col)].m_physical_col)]; m_columns[col].changeValue(theval,val); theval = val; }
+   void changeValue(int rowIdx, int col, float val)
+      { changeValue(rows.at(rowKeys[size_t(rowIdx)]), col, val); }
+   void changeValue(int rowIdx, const std::string& name, float val)
+      { int col = getColumnIndex(name); if (col != -1) changeValue(rowIdx,col,val); }
+   void changeSelValues(int col, float val)
+      { for (auto& keyRow: rows) { if (keyRow.second.m_selected) changeValue(keyRow.second,col,val);} }
+
+   void incrValue(AttributeRow &row, int col, float amount = 1.0f)
+      { float& v = row.cells.at(m_columns[col].m_physical_col); v = (v == -1.0f) ? amount : v+amount ; m_columns[col].changeValue(v-amount,v); }
+   void incrValue(int rowIdx, int col, float amount = 1.0f)
+      { incrValue(rows.at(rowKeys[size_t(rowIdx)]), col, amount); }
+   void incrValue(int rowIdx, const std::string& name, float amount = 1.0f)
+      { int col = getColumnIndex(name);  if (col != -1) incrValue(rowIdx,col,amount); }
+
+
+   void decrValue(AttributeRow &row, int col, float amount = 1.0f)
+      { float& v = row.cells.at(m_columns[col].m_physical_col); v = (v != -1.0f) ? v-amount : -1.0f; m_columns[col].changeValue(v+amount,v); }
+   void decrValue(int rowIdx, int col, float amount = 1.0f)
+      { decrValue(rows.at(rowKeys[size_t(rowIdx)]), col, amount); }
+   void decrValue(int rowIdx, const std::string& name, float amount = 1.0f)
+      { int col = getColumnIndex(name);  if (col != -1) decrValue(rowIdx,col,amount); }
+
    void setColumnValue(int col, float val);
    double getMinValue(int col) const
-      { return col != -1 ? m_columns[col].getMinValue() : key(0); }
+      { return col != -1 ? m_columns[col].getMinValue() : rowKeys.front(); }
    double getMaxValue(int col) const
-      { return col != -1 ? m_columns[col].getMaxValue() : key(size()-1); }
+      { return col != -1 ? m_columns[col].getMaxValue() : rowKeys.back(); }
    double getAvgValue(int col) const
       { return col != -1 ? m_columns[col].getTotValue() / double(getRowCount()) : -1.0; }
    //
    double getVisibleMinValue(int col) const
-      { return col != -1 ? m_columns[col].getVisibleMinValue() : key(0); }
+      { return col != -1 ? m_columns[col].getVisibleMinValue() : rowKeys.front(); }
    double getVisibleMaxValue(int col) const
-      { return col != -1 ? m_columns[col].getVisibleMaxValue() : key(size()-1); }
+      { return col != -1 ? m_columns[col].getVisibleMaxValue() : rowKeys.back(); }
    double getVisibleAvgValue(int col) const
       { return col != -1 ? m_columns[col].getVisibleTotValue() / double(getVisibleRowCount()) : -1.0; }
    //
    void setColumnInfo(int col, double min, double max, double tot, double vismin, double vismax, double vistot) const
-      { m_columns[col].setInfo(min,max,tot,vismin,vismax,vistot); } 
+      { m_columns[col].setInfo(min,max,tot,vismin,vismax,vistot); }
    //
    const std::string& getColumnFormula(int col) const
-      { return col != -1 ? m_columns[col].m_formula : g_ref_number_formula; } 
+      { return col != -1 ? m_columns[col].m_formula : g_ref_number_formula; }
    void setColumnFormula(int col, const std::string& formula)
-      { m_columns[col].m_formula = formula; } 
+      { m_columns[col].m_formula = formula; }
    //
    // user-interface locking unlocking
    bool isColumnLocked(int col) const
    { return (col == -1) ? true : m_columns[col].isLocked(); }
-   void setColumnLock(int col, bool lock = true)
-   { m_columns[col].setLock(lock); }
-   int insertLockedColumn(const std::string& name = std::string())
-   { int col = insertColumn(name); setColumnLock(col); return col; }
 protected:
    // Selection:
    mutable int m_sel_count;
@@ -369,40 +403,38 @@ public:
    double getSelAvg() const
    { return m_sel_value / m_sel_count; }
    bool isSelected(int index) const
-   { return value(index).m_selected; }
+   { return rows.at(rowKeys[size_t(index)]).m_selected; }
    // Display:
    mutable int m_display_column;
    mutable AttributeIndex m_display_index;
    mutable DisplayParams m_display_params;
    // Underlying layer control:
-   void setVisibleLayers(int64 layers, bool override = false);
-   const int64 getVisibleLayers() const
+   void setVisibleLayers(long layers, bool override = false);
+   const long getVisibleLayers() const
       { return m_visible_layers; }
    // More user friendly layer control:
    bool selectionToLayer(const std::string& name);
-   int getLayerCount() const
-      { return (int) m_layers.size(); }
-   std::string getLayerName(int layer) const
-      { return m_layers.value(layer); }
-   bool isLayerVisible(int layer) const
-      { return ((m_layers.key(layer) & m_visible_layers) != 0); }
+   const std::map<long,std::string>& getLayers() const
+      { return m_layers; }
+   bool isLayerVisible(int layerIdx) const
+      { return ((depthmapX::getMapAtIndex(m_layers, layerIdx)->first & m_visible_layers) != 0); }
    void setLayerVisible(int layer, bool show);
    //
-   bool isVisible(int row) const
-      { return (m_visible_layers & (at(row).m_layers)) != 0; }
+   bool isVisible(int rowIdx) const
+      { return (m_visible_layers & (rows.at(rowKeys[size_t(rowIdx)]).m_layers)) != 0; }
    //
    void setDisplayColumn(int col, bool override = false) const;
    const int getDisplayColumn() const
       { return m_display_column; }
-   const int getDisplayPos(int index) const
-      { return at(index).m_display_info.index; }
-   const int getDisplayColor(int row) const
-      { PafColor color; return at(row).m_selected ? PafColor(SALA_SELECTED_COLOR) : color.makeColor(at(row).m_display_info.value,m_display_params); }
+   const int getDisplayPos(int rowIdx) const
+      { return rows.at(rowKeys[size_t(rowIdx)]).m_display_info.index; }
+   const int getDisplayColor(int rowIdx) const
+      { PafColor color; auto& row = rows.at(rowKeys[size_t(rowIdx)]); return row.m_selected ? PafColor(SALA_SELECTED_COLOR) : color.makeColor(row.m_display_info.value,m_display_params); }
    const int getDisplayColorByKey(int key) const
-      { PafColor color; return color.makeColor(search(key).m_display_info.value,m_display_params); }
+      { PafColor color; return color.makeColor(rows.at(key).m_display_info.value,m_display_params); }
    // this also doubles up to reset the selection total:
-   void setDisplayInfo(int row, ValuePair vp) const
-      { at(row).m_display_info = vp; if (at(row).m_selected) addSelValue((double)vp.value); }
+   void setDisplayInfo(int rowIdx, ValuePair vp) const
+      { auto& row = rows.at(rowKeys[size_t(rowIdx)]); row.m_display_info = vp; if (row.m_selected) addSelValue((double)vp.value); }
    //
    // set display params for all attributes in table
    void setDisplayParams(const DisplayParams& dp);
@@ -414,7 +446,7 @@ public:
 public:
    // misc
    void clear()  // <- totally destroy, not just clear values
-   { m_columns.clear(); pqmap<int,AttributeRow>::clear(); }
+   { m_columns.clear(); rowKeys.clear(); rows.clear(); }
    //
    void setName(const std::string& name)
    { m_name = name; }

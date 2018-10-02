@@ -383,7 +383,7 @@ public:
    const std::string& getName() const
       { return m_name; }
    int addAttribute(const std::string& name)
-      { return m_attributes.insertColumn(name); }
+      { return m_attributes.getOrInsertColumnIndex(name); }
    void removeAttribute(int col)
       { m_attributes.removeColumn(col); }
    void setAttribute(int obj, const std::string& name, float val)

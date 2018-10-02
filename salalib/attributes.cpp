@@ -54,43 +54,43 @@ AttributeTable::AttributeTable(const std::string& name)
    m_available_layers = 0xffffffff << 32 + 0xfffffffe;
    // display the default layer only (everything):
    m_visible_layers = 0x1;
-   m_layers.add(1,"Everything");
+   m_layers.insert(std::make_pair(1,"Everything"));
    m_visible_size = 0;
 }
 
-int AttributeTable::insertColumn(const std::string& name)
+std::vector<AttributeColumn>::iterator AttributeTable::insertColumn(const std::string& name)
 {
-   size_t index = m_columns.searchindex(AttributeColumn(name));
-   if (index != paftl::npos) {
-      m_columns[index].reset();
-      int phys_col = m_columns[index].m_physical_col;
-      for (size_t i = 0; i < size(); i++) {
-         at(i)[phys_col] = -1.0f;
+   AttributeColumn col(name);
+   auto iter = std::lower_bound(m_columns.begin(), m_columns.end(), col);
+   if (iter == m_columns.end() || col < *iter) {
+       m_columns.insert( iter, AttributeColumn(name));
+       for (auto rowKey: rows) {
+          rowKey.second.cells.push_back(-1.0f);
+       }
+       iter->m_physical_col = int(m_columns.size() - 1);
+   } else {
+      iter->reset();
+      int phys_col = iter->m_physical_col;
+      for (auto rowKey: rows) {
+         rowKey.second.cells[size_t(phys_col)] = -1.0f;
       }
    }
-   else {
-      index = m_columns.add(AttributeColumn(name));
-      for (size_t i = 0; i < size(); i++) {
-         at(i).push_back(-1.0f);
-      }
-      m_columns[index].m_physical_col = m_columns.size() - 1;
-   }
-   return index;
+   return iter;
 }
 
 void AttributeTable::removeColumn(int col)
 {
    int phys_col = m_columns[col].m_physical_col;
    // remove data:
-   for (size_t i = 0; i < size(); i++) {
-      at(i).remove_at(phys_col);
+   for (auto rowKey: rows) {
+      rowKey.second.cells.erase(rowKey.second.cells.begin() + phys_col);
    }
    // remove column head:
-   m_columns.remove_at(col);
+   m_columns.erase(m_columns.begin() + col);
    // adjust other columns:
-   for (size_t j = 0; j < m_columns.size(); j++) {
-      if (m_columns[j].m_physical_col > phys_col) {
-         m_columns[j].m_physical_col -= 1;
+   for (auto& column: m_columns) {
+      if (column.m_physical_col > phys_col) {
+         column.m_physical_col -= 1;
       }
    }
    // done
@@ -122,7 +122,8 @@ int AttributeTable::renameColumn(int col, const std::string& name)
 
 int AttributeTable::insertRow(int key)
 {
-   int index = add(key,AttributeRow());
+   rows.insert(std::make_pair(key,AttributeRow()));
+   rows.a
    value(index).init(m_columns.size());
    return index;
 }

@@ -309,51 +309,29 @@ void Isovist::setData(AttributeTable& table, int row, bool simple_version)
    double driftang = driftvec.angle();
    //
    int col = table.getOrInsertColumnIndex("Isovist Area");
-   if (col == -1) {
-      col = table.insertColumn("Isovist Area");
-   }
    table.setValue(row,col,(float)area);
 
 
    if(!simple_version) {
-       col = table.getColumnIndex("Isovist Compactness");
-       if (col == -1) {
-           col = table.insertColumn("Isovist Compactness");
-       }
+       col = table.getOrInsertColumnIndex("Isovist Compactness");
        table.setValue(row,col, (float)(4.0 * M_PI * area / (m_perimeter*m_perimeter)));
 
-       col = table.getColumnIndex("Isovist Drift Angle");
-       if (col == -1) {
-           col = table.insertColumn("Isovist Drift Angle");
-       }
+       col = table.getOrInsertColumnIndex("Isovist Drift Angle");
        table.setValue(row,col,(float)(180.0*driftang/M_PI));
 
-       col = table.getColumnIndex("Isovist Drift Magnitude");
-       if (col == -1) {
-           col = table.insertColumn("Isovist Drift Magnitude");
-       }
+       col = table.getOrInsertColumnIndex("Isovist Drift Magnitude");
        table.setValue(row,col,(float)driftmag);
-       col = table.getColumnIndex("Isovist Min Radial");
-       if (col == -1) {
-           col = table.insertColumn("Isovist Min Radial");
-       }
+
+       col = table.getOrInsertColumnIndex("Isovist Min Radial");
        table.setValue(row,col,(float)m_min_radial);
-       col = table.getColumnIndex("Isovist Max Radial");
-       if (col == -1) {
-           col = table.insertColumn("Isovist Max Radial");
-       }
+
+       col = table.getOrInsertColumnIndex("Isovist Max Radial");
        table.setValue(row,col,(float)m_max_radial);
 
-       col = table.getColumnIndex("Isovist Occlusivity");
-       if (col == -1) {
-           col = table.insertColumn("Isovist Occlusivity");
-       }
+       col = table.getOrInsertColumnIndex("Isovist Occlusivity");
        table.setValue(row,col,(float)m_occluded_perimeter);
 
-       col = table.getColumnIndex("Isovist Perimeter");
-       if (col == -1) {
-           col = table.insertColumn("Isovist Perimeter");
-       }
+       col = table.getOrInsertColumnIndex("Isovist Perimeter");
        table.setValue(row,col,(float)m_perimeter);
    }
 

@@ -1590,12 +1590,15 @@ void MainWindow::MakeGraphTree()
             ItemTreeEntry entry(1,(short)i,-1);
             m_treegraphmap.insert(std::make_pair(hItem,entry));
             AttributeTable& table = m_treeDoc->m_meta_graph->getShapeGraphs()[i]->getAttributeTable();
-            if(table.getLayerCount() > 1) {
-                for (int j = 0; j < table.getLayerCount(); j++) {
-                    QString name = QString(table.getLayerName(j).c_str());
+            auto& layers = table.getLayers();
+            if(layers.size() > 1) {
+                int j = 0;
+                for (auto& layer: table.getLayers()) {
+                    QString name = QString(layer.second.c_str());
                     QTreeWidgetItem* hNewItem = m_indexWidget->addNewItem(name, hItem);
                     ItemTreeEntry entry(1,(short)i,j);
                     m_treegraphmap[hNewItem] = entry;
+                    j++;
                 }
             }
         }
