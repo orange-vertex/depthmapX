@@ -1590,7 +1590,7 @@ bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_v
 
     if (comm) {
         qtimer( atime, 0 );
-        comm->CommPostMessage( Communicator::NUM_RECORDS, m_point_count );
+        comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
     }
 
     std::vector<PixelRef> filled;
