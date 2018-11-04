@@ -48,8 +48,8 @@ HEADERS += \
     linreg.h \
     bsptree.h \
     readwritehelpers.h \
-    psubvec.h \
-    pflipper.h
+    pflipper.h \
+    simplematrix.h
 
 mac {
     QMAKE_CC = /usr/local/opt/llvm/bin/clang

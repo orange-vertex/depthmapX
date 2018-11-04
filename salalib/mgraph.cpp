@@ -26,6 +26,9 @@
 #include "salalib/mgraph.h"
 #include "salalib/importutils.h"
 
+#include "salalib/vgamodules/visuallocalopenmp.h"
+#include "salalib/vgamodules/visualglobalopenmp.h"
+
 #include "mgraph440/mgraph.h"
 
 #include "genlib/paftl.h"
@@ -320,9 +323,20 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
          getDisplayedPointMap().analyseIsovist( communicator, *this, simple_version );
       }
       else if (options.output_type == Options::OUTPUT_VISUAL) {
-         getDisplayedPointMap().analyseVisual( communicator, options, simple_version );
+         // getDisplayedPointMap().analyseVisual( communicator, options, simple_version );
          // REPLACES:
          // Graph::calculate_depth_matrix( communicator, options, output_graph );
+         bool localResult = true;
+         bool globalResult = true;
+         if (options.local) {
+             VGAVisualLocalOpenMP analysis;
+             localResult = analysis.run(communicator, options, getDisplayedPointMap(), simple_version);
+         }
+         if (options.global) {
+             VGAVisualGlobalOpenMP analysis;
+             globalResult = analysis.run(communicator, options, getDisplayedPointMap(), simple_version);
+         }
+         return globalResult & localResult;
       }
       else if (options.output_type == Options::OUTPUT_METRIC) {
          getDisplayedPointMap().analyseMetric( communicator, options );
@@ -1244,11 +1258,11 @@ bool MetaGraph::analyseAxial( Communicator *communicator, Options options, bool 
    bool retvar = false;
 
    try {
-      pvecint radius;
-      for (size_t i = 0; i < options.radius_list.size(); i++) {
-         radius.push_back( (int) options.radius_list[i] );
+      std::set<int> radii;
+      for (double radius: options.radius_set) {
+         radii.insert( int(radius) );
       }
-      retvar = getDisplayedShapeGraph().integrate( communicator, radius, options.choice, options.local, options.fulloutput, options.weighted_measure_col, simple_version );
+      retvar = getDisplayedShapeGraph().integrate( communicator, radii, options.choice, options.local, options.fulloutput, options.weighted_measure_col, simple_version );
    } 
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1270,7 +1284,7 @@ bool MetaGraph::analyseSegmentsTulip( Communicator *communicator, Options option
                                                               options.tulip_bins,
                                                               options.choice,
                                                               options.radius_type,
-                                                              options.radius_list,
+                                                              options.radius_set,
                                                               options.weighted_measure_col);
    }
    catch (Communicator::CancelledException) {
@@ -1289,7 +1303,7 @@ bool MetaGraph::analyseSegmentsAngular( Communicator *communicator, Options opti
    bool retvar = false;
 
    try {
-       retvar = getDisplayedShapeGraph().analyseAngular(communicator, options.radius_list);
+       retvar = getDisplayedShapeGraph().analyseAngular(communicator, options.radius_set);
    }
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1308,8 +1322,8 @@ bool MetaGraph::analyseTopoMetMultipleRadii( Communicator *communicator, Options
 
    try {
       // note: "output_type" reused for analysis type (either 0 = topological or 1 = metric)
-      for(size_t i = 0; i < options.radius_list.size(); i++) {
-          if(!getDisplayedShapeGraph().analyseTopoMet(communicator, options.output_type, options.radius_list[i], options.sel_only)) {
+      for(double radius: options.radius_set) {
+          if(!getDisplayedShapeGraph().analyseTopoMet(communicator, options.output_type, radius, options.sel_only)) {
               retvar = false;
           }
       }
@@ -1401,22 +1415,20 @@ int MetaGraph::loadLineData( Communicator *communicator, int load_type )
 
       m_drawingFiles.back().m_region = map.getRegion();;
 
-      for (size_t i = 0; i < map.size(); i++) {
+      for (auto layer: map.layers) {
 
-         m_drawingFiles.back().m_spacePixels.emplace_back(map[i].getName());
-         m_drawingFiles.back().m_spacePixels[i].init(map[i].getLineCount(), map.getRegion());
+         m_drawingFiles.back().m_spacePixels.emplace_back(layer.getName());
+         m_drawingFiles.back().m_spacePixels.back().init(layer.getLineCount(), map.getRegion());
 
-         for (size_t j = 0; j < map[i].size(); j++) {
-
-            for (size_t k = 0; k < map[i][j].size(); k++) {
-
-               m_drawingFiles.back().m_spacePixels[i].makeLineShape( map[i][j][k] );
+         for (auto geometry: layer.geometries) {
+            for (auto& line: geometry.lines) {
+               m_drawingFiles.back().m_spacePixels.back().makeLineShape( line );
             }
          }
 
          // TODO: Investigate why setDisplayedAttribute needs to be set to -2 first
-         m_drawingFiles.back().m_spacePixels[i].setDisplayedAttribute(-2);
-         m_drawingFiles.back().m_spacePixels[i].setDisplayedAttribute(-1);
+         m_drawingFiles.back().m_spacePixels.back().setDisplayedAttribute(-2);
+         m_drawingFiles.back().m_spacePixels.back().setDisplayedAttribute(-1);
       }
    }
 
@@ -2661,7 +2673,7 @@ bool MetaGraph::readShapeGraphs(std::istream& stream, int version )
             alllinemap->m_poly_connections.clear();
             alllinemap->m_poly_connections.read(stream);
             alllinemap->m_radial_lines.clear();
-            alllinemap->m_radial_lines.read(stream);
+            dXreadwrite::readIntoVector(stream, alllinemap->m_radial_lines);
 
             // this is an index to look up the all line map, used by UI to determine if can make fewest line map
             // note: it is not saved for historical reasons
@@ -2725,7 +2737,7 @@ bool MetaGraph::writeShapeGraphs( std::ofstream& stream, int version, bool displ
         }
 
         alllinemap->m_poly_connections.write(stream);
-        alllinemap->m_radial_lines.write(stream);
+        dXreadwrite::writeVector(stream, alllinemap->m_radial_lines);
     }
     return true;
 }

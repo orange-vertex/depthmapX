@@ -29,6 +29,8 @@
 // Metagraphs are used...
 #include <salalib/mgraph.h>
 #include <salalib/ngraph.h>
+#include "salalib/vgamodules/visuallocal.h"
+#include "salalib/vgamodules/visualglobal.h"
 
 #include "genlib/stringutils.h"
 #include "genlib/containerutils.h"
@@ -40,7 +42,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 PointMap::PointMap(const QtRegion& parentRegion, const std::vector<SpacePixelFile>& drawingFiles, const std::string& name):
-    m_parentRegion(&parentRegion), m_drawingFiles(&drawingFiles)
+    m_parentRegion(&parentRegion), m_drawingFiles(&drawingFiles), m_points(0,0)
 {
    m_name = name;
 
@@ -100,8 +102,7 @@ bool PointMap::setGrid(double spacing, const Point2f& offset)
 
    m_offset = Point2f(-xoffset, -yoffset);
 
-   if (!m_points.empty()) {
-      m_points.clear();
+   if (m_points.size() != 0) {
       m_filled_point_count = 0;
    }
    m_undocounter = 0;  // <- reset the undo counter... sorry... once you've done this you can't undo
@@ -118,11 +119,10 @@ bool PointMap::setGrid(double spacing, const Point2f& offset)
       Point2f(m_bottom_left.x+double(m_cols-1)*m_spacing + m_spacing/2.0,
               m_bottom_left.y+double(m_rows-1)*m_spacing + m_spacing/2.0) );
 
-   m_points.clear();
-   m_points.resize(m_cols*m_rows);
-   for (int j = 0; j < m_cols; j++) {
-      for (int k = 0; k < m_rows; k++) {
-         m_points[size_t(j*m_rows + k)].m_location = depixelate(PixelRef(j,k));
+   m_points = depthmapX::ColumnMatrix<Point>(m_rows, m_cols);
+   for (size_t j = 0; j < m_cols; j++) {
+      for (size_t k = 0; k < m_rows; k++) {
+         m_points(k,j).m_location = depixelate(PixelRef(static_cast<short>(j),static_cast<short>(k)));
       }
    }
 
@@ -160,7 +160,7 @@ bool PointMap::clearPoints()
       m_undocounter++;
       for (int i = s_bl.x; i <= s_tr.x; i++) {
          for (int j = s_bl.y; j <= s_tr.y; j++) {
-            Point& pnt = m_points[size_t(i*m_rows + j)];
+            Point& pnt = m_points(static_cast<size_t>(j), static_cast<size_t>(i));
             if (pnt.m_state & (Point::SELECTED | Point::FILLED)) {
                pnt.set( Point::EMPTY, m_undocounter );
                if (!pnt.m_merge.empty()) {
@@ -177,7 +177,7 @@ bool PointMap::clearPoints()
    else { // COMPOUND_SELECTION (note, need to test bitwise now)
       for (int i = 0; i < m_cols; i++) {
          for (int j = 0; j < m_rows; j++) {
-            Point& pnt = m_points[size_t(i*m_rows + j)];
+            Point& pnt = m_points(static_cast<size_t>(j), static_cast<size_t>(i));
             if (pnt.m_state & (Point::SELECTED | Point::FILLED)) {
                pnt.set( Point::EMPTY, m_undocounter );
                if (!pnt.m_merge.empty()) {
@@ -261,7 +261,7 @@ void PointMap::fillLine(const Line& li)
 
 bool PointMap::blockLines()
 {
-   if (!m_initialised || m_points.empty()) {
+   if (!m_initialised || m_points.size() == 0) {
       return false;
    }
    if (m_blockedlines) {
@@ -366,7 +366,7 @@ bool PointMap::fillPoint(const Point2f& p, bool add)
 //AV TV // semifilled
 bool PointMap::makePoints(const Point2f& seed, int fill_type, Communicator *comm)
 {
-   if (!m_initialised || m_points.empty()) {
+   if (!m_initialised || m_points.size() == 0) {
       return false;
    }
    if (comm) {
@@ -547,10 +547,11 @@ void PointMap::outputNet(std::ostream& netfile)
    std::map<PixelRef,PixelRefVector> graph;
    for (int i = 0; i < m_cols; i++) {
       for (int j = 0; j < m_rows; j++) {
-         if (m_points[size_t(i*m_rows + j)].filled() && m_points[size_t(i*m_rows + j)].m_node) {
+         Point& pnt = m_points(static_cast<size_t>(j), static_cast<size_t>(i));
+         if (pnt.filled() && pnt.m_node) {
             PixelRef pix(i,j);
             PixelRefVector connections;
-            m_points[size_t(i*m_rows + j)].m_node->contents(connections);
+            pnt.m_node->contents(connections);
             graph.insert(std::make_pair(pix,connections));
          }
       }
@@ -585,14 +586,15 @@ void PointMap::outputConnections(std::ostream& myout)
    myout << "#graph v1.0" << std::endl;
    for (int i = 0; i < m_cols; i++) {
       for (int j = 0; j < m_rows; j++) {
-         if (m_points[size_t(i*m_rows + j)].filled() && m_points[size_t(i*m_rows + j)].m_node) {
+         Point& pnt = m_points(static_cast<size_t>(j), static_cast<size_t>(i));
+         if (pnt.filled() && pnt.m_node) {
             PixelRef pix(i,j);
             Point2f p = depixelate(pix);
             myout << "node {\n"
                   << "  ref    " << pix << "\n"
                   << "  origin " << p.x << " " << p.y << " " << 0.0 << "\n"
                   << "  connections [" << std::endl;
-            myout << *(m_points[size_t(i*m_rows + j)].m_node);
+            myout << *(pnt.m_node);
             myout << "  ]\n}" << std::endl;
          }
       }
@@ -607,14 +609,15 @@ void PointMap::outputConnectionsAsCSV(std::ostream& myout, std::string delim)
     {
         for (int j = 0; j < m_rows; j++)
         {
-            if (m_points[size_t(i*m_rows + j)].filled() && m_points[size_t(i*m_rows + j)].m_node)
+            Point& pnt = m_points(static_cast<size_t>(j), static_cast<size_t>(i));
+            if (pnt.filled() && pnt.m_node)
             {
                 PixelRef pix(i,j);
                 seenPix.insert(pix);
                 for (int b = 0; b < 32; b++)
                 {
                     PixelRefVector hood;
-                    m_points[size_t(i*m_rows + j)].m_node->bin(b).contents(hood);
+                    pnt.m_node->bin(b).contents(hood);
                     for(size_t p = 0; p < hood.size(); p++)
                     {
                         if(!(std::find(seenPix.begin(), seenPix.end(), hood[p]) != seenPix.end()))
@@ -636,9 +639,10 @@ void PointMap::outputLinksAsCSV(std::ostream& myout, std::string delim)
     {
         for (int j = 0; j < m_rows; j++)
         {
-            if (m_points[size_t(i*m_rows + j)].filled() && m_points[size_t(i*m_rows + j)].m_node)
+            Point& pnt = m_points(static_cast<size_t>(j), static_cast<size_t>(i));
+            if (pnt.filled() && pnt.m_node)
             {
-                PixelRef mergePixelRef = m_points[size_t(i*m_rows + j)].getMergePixel();
+                PixelRef mergePixelRef = pnt.getMergePixel();
                 if(mergePixelRef != NoPixel) {
                     PixelRef pix(i,j);
                     if(seenPix.insert(pix).second)
@@ -909,8 +913,9 @@ bool PointMap::setCurSel(QtRegion &r, bool add )
 
    for (int i = s_bl.x; i <= s_tr.x; i++) {
       for (int j = s_bl.y; j <= s_tr.y; j++) {
-         if ((m_points[size_t(i*m_rows + j)].m_state & mask) && (~m_points[size_t(i*m_rows + j)].m_state & Point::SELECTED)) {
-            m_points[size_t(i*m_rows + j)].m_state |= Point::SELECTED;
+         Point& pnt = m_points(static_cast<size_t>(j), static_cast<size_t>(i));
+         if ((pnt.m_state & mask) && (~pnt.m_state & Point::SELECTED)) {
+            pnt.m_state |= Point::SELECTED;
             m_selection_set.insert( PixelRef(i,j) );
             if (add) {
                m_selection &= ~SINGLE_SELECTION;
@@ -919,7 +924,7 @@ bool PointMap::setCurSel(QtRegion &r, bool add )
             else {
                m_selection |= SINGLE_SELECTION;
             }
-            if (m_points[size_t(i*m_rows + j)].m_node) {
+            if (pnt.m_node) {
                m_attributes.selectRowByKey(PixelRef(i,j));
             }
          }
@@ -945,7 +950,7 @@ bool PointMap::setCurSel(const std::vector<int>& selset, bool add)
       if (includes(pix)) {
          int row = m_attributes.getRowid(pix);
          if (row != -1) {
-            m_points[size_t(pix.x*m_rows + pix.y)].m_state |= Point::SELECTED;
+            m_points(static_cast<size_t>(pix.y), static_cast<size_t>(pix.x)).m_state |= Point::SELECTED;
             if (m_attributes.selectRowByKey(pix)) {
                m_selection_set.insert(pix);
             }
@@ -1026,12 +1031,13 @@ bool PointMap::read(std::istream& stream, int version )
    // NOTE: You MUST set m_spacepix manually!
    m_displayed_attribute = -1;
 
-   m_points.clear();
-
    stream.read( (char *) &m_spacing, sizeof(m_spacing) );
 
-   stream.read( (char *) &m_rows, sizeof(m_rows) );
-   stream.read( (char *) &m_cols, sizeof(m_cols) );
+   int rows, cols;
+   stream.read( reinterpret_cast<char *>(&rows), sizeof(rows) );
+   stream.read( reinterpret_cast<char *>(&cols), sizeof(cols) );
+   m_rows = static_cast<size_t>(rows);
+   m_cols = static_cast<size_t>(cols);
 
    stream.read( (char *) &m_filled_point_count, sizeof(m_filled_point_count) );
 
@@ -1051,19 +1057,17 @@ bool PointMap::read(std::istream& stream, int version )
    stream.read((char *)&displayed_attribute,sizeof(displayed_attribute));
    m_attributes.read( stream, version );
 
-
-   m_points.clear();
-   m_points.resize(m_cols*m_rows);
-
-   for (int j = 0; j < m_cols; j++) {
-      for (int k = 0; k < m_rows; k++) {
-         m_points[size_t(j*m_rows + k)].read(stream,version,attr_count);
+   m_points = depthmapX::ColumnMatrix<Point>(m_rows, m_cols);
+   
+   for (size_t j = 0; j < m_cols; j++) {
+      for (size_t k = 0; k < m_rows; k++) {
+         m_points(k, j).read(stream,version,attr_count);
 
          // check if occdistance of any pixel's bin is set, meaning that
          // the isovist analysis was done
          if(!m_hasIsovistAnalysis) {
              for(int b = 0; b < 32; b++) {
-                if(m_points[size_t(j*m_rows + k)].m_node && m_points[size_t(j*m_rows + k)].m_node->occdistance(b) > 0) {
+                if(m_points(k, j).m_node && m_points(k, j).m_node->occdistance(b) > 0) {
                     m_hasIsovistAnalysis = true;
                     break;
                 }
@@ -1073,18 +1077,19 @@ bool PointMap::read(std::istream& stream, int version )
 
 
       for (int k = 0; k < m_rows; k++) {
+         Point& pnt = m_points(k, j);
          // Old style point node reffing and also unselects selected nodes which would otherwise be difficult
 
          // would soon be better simply to turn off the select flag....
-         m_points[size_t(j*m_rows + k)].m_state &= ( Point::EMPTY | Point::FILLED | Point::MERGED | Point::BLOCKED | Point::CONTEXTFILLED | Point::EDGE);
+         pnt.m_state &= ( Point::EMPTY | Point::FILLED | Point::MERGED | Point::BLOCKED | Point::CONTEXTFILLED | Point::EDGE);
 
          // Set the node pixel if it exists:
-         if (m_points[size_t(j*m_rows + k)].m_node) {
-            m_points[size_t(j*m_rows + k)].m_node->setPixel(PixelRef(j,k));
+         if (pnt.m_node) {
+            pnt.m_node->setPixel(PixelRef(j,k));
          }
          // Add merge line if merged:
-         if (!m_points[size_t(j*m_rows + k)].m_merge.empty()) {
-             depthmapX::addIfNotExists(m_merge_lines, PixelRefPair(PixelRef(j,k),m_points[size_t(j*m_rows + k)].m_merge));
+         if (!pnt.m_merge.empty()) {
+             depthmapX::addIfNotExists(m_merge_lines, PixelRefPair(PixelRef(j,k),pnt.m_merge));
          }
       }
    }
@@ -1112,8 +1117,10 @@ bool PointMap::write( std::ofstream& stream, int version )
 
    stream.write( (char *) &m_spacing, sizeof(m_spacing) );
 
-   stream.write( (char *) &m_rows, sizeof(m_rows) );
-   stream.write( (char *) &m_cols, sizeof(m_cols) );
+   int rows = static_cast<int>(m_rows);
+   int cols = static_cast<int>(m_cols);
+   stream.write( reinterpret_cast<char *>(&rows), sizeof(rows) );
+   stream.write( reinterpret_cast<char *>(&cols), sizeof(cols) );
 
    stream.write( (char *) &m_filled_point_count, sizeof(m_filled_point_count) );
 
@@ -1197,11 +1204,11 @@ bool PointMap::sparkGraph2( Communicator *comm, bool boundarygraph, double maxdi
    }
 
    if (boundarygraph) {
-      for (int i = 0; i < m_cols; i++) {
-         for (int j = 0; j < m_rows; j++) {
-            PixelRef curs = PixelRef( i, j );
+      for (size_t i = 0; i < m_cols; i++) {
+         for (size_t j = 0; j < m_rows; j++) {
+            PixelRef curs = PixelRef( static_cast<short>(i), static_cast<short>(j) );
             if ( getPoint( curs ).filled() && !getPoint( curs ).edge()) {
-               m_points[size_t(i*m_rows + j)].m_state &= ~Point::FILLED;
+               m_points(j, i).m_state &= ~Point::FILLED;
                m_filled_point_count--;
             }
          }
@@ -1586,415 +1593,17 @@ bool PointMap::analyseIsovist(Communicator *comm, MetaGraph& mgraph, bool simple
 
 bool PointMap::analyseVisual(Communicator *comm, Options& options, bool simple_version)
 {
-   time_t atime = 0;
-
-    if (comm) {
-        qtimer( atime, 0 );
-        comm->CommPostMessage( Communicator::NUM_RECORDS, m_filled_point_count );
+    bool localResult = true;
+    bool globalResult = true;
+    if (options.local) {
+        VGAVisualLocal analysis;
+        localResult = analysis.run(comm, options, *this, simple_version);
     }
-
-    std::vector<PixelRef> filled;
-    std::vector<int> rows;
-
-    for (int i = 0; i < m_cols; i++) {
-        for (int j = 0; j < m_rows; j++) {
-            PixelRef curs = PixelRef( i, j );
-            if ( getPoint( curs ).filled()) {
-                filled.push_back(curs);
-                rows.push_back(m_attributes.getRowid(curs));
-            }
-        }
-    }
-
-    int count = 0;
-
     if (options.global) {
-        if (comm) {
-            qtimer( atime, 0 );
-            comm->CommPostMessage( Communicator::NUM_STEPS, 1 );
-            comm->CommPostMessage( Communicator::CURRENT_STEP, 1 );
-            comm->CommPostMessage( Communicator::NUM_RECORDS, filled.size() );
-        }
-        std::vector<float> count_col_data(filled.size());
-        std::vector<float> depth_col_data(filled.size());
-        std::vector<float> integ_dv_col_data(filled.size());
-        std::vector<float> integ_pv_col_data(filled.size());
-        std::vector<float> integ_tk_col_data(filled.size());
-        std::vector<float> entropy_col_data(filled.size());
-        std::vector<float> rel_entropy_col_data(filled.size());
-
-        #pragma omp parallel for
-        for (int i = 0; i < filled.size(); i++) {
-
-            if ((getPoint( filled[i] ).contextfilled() && !filled[i].iseven()) ||
-                (options.gates_only)) {
-                count++;
-                continue;
-            }
-
-            std::vector<int> miscs(m_cols*m_rows);
-            std::vector<PixelRef> extents(m_cols*m_rows);
-            for (int ii = 0; ii < m_cols; ii++) {
-                for (int jj = 0; jj < m_rows; jj++) {
-                    miscs[jj*m_cols + ii] = 0;
-                    extents[jj*m_cols + ii] = PixelRef(ii,jj);
-                }
-            }
-
-            int total_depth = 0;
-            int total_nodes = 0;
-
-            std::vector<int> distribution;
-            std::vector<PixelRefVector> search_tree;
-            search_tree.push_back(PixelRefVector());
-            search_tree.back().push_back(filled[i]);
-
-            int level = 0;
-            while (search_tree[level].size()) {
-                search_tree.push_back(PixelRefVector());
-                distribution.push_back(0);
-                for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
-                    PixelRef curr = search_tree[level][n];
-                    Point& p = getPoint(curr);
-                    size_t p1i = size_t(curr.y*m_cols + curr.x);
-                    if (p.filled() && miscs[p1i] != ~0) {
-                        total_depth += level;
-                        total_nodes += 1;
-                        distribution.back() += 1;
-                        if ((int) options.radius == -1 || level < (int) options.radius &&
-                            (!p.contextfilled() || search_tree[level][n].iseven())) {
-                            p.m_node->extractUnseen(search_tree[level+1],this,miscs,extents);
-                            miscs[p1i] = ~0;
-                            if (!p.m_merge.empty()) {
-                                Point& p2 = getPoint(p.m_merge);
-                                size_t p2i = size_t(p.m_merge.y*m_cols + p.m_merge.x);
-                                if (miscs[p2i] != ~0) {
-                                    p2.m_node->extractUnseen(search_tree[level+1],this,miscs,extents); // did say p.misc
-                                    miscs[p2i] = ~0;
-                                }
-                            }
-                        } else {
-                            miscs[p1i] = ~0;
-                        }
-                    }
-                    search_tree[level].pop_back();
-                }
-                level++;
-            }
-
-            // only set to single float precision after divide
-            // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
-
-            count_col_data[i] = float(total_nodes); // note: total nodes includes this one;
-
-            // ERROR !!!!!!
-            if (total_nodes > 1) {
-                double mean_depth = double(total_depth) / double(total_nodes - 1);
-                depth_col_data[i] = float(mean_depth);
-                // total nodes > 2 to avoid divide by 0 (was > 3)
-                if (total_nodes > 2 && mean_depth > 1.0) {
-                    double ra = 2.0 * (mean_depth - 1.0) / double(total_nodes - 2);
-                    // d-value / p-values from Depthmap 4 manual, note: node_count includes this one
-                    double rra_d = ra / dvalue(total_nodes);
-                    double rra_p = ra / pvalue(total_nodes);
-                    double integ_tk = teklinteg(total_nodes, total_depth);
-                    integ_dv_col_data[i] = float(1.0/rra_d);
-                    integ_pv_col_data[i] = float(1.0/rra_p);
-
-                    if (total_depth - total_nodes + 1 > 1) {
-                        integ_tk_col_data[i] = float(integ_tk);
-                    } else {
-                        integ_tk_col_data[i] = -1.0f;
-                    }
-                } else {
-                    integ_dv_col_data[i] = -1.0f;
-                    integ_pv_col_data[i] = -1.0f;
-                    integ_tk_col_data[i] = -1.0f;
-                }
-                double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
-                // n.b., this distribution contains the root node itself in distribution[0]
-                // -> chopped from entropy to avoid divide by zero if only one node
-                for (size_t k = 1; k < distribution.size(); k++) {
-                    if (distribution[k] > 0) {
-                        double prob = double(distribution[k]) / double(total_nodes - 1);
-                        entropy -= prob * log2(prob);
-                        // Formula from Turner 2001, "Depthmap"
-                        factorial *= double(k + 1);
-                        double q = (pow( mean_depth, double(k) ) / double(factorial)) * exp(-mean_depth);
-                        rel_entropy += (float) prob * log2( prob / q );
-                    }
-                }
-                entropy_col_data[i] = float(entropy);
-                rel_entropy_col_data[i] = float(rel_entropy);
-            }
-            else {
-                depth_col_data[i] = -1.0f;
-                entropy_col_data[i] = -1.0f;
-                rel_entropy_col_data[i] = -1.0f;
-            }
-            count++;    // <- increment count
-
-            if (comm) {
-               if (qtimer( atime, 500 )) {
-                  if (comm->IsCancelled()) {
-                     throw Communicator::CancelledException();
-                  }
-                  comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-               }
-
-            }
-
-            // kept to achieve parity in binary comparison with old versions
-            // TODO: Remove at next version of .graph file
-            size_t filledIdx = size_t(filled[i].y*m_cols + filled[i].x);
-            getPoint(filled[i]).m_misc = miscs[filledIdx];
-            getPoint(filled[i]).m_extent = extents[filledIdx];
-        }
-
-        int entropy_col, rel_entropy_col, integ_dv_col, integ_pv_col,
-                integ_tk_col, depth_col, count_col;
-
-        std::string radius_text;
-        if (options.radius != -1) {
-            radius_text = std::string(" R") + dXstring::formatString(int(options.radius),"%d");
-        }
-
-        // n.b. these must be entered in alphabetical order to preserve col indexing:
-        // dX simple version test // TV
-        if(!simple_version) {
-            std::string entropy_col_text = std::string("Visual Entropy") + radius_text;
-            entropy_col = m_attributes.insertColumn(entropy_col_text.c_str());
-        }
-
-        std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
-        integ_dv_col = m_attributes.insertColumn(integ_dv_col_text.c_str());
-
-        if(!simple_version) {
-            std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
-            integ_pv_col = m_attributes.insertColumn(integ_pv_col_text.c_str());
-            std::string integ_tk_col_text = std::string("Visual Integration [Tekl]") + radius_text;
-            integ_tk_col = m_attributes.insertColumn(integ_tk_col_text.c_str());
-            std::string depth_col_text = std::string("Visual Mean Depth") + radius_text;
-            depth_col = m_attributes.insertColumn(depth_col_text.c_str());
-            std::string count_col_text = std::string("Visual Node Count") + radius_text;
-            count_col = m_attributes.insertColumn(count_col_text.c_str());
-            std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
-            rel_entropy_col = m_attributes.insertColumn(rel_entropy_col_text.c_str());
-        }
-
-        for(size_t i = 0; i < rows.size(); i++) {
-            m_attributes.setValue(rows[i], integ_dv_col,    integ_dv_col_data[i]);
-            m_attributes.setValue(rows[i], integ_pv_col,    integ_pv_col_data[i]);
-            m_attributes.setValue(rows[i], integ_tk_col,    integ_tk_col_data[i]);
-            if(!simple_version) {
-                m_attributes.setValue(rows[i], count_col,       count_col_data[i]);
-                m_attributes.setValue(rows[i], depth_col,       depth_col_data[i]);
-                m_attributes.setValue(rows[i], entropy_col,     entropy_col_data[i]);
-                m_attributes.setValue(rows[i], rel_entropy_col, rel_entropy_col_data[i]);
-            }
-        }
-
-        setDisplayedAttribute(integ_dv_col);
+        VGAVisualGlobal analysis;
+        globalResult = analysis.run(comm, options, *this, simple_version);
     }
-
-    count = 0;
-
-    if (options.local && !simple_version) {
-        std::vector<float> cluster_col_data(filled.size());
-        std::vector<float> control_col_data(filled.size());
-        std::vector<float> controllability_col_data(filled.size());
-
-        bool adjMatrix = true;
-
-        if(adjMatrix) {
-
-            int i;
-            const long N = long(filled.size());
-
-            std::map<PixelRef, int> refToFilled;
-            for ( i = 0; i < N; ++i ) {
-                refToFilled.insert(std::make_pair(filled[size_t(i)], i));
-            }
-
-            std::vector<bool> hoods(N*N);
-
-            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
-            for ( i = 0; i < N; ++i ) {
-                Point& p = getPoint( filled[size_t(i)] );
-                std::set<PixelRef> neighbourhood;
-                #pragma omp critical(dumpNeighbourhood)
-                {
-                p.m_node->dumpNeighbourhood(neighbourhood);
-                }
-                for(auto& neighbour: neighbourhood) {
-                    if (getPoint(neighbour).m_node) {
-                        hoods[long(i*N + refToFilled[neighbour])] = true;
-                    }
-                }
-            }
-
-
-
-
-            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
-            for ( i = 0; i < N; ++i ) {
-
-                Point& p = getPoint( filled[size_t(i)] );
-                if ((p.contextfilled() && !filled[size_t(i)].iseven()) ||
-                    (options.gates_only)) {
-                    count++;
-                    continue;
-                }
-
-                std::vector<bool> totalHood(N);
-
-                int cluster = 0;
-                float control = 0.0f;
-
-                int hoodSize = 0;
-                for (int j = 0; j < N; j++) {
-                    if(hoods[i*N + j]) {
-                        hoodSize++;
-                        totalHood[j] = true;
-                        int retHood = 0;
-                        for (int k = 0; k < N; k++) {
-                            if(hoods[j*N+k]) {
-                                totalHood[k] = true;
-                                retHood++;
-                                if(hoods[i*N+k]) cluster++;
-                            }
-                        }
-                        control += 1.0f / float(retHood);
-                    }
-                }
-                int totalReach = 0;
-                for (int j = 0; j < N; j++) {
-                    if(totalHood[j]) totalReach++;
-                }
-                #pragma omp critical(add_to_col)
-                {
-                if (hoodSize > 1) {
-                    cluster_col_data[size_t(i)] = float(cluster / double(hoodSize * (hoodSize - 1.0)));
-                    control_col_data[size_t(i)] = float(control);
-                    controllability_col_data[size_t(i)] = float( double(hoodSize) / double(totalReach));
-                } else {
-                    cluster_col_data[size_t(i)] = -1.0f;
-                    control_col_data[size_t(i)] = -1.0f;
-                    controllability_col_data[size_t(i)] = hoodSize;
-                }
-                }
-
-                #pragma omp critical(count)
-                {
-                count++;    // <- increment count
-                if (comm) {
-                    if (qtimer( atime, 500 )) {
-                        if (comm->IsCancelled()) {
-                            throw Communicator::CancelledException();
-                        }
-                        comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-                    }
-                }
-                }
-            }
-        } else {
-
-            if (comm) {
-                qtimer( atime, 0 );
-                comm->CommPostMessage( Communicator::NUM_STEPS, 1 );
-                comm->CommPostMessage( Communicator::CURRENT_STEP, 1 );
-                comm->CommPostMessage( Communicator::NUM_RECORDS, filled.size() );
-            }
-            std::vector<std::set<int>> hoods(filled.size());
-
-
-            int i, N = int(filled.size());
-            std::map<PixelRef, int> refToFilled;
-            for ( i = 0; i < N; ++i ) {
-                refToFilled.insert(std::make_pair(filled[size_t(i)], i));
-            }
-            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
-            for ( i = 0; i < N; ++i ) {
-                Point& p = getPoint( filled[size_t(i)] );
-                std::set<PixelRef> neighbourhood;
-                #pragma omp critical(dumpNeighbourhood)
-                {
-                p.m_node->dumpNeighbourhood(neighbourhood);
-                }
-                for(auto& neighbour: neighbourhood) {
-                    if (getPoint(neighbour).m_node) {
-                        hoods[size_t(i)].insert(refToFilled[neighbour]);
-                    }
-                }
-            }
-
-            #pragma omp parallel for default(shared) private(i) schedule(dynamic)
-            for ( i = 0; i < N; ++i ) {
-
-                Point& p = getPoint( filled[size_t(i)] );
-                if ((p.contextfilled() && !filled[size_t(i)].iseven()) ||
-                    (options.gates_only)) {
-                    count++;
-                    continue;
-                }
-
-                // This is much easier to do with a straight forward list:
-                std::set<int>& neighbourhood = hoods[size_t(i)];
-                std::set<int> totalneighbourhood;
-                int cluster = 0;
-                float control = 0.0f;
-
-                for (auto& neighbour: neighbourhood) {
-                        std::set<int>& retneighbourhood = hoods[size_t(neighbour)];
-                        std::set<int> intersect;
-                        std::set_intersection(neighbourhood.begin(),neighbourhood.end(),
-                                              retneighbourhood.begin(),retneighbourhood.end(),
-                                              std::inserter(intersect,intersect.begin()));
-                        totalneighbourhood.insert(retneighbourhood.begin(), retneighbourhood.end());
-                        control += 1.0f / float(retneighbourhood.size());
-                        cluster += intersect.size();
-                }
-                #pragma omp critical(add_to_col)
-                {
-                if (neighbourhood.size() > 1) {
-                    cluster_col_data[size_t(i)] = float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
-                    control_col_data[size_t(i)] = float(control);
-                    controllability_col_data[size_t(i)] = float( double(neighbourhood.size()) / double(totalneighbourhood.size()));
-                } else {
-                    cluster_col_data[size_t(i)] = -1.0f;
-                    control_col_data[size_t(i)] = -1.0f;
-                    controllability_col_data[size_t(i)] = neighbourhood.size();
-                }
-                }
-
-                #pragma omp critical(count)
-                {
-                count++;    // <- increment count
-                if (comm) {
-                    if (qtimer( atime, 500 )) {
-                        if (comm->IsCancelled()) {
-                            throw Communicator::CancelledException();
-                        }
-                        comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-                    }
-                }
-                }
-            }
-        }
-
-        int cluster_col = m_attributes.insertColumn("Visual Clustering Coefficient");
-        int control_col = m_attributes.insertColumn("Visual Control");
-        int controllability_col = m_attributes.insertColumn("Visual Controllability");
-
-        for(size_t i = 0; i < rows.size(); i++) {
-            m_attributes.setValue(rows[i], cluster_col,         cluster_col_data[i]);
-            m_attributes.setValue(rows[i], control_col,         control_col_data[i]);
-            m_attributes.setValue(rows[i], controllability_col, controllability_col_data[i]);
-        }
-        setDisplayedAttribute(cluster_col);
-    }
-
-    return true;
+    return globalResult & localResult;
 }
 
 bool PointMap::analyseVisualPointDepth()

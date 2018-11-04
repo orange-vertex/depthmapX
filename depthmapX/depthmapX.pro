@@ -171,3 +171,7 @@ linux {
 msvc {
     QMAKE_CXXFLAGS += -openmp
 }
+
+QMAKE_CXXFLAGS += -DAPP_DATE=\\\"`date +'\"%a_%b_%d,_%Y\"'`\\\"
+QMAKE_CXXFLAGS += -DAPP_GIT_BRANCH=\\\"`git rev-parse --abbrev-ref HEAD`\\\"
+QMAKE_CXXFLAGS += -DAPP_GIT_COMMIT=\\\"`git log --pretty=format:'%h' -n 1`\\\"
