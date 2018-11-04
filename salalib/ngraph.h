@@ -59,11 +59,9 @@ public:
    { m_dir = PixelRef::NODIR; m_node_count = 0; m_distance = 0.0f; m_occ_distance = 0.0f; }
    //
    void make(const PixelRefVector& pixels, char m_dir);
-   void extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark, std::vector<int> &miscs, std::vector<PixelRef> &extents);
-   void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs,
-                             std::vector<int>& miscs, std::vector<float>& dists, std::vector<float>& cumangles);
-   void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs,
-                             std::vector<int>& miscs, std::vector<float>& cumangles);
+   void extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark);
+   void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs);
+   void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs);
    //
    int count() const 
    { return m_node_count; }
@@ -106,9 +104,9 @@ public:
 public:
    // Note: this function clears the bins as it goes
    void make(const PixelRef pix, PixelRefVector *bins, float *bin_far_dists, int q_octants);
-   void extractUnseen(PixelRefVector& pixels, PointMap *pointdata, std::vector<int> &miscs, std::vector<PixelRef> &extents);
-   void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs, std::vector<int>& miscs, std::vector<float>& dists, std::vector<float> &cumangles);
-   void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs, std::vector<int>& miscs, std::vector<float> &cumangles);
+   void extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark);
+   void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs);
+   void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs);
    bool concaveConnected();
    bool fullyConnected();
    //

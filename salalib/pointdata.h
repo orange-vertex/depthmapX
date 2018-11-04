@@ -147,11 +147,11 @@ public:
    bool binDisplay(Communicator *comm);
    bool analyseIsovist(Communicator *comm, MetaGraph& mgraph, bool simple_version);
    bool analyseVisual(Communicator *comm, Options& options, bool simple_version);
-   bool analyseVisualPointDepth();
+   bool analyseVisualPointDepth(Communicator *comm);
    bool analyseMetric(Communicator *comm, Options& options);
-   bool analyseMetricPointDepth();
+   bool analyseMetricPointDepth(Communicator *comm);
    bool analyseAngular(Communicator *comm, Options& options);
-   bool analyseAngularPointDepth();
+   bool analyseAngularPointDepth(Communicator *comm);
    bool analyseThruVision(Communicator *comm);
    bool mergePoints(const Point2f& p);
    bool unmergePoints();

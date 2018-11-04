@@ -287,7 +287,7 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
       retvar = true;
       if (options.point_depth_selection == 1) {
          if (m_view_class & VIEWVGA) {
-            getDisplayedPointMap().analyseVisualPointDepth();
+            getDisplayedPointMap().analyseVisualPointDepth( communicator );
          }
          else if (m_view_class & VIEWAXIAL) {
             if (!getDisplayedShapeGraph().isSegmentMap()) {
@@ -302,14 +302,14 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
       }
       else if (options.point_depth_selection == 2) {
          if (m_view_class & VIEWVGA) {
-            getDisplayedPointMap().analyseMetricPointDepth();
+            getDisplayedPointMap().analyseMetricPointDepth( communicator );
          }
          else if (m_view_class & VIEWAXIAL && getDisplayedShapeGraph().isSegmentMap()) {
             getDisplayedShapeGraph().analyseTopoMetPD( communicator, 1 ); // 1 is metric step depth
          }
       }
       else if (options.point_depth_selection == 3) {
-         getDisplayedPointMap().analyseAngularPointDepth();
+         getDisplayedPointMap().analyseAngularPointDepth( communicator );
       }
       else if (options.point_depth_selection == 4) {
          if (m_view_class & VIEWVGA) {
