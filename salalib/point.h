@@ -42,6 +42,8 @@ public:
 
    int m_misc; // <- undocounter / point seen register / agent reference number, etc
    PixelRef m_extent;       // used to speed up graph analysis (not sure whether or not it breaks it!)
+   float m_dist;            // used to speed up metric analysis
+   float m_cumangle;        // cummulative angle -- used in metric analysis and angular analysis
 
 protected:
    int m_block;   // not used, unlikely to be used, but kept for time being
@@ -53,8 +55,6 @@ protected:
                             // display
    float m_color;           // although display color for the point now introduced
    PixelRef m_merge;        // to merge with another point
-   float m_dist;            // used to speed up metric analysis
-   float m_cumangle;        // cummulative angle -- used in metric analysis and angular analysis
    // hmm... this is for my 3rd attempt at a quick line intersect algo:
    // every line that goes through the gridsquare -- memory intensive I know, but what can you do:
    // accuracy is imperative here!  Calculated pre-fillpoints / pre-makegraph, and (importantly) it works.
