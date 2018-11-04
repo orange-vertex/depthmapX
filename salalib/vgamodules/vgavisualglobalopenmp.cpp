@@ -106,7 +106,7 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, const Options &options, Poin
                                 Point &p2 = map.getPoint(p.getMergePixel());
                                 int &p2misc = miscs(p.getMergePixel().y, p.getMergePixel().x);
                                 if (p2misc != ~0) {
-                                    extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
+                                    extractUnseen(p2.getNode(), search_tree[level + 1], miscs, extents);
                                     p2misc = ~0;
                                 }
                             }
