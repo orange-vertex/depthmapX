@@ -26,8 +26,10 @@
 #include "salalib/mgraph.h"
 #include "salalib/importutils.h"
 
-#include "salalib/vgamodules/visuallocalopenmp.h"
-#include "salalib/vgamodules/visualglobalopenmp.h"
+#include "salalib/vgamodules/vgavisuallocalopenmp.h"
+#include "salalib/vgamodules/vgavisualglobalopenmp.h"
+#include "salalib/vgamodules/vgametricopenmp.h"
+#include "salalib/vgamodules/vgaangularopenmp.h"
 
 #include "mgraph440/mgraph.h"
 
@@ -339,10 +341,12 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
          return globalResult & localResult;
       }
       else if (options.output_type == Options::OUTPUT_METRIC) {
-         getDisplayedPointMap().analyseMetric( communicator, options );
+         // getDisplayedPointMap().analyseMetric( communicator, options );
+         VGAMetricOpenMP().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_ANGULAR) {
-         getDisplayedPointMap().analyseAngular( communicator, options );
+         // getDisplayedPointMap().analyseAngular( communicator, options );
+         VGAAngularOpenMP().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_THRU_VISION) {
          retvar = analyseThruVision( communicator, options.gatelayer );
