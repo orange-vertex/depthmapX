@@ -19,15 +19,23 @@
 #pragma once
 
 #include "salalib/ivga.h"
-#include "salalib/pointdata.h"
 #include "salalib/options.h"
 #include "salalib/pixelref.h"
+#include "salalib/pointdata.h"
 
-class VGAVisualLocalOpenMP : IVGA
-{
-public:
-    std::string getAnalysisName() const override {
-        return "Local Visibility Analysis (OpenMP)";
+class VGAVisualLocalOpenMP : IVGA {
+  public:
+    std::string getAnalysisName() const override { return "Local Visibility Analysis (OpenMP)"; }
+    bool run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) override;
+    void dumpNeighbourhood(Node &node, std::set<PixelRef> &hood) const {
+        for (int i = 0; i < 32; i++) {
+            Bin &bin = node.bin(i);
+            for (auto pixVec : bin.m_pixel_vecs) {
+                for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
+                    hood.insert(pix);
+                    pix.move(bin.m_dir);
+                }
+            }
+        }
     }
-    bool run(Communicator *comm, const Options& options, PointMap &map, bool simple_version) override;
 };

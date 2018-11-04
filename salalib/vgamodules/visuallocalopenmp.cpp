@@ -70,7 +70,7 @@ bool VGAVisualLocalOpenMP::run(Communicator *comm, const Options &options, Point
             Point &p = map.getPoint(filled[size_t(i)]);
             std::set<PixelRef> neighbourhood;
 #pragma omp critical(dumpNeighbourhood)
-            { p.getNode().dumpNeighbourhood(neighbourhood); }
+            { dumpNeighbourhood(p.getNode(), neighbourhood); }
             for (auto &neighbour : neighbourhood) {
                 if (map.getPoint(neighbour).hasNode()) {
                     hoods[long(i * N + refToFilled[neighbour])] = true;
@@ -160,7 +160,7 @@ bool VGAVisualLocalOpenMP::run(Communicator *comm, const Options &options, Point
             Point &p = map.getPoint(filled[size_t(i)]);
             std::set<PixelRef> neighbourhood;
 #pragma omp critical(dumpNeighbourhood)
-            { p.getNode().dumpNeighbourhood(neighbourhood); }
+            { dumpNeighbourhood(p.getNode(), neighbourhood); }
             for (auto &neighbour : neighbourhood) {
                 if (map.getPoint(neighbour).hasNode()) {
                     hoods[size_t(i)].insert(refToFilled[neighbour]);
