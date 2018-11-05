@@ -26,7 +26,7 @@
 #include "salalib/mgraph.h"
 #include "salalib/importutils.h"
 
-#include "salalib/vgamodules/vgavisuallocalopenmp.h"
+#include "salalib/vgamodules/vgavisuallocaladjmatrix.h"
 #include "salalib/vgamodules/vgavisualglobalopenmp.h"
 #include "salalib/vgamodules/vgametricopenmp.h"
 #include "salalib/vgamodules/vgaangularopenmp.h"
@@ -331,7 +331,7 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
          bool localResult = true;
          bool globalResult = true;
          if (options.local) {
-             VGAVisualLocalOpenMP analysis;
+             VGAVisualLocalAdjMatrix analysis;
              localResult = analysis.run(communicator, options, getDisplayedPointMap(), simple_version);
          }
          if (options.global) {
