@@ -112,7 +112,7 @@ bool VGAVisualLocalOpenMP::run(Communicator *comm, const Options &options, Point
             } else {
                 cluster_col_data[size_t(i)] = -1.0f;
                 control_col_data[size_t(i)] = -1.0f;
-                controllability_col_data[size_t(i)] = neighbourhood.size();
+                controllability_col_data[size_t(i)] = -1.0f;
             }
         }
 

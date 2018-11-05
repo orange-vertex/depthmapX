@@ -92,7 +92,6 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, Po
         for (int j = 0; j < N; j++) {
             if (hoods[i * N + j]) {
                 hoodSize++;
-                totalHood[j] = true;
                 int retHood = 0;
                 for (int k = 0; k < N; k++) {
                     if (hoods[j * N + k]) {
@@ -119,7 +118,7 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, Po
             } else {
                 cluster_col_data[size_t(i)] = -1.0f;
                 control_col_data[size_t(i)] = -1.0f;
-                controllability_col_data[size_t(i)] = hoodSize;
+                controllability_col_data[size_t(i)] = -1;
             }
         }
 
