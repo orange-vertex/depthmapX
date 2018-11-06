@@ -19,10 +19,8 @@
 #include <math.h>
 #include <float.h>
 #include <time.h>
-#include <genlib/paftl.h>
 #include <genlib/comm.h>  // For communicator
 
-#include <salalib/mgraph.h> // purely for the version info --- as phased out should replace
 #include <salalib/axialmap.h>
 
 #include "genlib/stringutils.h"
@@ -41,16 +39,16 @@ bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double ra
    int reccount = 0;
 
    // record axial line refs for topological analysis
-   pvecint axialrefs;
+   std::vector<int> axialrefs;
    // quick through to find the longest seg length
-   pvecfloat seglengths;
+   std::vector<float> seglengths;
    float maxseglength = 0.0f;
    for (size_t cursor = 0; cursor < getShapeCount(); cursor++)
    {
       axialrefs.push_back(m_attributes.getValue(cursor,"Axial Line Ref"));
       seglengths.push_back(m_attributes.getValue(cursor,"Segment Length"));
-      if (seglengths.tail() > maxseglength) {
-         maxseglength = seglengths.tail();
+      if (seglengths.back() > maxseglength) {
+         maxseglength = seglengths.back();
       }
    }
 
@@ -96,7 +94,7 @@ bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double ra
       for (size_t i = 0; i < getShapeCount(); i++) {
          seen[i] = 0xffffffff;
       }
-      pvecint list[512]; // 512 bins!
+      std::vector<int> list[512]; // 512 bins!
       int bin = 0;
       list[bin].push_back(cursor);
       double rootseglength = seglengths[cursor];
@@ -113,7 +111,7 @@ bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double ra
             }
          }
          //
-         TopoMetSegmentRef& here = audittrail[list[bin].tail()];
+         TopoMetSegmentRef& here = audittrail[list[bin].back()];
          list[bin].pop_back();
          open--;
          //
@@ -137,10 +135,22 @@ bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double ra
          total += 1;
          //
          Connector& axline = m_connectors.at(here.ref);
-         axline.first();
-         int connected_cursor = -1;
-         connected_cursor = axline.cursor(here.dir);
+         int connected_cursor = -2;
+
+         auto iter = axline.m_back_segconns.begin();
+         bool backsegs = true;
+
          while (connected_cursor != -1) {
+             if(backsegs && iter == axline.m_back_segconns.end()) {
+                 iter = axline.m_forward_segconns.begin();
+                 backsegs = false;
+             }
+             if(!backsegs && iter == axline.m_forward_segconns.end()) {
+                 break;
+             }
+
+             connected_cursor = iter->first.ref;
+
             if (seen[connected_cursor] > segdepth && connected_cursor != cursor) {
                bool seenalready = (seen[connected_cursor] == 0xffffffff) ? false : true;
                float length = seglengths[connected_cursor];
@@ -170,7 +180,7 @@ bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double ra
                // (seenalready: need to check that we're not doing this twice, given the seen can go twice)
 
                // Quick mod - TV
-               if (!sel_only && connected_cursor > (int)cursor && !seenalready) { // only one way paths, saves doing this twice
+               if (!sel_only && connected_cursor > int(cursor) && !seenalready) { // only one way paths, saves doing this twice
                   int subcur = connected_cursor;
                   while (subcur != -1) {
                      // in this method of choice, start and end lines are included
@@ -180,8 +190,7 @@ bool ShapeGraph::analyseTopoMet(Communicator *comm, int analysis_type, double ra
                   }
                }
             }
-            axline.next();
-            connected_cursor = axline.cursor(here.dir);
+            iter++;
          }
       }
       // also put in mean depth:
@@ -238,16 +247,16 @@ bool ShapeGraph::analyseTopoMetPD(Communicator *comm, int analysis_type)
    bool retvar = true;
 
    // record axial line refs for topological analysis
-   pvecint axialrefs;
+   std::vector<int> axialrefs;
    // quick through to find the longest seg length
-   pvecfloat seglengths;
+   std::vector<float> seglengths;
    float maxseglength = 0.0f;
    for (size_t cursor = 0; cursor < getShapeCount(); cursor++)
    {
       axialrefs.push_back(m_attributes.getValue(cursor,"Axial Line Ref"));
       seglengths.push_back(m_attributes.getValue(cursor,"Segment Length"));
-      if (seglengths.tail() > maxseglength) {
-         maxseglength = seglengths.tail();
+      if (seglengths.back() > maxseglength) {
+         maxseglength = seglengths.back();
       }
    }
 
@@ -267,7 +276,7 @@ bool ShapeGraph::analyseTopoMetPD(Communicator *comm, int analysis_type)
 
    unsigned int *seen = new unsigned int[getShapeCount()];
    TopoMetSegmentRef *audittrail = new TopoMetSegmentRef[getShapeCount()];
-   pvecint list[512]; // 512 bins!
+   std::vector<int> list[512]; // 512 bins!
    int open = 0;
 
    for (size_t i = 0; i < getShapeCount(); i++)
@@ -302,7 +311,7 @@ bool ShapeGraph::analyseTopoMetPD(Communicator *comm, int analysis_type)
          }
       }
       //
-      TopoMetSegmentRef& here = audittrail[list[bin].tail()];
+      TopoMetSegmentRef& here = audittrail[list[bin].back()];
       list[bin].pop_back();
       open--;
       // this is necessary using unsigned ints for "seen", as it is possible to add a node twice
@@ -312,13 +321,23 @@ bool ShapeGraph::analyseTopoMetPD(Communicator *comm, int analysis_type)
       else {
          here.done = true;
       }
-      //
-      double len = seglengths[here.ref];
+
       Connector& axline = m_connectors.at(here.ref);
-      axline.first();
-      int connected_cursor = -1;
-      connected_cursor = axline.cursor(here.dir);
+      int connected_cursor = -2;
+
+      auto iter = axline.m_back_segconns.begin();
+      bool backsegs = true;
+
       while (connected_cursor != -1) {
+          if(backsegs && iter == axline.m_back_segconns.end()) {
+              iter = axline.m_forward_segconns.begin();
+              backsegs = false;
+          }
+          if(!backsegs && iter == axline.m_forward_segconns.end()) {
+              break;
+          }
+
+          connected_cursor = iter->first.ref;
          if (seen[connected_cursor] > segdepth) {
             float length = seglengths[connected_cursor];
             int axialref = axialrefs[connected_cursor];
@@ -344,8 +363,7 @@ bool ShapeGraph::analyseTopoMetPD(Communicator *comm, int analysis_type)
                }
             }
          }
-         axline.next();
-         connected_cursor = axline.cursor(here.dir);
+         iter++;
       }
    }
 

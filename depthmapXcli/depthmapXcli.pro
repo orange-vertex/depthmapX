@@ -20,7 +20,9 @@ SOURCES += main.cpp \
     exportparser.cpp \
     importparser.cpp \
     stepdepthparser.cpp \
-    findgraphsparser.cpp
+    findgraphsparser.cpp \
+    segmentparser.cpp \
+    mapconvertparser.cpp
 
 HEADERS += \
     commandlineparser.h \
@@ -43,7 +45,9 @@ HEADERS += \
     exportparser.h \
     importparser.h \
     stepdepthparser.h \
-    findgraphsparser.h
+    findgraphsparser.h \
+    segmentparser.h \
+    mapconvertparser.h
 
 win32:Release:LIBS += -L../genlib/release -L../mgraph440/release -L../salalib/release
 win32:Debug:LIBS += -L../genlib/debug -L../mgraph440/debug -L../salalib/debug

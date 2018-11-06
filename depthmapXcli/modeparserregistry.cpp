@@ -19,11 +19,13 @@
 #include "vgaparser.h"
 #include "visprepparser.h"
 #include "axialparser.h"
+#include "segmentparser.h"
 #include "agentparser.h"
 #include "isovistparser.h"
 #include "exportparser.h"
 #include "stepdepthparser.h"
 #include "findgraphsparser.h"
+#include "mapconvertparser.h"
 
 
 void ModeParserRegistry::populateParsers()
@@ -33,11 +35,13 @@ void ModeParserRegistry::populateParsers()
     REGISTER_PARSER(LinkParser);
     REGISTER_PARSER(VisPrepParser);
     REGISTER_PARSER(AxialParser);
+    REGISTER_PARSER(SegmentParser);
     REGISTER_PARSER(AgentParser);
     REGISTER_PARSER(IsovistParser);
     REGISTER_PARSER(ExportParser);
     REGISTER_PARSER(ImportParser);
     REGISTER_PARSER(StepDepthParser);
     REGISTER_PARSER(FindGraphsParser);
+    REGISTER_PARSER(MapConvertParser);
     // *********
 }

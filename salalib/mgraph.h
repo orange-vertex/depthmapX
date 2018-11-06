@@ -15,32 +15,30 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#ifndef __MGRAPH_H__
-#define __MGRAPH_H__
+#pragma once
 
 // Interface: the meta graph loads and holds all sorts of arbitrary data...
 
-#include "mgraph_consts.h"
+#include "salalib/mgraph_consts.h"
+#include "salalib/displayparams.h"
+#include "salalib/fileproperties.h"
+#include "salalib/importtypedefs.h"
 
-#include <genlib/paftl.h>
-#include <genlib/p2dpoly.h>
+// still call paftl:
+#include "salalib/attributes.h"
+#include "salalib/connector.h"
+#include "salalib/spacepix.h"
+#include "salalib/nagent.h" // for agent engine interface
 
-#include <salalib/displayparams.h>
-#include <salalib/fileproperties.h>
-#include <salalib/spacepix.h>
-#include <salalib/attributes.h>
+// still need paftl:
+#include "salalib/shapemap.h"
+#include "salalib/pointdata.h"
+#include "salalib/axialmap.h"
 
-#include <salalib/pointdata.h>
-#include <salalib/connector.h>
-#include <salalib/shapemap.h>
-#include <salalib/axialmap.h>
+
+#include "genlib/p2dpoly.h"
 
 #include <mutex>
-
-// for agent engine interface
-#include <salalib/nagent.h>
-#include <salalib/importtypedefs.h>
-
 #include <vector>
 #include <memory>
 
@@ -50,9 +48,26 @@ class Communicator;
 
 // A meta graph is precisely what it says it is
 
-class MetaGraph : public SuperSpacePixel, public FileProperties
+class MetaGraph : public FileProperties
 {
+private:
+    QtRegion m_region;  // easier public for now
+    std::string m_name;
 public:
+   std::vector<SpacePixelFile> m_drawingFiles;
+   const QtRegion& getRegion() { return m_region; }
+   void setRegion(Point2f& bottomLeft, Point2f& topRight)
+      { m_region.bottom_left = bottomLeft; m_region.top_right = topRight; }
+   bool isShown() const
+      { for (size_t i = 0; i < m_drawingFiles.size(); i++) if (m_drawingFiles[i].isShown()) return true; return false; }
+
+   // TODO: drawing state functions/fields that should be eventually removed
+   void makeViewportShapes( const QtRegion& viewport ) const;
+   bool findNextShape(bool& nextlayer) const;
+   const SalaShape& getNextShape() const
+      { return m_drawingFiles[m_current_layer].getNextShape(); }
+   mutable int m_current_layer;
+
    enum { ADD = 0x0001, REPLACE = 0x0002, CAT = 0x0010, DXF = 0x0020, NTF = 0x0040, RT1 = 0x0080, GML = 0x0100 };
    enum { NONE = 0x0000, POINTMAPS = 0x0002, LINEDATA = 0x0004,
           ANGULARGRAPH = 0x0010, DATAMAPS = 0x0020, AXIALLINES = 0x0040, SHAPEGRAPHS = 0x0100,
@@ -68,9 +83,12 @@ public:
    //
 public:
    std::vector<ShapeMap> m_dataMaps;
-   ShapeGraphs m_shape_graphs;
+
+   std::vector<std::unique_ptr<ShapeGraph>> m_shapeGraphs;
+   int m_displayed_shapegraph = -1;
+
 public:
-   MetaGraph();
+   MetaGraph(std::string name = "");
    ~MetaGraph();
    //
    int getVersion()
@@ -96,11 +114,11 @@ public:
 
 private:
    std::vector<PointMap> m_pointMaps;
-   int m_displayed_pointmap;
-   SuperSpacePixel *m_spacepix;
+   int m_displayed_pointmap = -1;
 
-   void setSpacePixel(SuperSpacePixel *spacepix)
-   { m_spacepix = spacepix; for (auto& pointMap: m_pointMaps) pointMap.setSpacePixel(spacepix); }
+   // helpful to know this for creating fewest line maps, although has to be reread at input
+   int m_all_line_map = -1;
+
    void removePointMap(int i)
    {
        if (m_displayed_pointmap >= i) m_displayed_pointmap--;
@@ -152,6 +170,7 @@ public:
    bool polyClose(int shape_ref);
    bool polyCancel(int shape_ref);
    //
+   int addShapeGraph(std::unique_ptr<ShapeGraph>& shapeGraph);
    int addShapeGraph(const std::string& name, int type);
    int addShapeMap(const std::string& name);
    void removeDisplayedMap();
@@ -161,24 +180,32 @@ public:
    bool convertDataToAxial(Communicator *comm, std::string layer_name, bool keeporiginal, bool pushvalues);
    bool convertDrawingToSegment(Communicator *comm, std::string layer_name);
    bool convertDataToSegment(Communicator *comm, std::string layer_name, bool keeporiginal, bool pushvalues);
-   bool convertToData(Communicator *comm, std::string layer_name, bool keeporiginal, int typeflag);  // -1 signifies convert from drawing layer, else convert from data map
-   bool convertToDrawing(Communicator *comm, std::string layer_name, int typeflag); // 0 signifies convert from data map, else convert from graph
-   bool convertToConvex(Communicator *comm, std::string layer_name, bool keeporiginal, int typeflag); // -1 signifies convert from drawing layer, else convert from data map
+   bool convertToData(Communicator *comm, std::string layer_name, bool keeporiginal, int shapeMapType, bool copydata);
+   bool convertToDrawing(Communicator *comm, std::string layer_name, bool fromDisplayedDataMap);
+   bool convertToConvex(Communicator *comm, std::string layer_name, bool keeporiginal, int shapeMapType, bool copydata);
    bool convertAxialToSegment(Communicator *comm, std::string layer_name, bool keeporiginal, bool pushvalues, double stubremoval);
-   // note: not same categories
-   bool convertPointsToShape();
-   //bool convertBoundaryGraph( Communicator *communicator );
-
    int loadMifMap(Communicator *comm, std::istream& miffile, std::istream& midfile);
    bool makeAllLineMap( Communicator *communicator, const Point2f& seed );
    bool makeFewestLineMap( Communicator *communicator, int replace );
    bool analyseAxial( Communicator *communicator, Options options, bool simple_version ); // <- options copied to keep thread safe
-   bool analyseSegments( Communicator *communicator, Options options ); // <- options copied to keep thread safe
+   bool analyseSegmentsTulip( Communicator *communicator, Options options ); // <- options copied to keep thread safe
+   bool analyseSegmentsAngular( Communicator *communicator, Options options ); // <- options copied to keep thread safe
+   bool analyseTopoMetMultipleRadii( Communicator *communicator, Options options ); // <- options copied to keep thread safe
    bool analyseTopoMet( Communicator *communicator, Options options ); // <- options copied to keep thread safe
    //
    bool hasAllLineMap()
-   { return m_shape_graphs.hasAllLineMap(); }
-   //
+   { return m_all_line_map != -1; }
+   bool hasFewestLineMaps() {
+       for(auto& shapeGraph: m_shapeGraphs) {
+           if(shapeGraph->getName() == "Fewest-Line Map (Subsets)" ||
+              shapeGraph->getName() == "Fewest Line Map (Subsets)" ||
+              shapeGraph->getName() == "Fewest-Line Map (Minimal)" ||
+              shapeGraph->getName() == "Fewest Line Map (Minimal)") {
+               return true;
+           }
+       }
+       return false;
+   }
    enum { PUSH_FUNC_MAX = 0, PUSH_FUNC_MIN = 1, PUSH_FUNC_AVG = 2, PUSH_FUNC_TOT = 3};
    bool pushValuesToLayer(int desttype, int destlayer, int push_func, bool count_col = false);
    bool pushValuesToLayer(int sourcetype, int sourcelayer, int desttype, int destlayer, int col_in, int col_out, int push_func, bool count_col = false);
@@ -189,9 +216,7 @@ public:
    int isEditable() const;
    bool canUndo() const;
    void undo();
-   //
-   ShapeGraph& getDisplayedShapeGraph()
-   { return m_shape_graphs.getDisplayedMap(); }
+
    size_t m_displayed_datamap = -1;
    ShapeMap& getDisplayedDataMap()
    { return m_dataMaps[m_displayed_datamap]; }
@@ -221,8 +246,31 @@ public:
       return -1;
    }
 
-   ShapeGraphs& getShapeGraphs()
-   { return m_shape_graphs; }
+   std::vector<std::unique_ptr<ShapeGraph> >& getShapeGraphs()
+   { return m_shapeGraphs; }
+   ShapeGraph& getDisplayedShapeGraph()
+   { return *m_shapeGraphs[m_displayed_shapegraph].get(); }
+   const ShapeGraph& getDisplayedShapeGraph() const
+   { return *m_shapeGraphs[m_displayed_shapegraph].get(); }
+   void setDisplayedShapeGraphRef(int map)
+   {
+       if (m_displayed_shapegraph != -1 && m_displayed_shapegraph != map)
+          m_shapeGraphs[size_t(m_displayed_shapegraph)]->clearSel();
+       m_displayed_shapegraph = map;
+   }
+   int getDisplayedShapeGraphRef() const
+   { return m_displayed_shapegraph; }
+
+   void removeShapeGraph(int i)
+   {
+       if (m_displayed_shapegraph >= i) m_displayed_shapegraph--;
+       if(m_displayed_shapegraph < 0) m_displayed_shapegraph = 0;
+       m_shapeGraphs.erase(m_shapeGraphs.begin() + i);
+   }
+
+   bool readShapeGraphs(std::istream &stream, int version );
+   bool writeShapeGraphs( std::ofstream& stream, int version, bool displayedmaponly = false );
+
    std::vector<ShapeMap>& getDataMaps()
    { return m_dataMaps; }
 
@@ -231,7 +279,7 @@ public:
 
    //
    int getDisplayedMapType();
-   //
+   bool hasVisibleDrawingLayers();
    QtRegion getBoundingBox() const;
    //
    int getDisplayedAttribute() const;
@@ -243,18 +291,18 @@ public:
    const AttributeTable& getAttributeTable(int type = -1, int layer = -1) const;
 
    int getLineFileCount() const
-      { return (int) m_spacePixels.size(); }
+      { return (int) m_drawingFiles.size(); }
 
    // Quick mod - TV
    const std::string& getLineFileName(int file) const
-      { return m_spacePixels[file].getName(); }
+      { return m_drawingFiles[file].getName(); }
    int getLineLayerCount(int file) const
-      { return (int) m_spacePixels[file].m_spacePixels.size(); }
+      { return (int) m_drawingFiles[file].m_spacePixels.size(); }
 
    ShapeMap& getLineLayer(int file, int layer)
-      { return m_spacePixels[file].m_spacePixels[layer]; }
+      { return m_drawingFiles[file].m_spacePixels[layer]; }
    const ShapeMap& getLineLayer(int file, int layer) const
-      { return m_spacePixels[file].m_spacePixels[layer]; }
+      { return m_drawingFiles[file].m_spacePixels[layer]; }
    //
    // Some error handling -- the idea is that you catch the error in MetaGraph,
    // return a generic error code and then get your front end to interrogate the 
@@ -309,7 +357,7 @@ public:
    {  if (m_view_class & VIEWVGA) 
          return getDisplayedPointMap().isSelected();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().isSelected();
+         return getDisplayedShapeGraph().isSelected();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().isSelected();
       else 
@@ -317,7 +365,7 @@ public:
    }
    bool setCurSel( QtRegion& r, bool add = false )  // set current selection
    {  if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().setCurSel(r, add);
+         return getDisplayedShapeGraph().setCurSel(r, add);
       else if (m_view_class & VIEWDATA)
          return getDisplayedDataMap().setCurSel( r, add );
       else if (m_view_class & VIEWVGA)
@@ -335,7 +383,7 @@ public:
       if (m_view_class & VIEWVGA)
          return getDisplayedPointMap().clearSel();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().clearSel();
+         return getDisplayedShapeGraph().clearSel();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().clearSel();
       else
@@ -346,7 +394,7 @@ public:
       if (m_view_class & VIEWVGA)
          return getDisplayedPointMap().getSelCount();
       else if (m_view_class & VIEWAXIAL) 
-         return (int) m_shape_graphs.getDisplayedMap().getSelCount();
+         return (int) getDisplayedShapeGraph().getSelCount();
       else if (m_view_class & VIEWDATA) 
          return (int) getDisplayedDataMap().getSelCount();
       else
@@ -357,7 +405,7 @@ public:
       if (m_view_class & VIEWVGA)
          return (float)getDisplayedPointMap().getAttributeTable().getSelAvg();
       else if (m_view_class & VIEWAXIAL) 
-         return (float)m_shape_graphs.getDisplayedMap().getAttributeTable().getSelAvg();
+         return (float)getDisplayedShapeGraph().getAttributeTable().getSelAvg();
       else if (m_view_class & VIEWDATA) 
          return (float)getDisplayedDataMap().getAttributeTable().getSelAvg();
       else
@@ -368,7 +416,7 @@ public:
       if (m_view_class & VIEWVGA)
          return getDisplayedPointMap().getSelBounds();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().getSelBounds();
+         return getDisplayedShapeGraph().getSelBounds();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelBounds();
       else
@@ -379,21 +427,21 @@ public:
    { if (m_view_class & VIEWVGA && m_state & POINTMAPS)
          getDisplayedPointMap().setCurSel(selset,add);
       else if (m_view_class & VIEWAXIAL) 
-         m_shape_graphs.getDisplayedMap().setCurSel(selset,add);
+         getDisplayedShapeGraph().setCurSel(selset,add);
       else // if (m_view_class & VIEWDATA) 
          getDisplayedDataMap().setCurSel(selset,add); }
    std::set<int>& getSelSet()
    {  if (m_view_class & VIEWVGA && m_state & POINTMAPS)
          return getDisplayedPointMap().getSelSet();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().getSelSet();
+         return getDisplayedShapeGraph().getSelSet();
       else // if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelSet(); }
    const std::set<int>& getSelSet() const
    {  if (m_view_class & VIEWVGA && m_state & POINTMAPS)
          return getDisplayedPointMap().getSelSet();
       else if (m_view_class & VIEWAXIAL) 
-         return m_shape_graphs.getDisplayedMap().getSelSet();
+         return getDisplayedShapeGraph().getSelSet();
       else // if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelSet(); }
 //
@@ -439,7 +487,3 @@ public:
 protected:
    std::streampos skipVirtualMem(std::istream &stream, int version);
 };
-
-///////////////////////////////////////////////////////////////////////////////
-
-#endif

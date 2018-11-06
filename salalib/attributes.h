@@ -19,6 +19,10 @@
 #define __ATTRIBUTES_H__
 
 #include "salalib/mgraph_consts.h"
+#include "salalib/pafcolor.h"
+
+#include "genlib/paftl.h"
+
 #include <string>
 
 // yet another way to do attributes, but one that is easily expandable
@@ -90,10 +94,44 @@ struct OrderedIntPair
    friend bool operator >  (const OrderedIntPair& x, const OrderedIntPair& y);
 };
 
+// note: these are unordered, but in 'a' takes priority over 'b'
+inline bool operator == (const IntPair& x, const IntPair& y)
+{
+   return (x.a == y.a && x.b == y.b);
+}
+inline bool operator != (const IntPair& x, const IntPair& y)
+{
+   return (x.a != y.a || x.b != y.b);
+}
+inline bool operator < (const IntPair& x, const IntPair& y)
+{
+   return ( (x.a == y.a) ? x.b < y.b : x.a < y.a );
+}
+inline bool operator > (const IntPair& x, const IntPair& y)
+{
+   return ( (x.a == y.a) ? x.b > y.b : x.a > y.a );
+}
+
+// note: these are made with a is always less than b
+inline bool operator == (const OrderedIntPair& x, const OrderedIntPair& y)
+{
+   return (x.a == y.a && x.b == y.b);
+}
+inline bool operator != (const OrderedIntPair& x, const OrderedIntPair& y)
+{
+   return (x.a != y.a || x.b != y.b);
+}
+inline bool operator < (const OrderedIntPair& x, const OrderedIntPair& y)
+{
+   return ( (x.a == y.a) ? x.b < y.b : x.a < y.a );
+}
+inline bool operator > (const OrderedIntPair& x, const OrderedIntPair& y)
+{
+   return ( (x.a == y.a) ? x.b > y.b : x.a > y.a );
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
-// for scripting object
-#include <salalib/salaprogram.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -103,21 +141,15 @@ class AttributeRow : public pvector<float>
 protected:
    mutable bool m_selected;
    mutable ValuePair m_display_info;
-   // this is for salascripting to allow "checking" a searched node:
-   mutable SalaObj m_sala_mark;
    // this is for recording layers (up to 64 are possible)
    int64 m_layers;
 public:
    AttributeRow()
       { m_selected = false; m_layers = 1; }
    void init(size_t length);
-   //
-   // For SalaScript
-   void setMark(SalaObj& mark)
-   { m_sala_mark = mark; }
-   const SalaObj& getMark() const
-   { return m_sala_mark; }
 };
+
+class AttributeTable;
 
 // note pvector: this is stored in order, reorder by qsort
 class AttributeIndex : public pvector<ValuePair>
@@ -324,12 +356,6 @@ public:
    { m_columns[col].setLock(lock); }
    int insertLockedColumn(const std::string& name = std::string())
    { int col = insertColumn(name); setColumnLock(col); return col; }
-   //
-   // For SalaScript:
-   void setMark(int row, SalaObj& mark) 
-      { value(row).setMark(mark); }
-   const SalaObj& getMark(int row) const
-      { return value(row).getMark(); }
 protected:
    // Selection:
    mutable int m_sel_count;

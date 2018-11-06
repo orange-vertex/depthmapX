@@ -1248,165 +1248,6 @@ void pqvector<T>::sort(size_t left, size_t right)
       sort(i, right);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////
-
-// psubvec is based on pvector, designed for arrays of chars or shorts, it subsumes itself
-// so can be stored as a single pointer: useful if you have a lot of empty arrays
-
-template <class T> class psubvec
-{
-public:
-   static const T npos = -1;
-protected:
-   T *m_data;
-public:
-   psubvec()
-      { m_data = NULL; }
-   psubvec(const psubvec<T>& );
-   ~psubvec();
-   psubvec<T>& operator = (const psubvec<T>& );
-   //
-   virtual void push_back(const T item);
-   virtual void clear();
-public:
-   bool isEmpty() // isEmpty is provided in addition to size as is quicker to test
-      { return m_data == NULL; }
-   T size() const
-      { return m_data ? m_data[0] : 0; }
-   T& operator [] (T pos)
-      { return m_data[pos+1]; }
-   const T& operator [] (T pos) const
-      { return m_data[pos+1]; }
-public:
-   std::istream& read( std::istream& stream, std::streampos offset = -1 );
-   std::ostream& write( std::ostream& stream );
-};
-
-template <class T>
-psubvec<T>::psubvec(const psubvec& v)
-{
-   if (v.m_data) {
-      T length = v.m_data[0];
-      T count = 0;
-      while (length >>= 1) // find bit length (note: cannot assume int)
-         count++;
-      m_data = new T [2 << count];
-      if (m_data == NULL) {
-         throw pexception( pexception::MEMORY_ALLOCATION, sizeof(T) * size_t(2 << count) );
-      }
-      length = v.m_data[0];
-      for (T i = 0; i < length + 1; i++) {
-         m_data[i] = v.m_data[i];
-      }
-   }
-   else {
-      m_data = NULL;
-   }
-}
-
-template <class T>
-psubvec<T>::~psubvec()
-{
-   if (m_data)
-   {
-      delete [] m_data;
-      m_data = NULL;
-   }
-}
-
-template <class T>
-psubvec<T>& psubvec<T>::operator = (const psubvec<T>& v)
-{
-   if (this != &v) {
-      if (v.m_data) {
-         T length = v.m_data[0];
-         T count = 0;
-         while (length >>= 1) // find bit length (note: cannot assume int)
-            count++;
-         m_data = new T [2 << count];
-         if (m_data == NULL) {
-            throw pexception( pexception::MEMORY_ALLOCATION, sizeof(T) * size_t(2 << count) );
-         }
-         length = v.m_data[0];
-         for (T i = 0; i < length + 1; i++) {
-            m_data[i] = v.m_data[i];
-         }
-      }
-      else {
-         m_data = NULL;
-      }
-   }
-   return *this;
-}
-
-template <class T>
-void psubvec<T>::push_back(const T item)
-{
-   if (!m_data) {
-      m_data = new T [2];
-      m_data[0] = 1;
-      m_data[1] = item;
-   }
-   else {
-      T length = m_data[0] + 1;
-      if ((length & (length - 1)) == 0) { // determine if next length would be power of 2
-         T *new_data = new T [length << 1];
-         if (new_data == NULL) {
-            throw pexception( pexception::MEMORY_ALLOCATION, sizeof(T) * size_t(length << 1) );
-         }
-         for (T i = 0; i < length; i++)
-            new_data[i] = m_data[i];
-         delete [] m_data;
-         m_data = new_data;
-      }
-      m_data[0] = length;
-      m_data[length] = item;
-   }
-}
-
-template <class T>
-void psubvec<T>::clear()
-{
-   if (m_data)
-   {
-      delete [] m_data;
-      m_data = NULL;
-   }
-}
-
-template <class T>
-std::istream& psubvec<T>::read( std::istream& stream, std::streampos offset )
-{
-   if (m_data) {
-      delete [] m_data;
-      m_data = NULL;
-   }
-   T length;
-   stream.read( (char *) &length, sizeof(T) );
-   if (length) {
-      T copy = length;
-	   T count = 0;
-      while (length >>= 1) // find bit length (note: cannot assume int)
-        count++;
-      m_data = new T [2 << count];
-      if (m_data == NULL) {
-         throw pexception( pexception::MEMORY_ALLOCATION, sizeof(T) * size_t(2 << count) );
-      }
-      stream.read((char *) &m_data, sizeof(T)*(copy+1) );
-   }
-   return stream;
-}
-
-template <class T>
-std::ostream& psubvec<T>::write( std::ostream& stream )
-{
-   if (m_data) {
-      stream.write((char *) &m_data, sizeof(T)*(m_data[0]+1));
-   }
-   return stream;
-}
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1574,7 +1415,7 @@ public:
    { return m_vector.search(Pair(item)).value(); }
    const T2& search(const T1& item) const
    { return m_vector.search(Pair(item)).value(); }
-   const size_t searchindex(const T1& item) const
+   size_t searchindex(const T1& item) const
    { return m_vector.searchindex(Pair(item)); }
    void remove_at(size_t i)
    { m_vector.remove_at(i); }
@@ -1766,56 +1607,6 @@ public:
    }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-
-template <class T> class pflipper
-{
-protected:
-   T m_contents[2];
-   short parity;
-public:
-   pflipper() {
-      parity = 0;
-   }
-   pflipper( const T& a, const T& b ) {
-      parity = 0;
-      m_contents[0] = a;
-      m_contents[1] = b;
-   }
-   pflipper( const pflipper& f ) {
-      parity = f.parity;
-      m_contents[0] = f.m_contents[0];
-      m_contents[1] = f.m_contents[1];
-   }
-   virtual ~pflipper() {
-   }
-   pflipper& operator = (const pflipper& f ) {
-      if (this != &f) {
-         parity = f.parity;
-         m_contents[0] = f.m_contents[0];
-         m_contents[1] = f.m_contents[1];
-      }
-      return *this;
-   }
-   void flip() {
-      parity = (parity == 0) ? 1 : 0;
-   }
-   T& a() {
-      return m_contents[parity];
-   }
-   T& b() {
-      return m_contents[(parity == 0) ? 1 : 0];
-   }
-   const T& a() const {
-      return m_contents[parity];
-   }
-   const T& b() const {
-      return m_contents[(parity == 0) ? 1 : 0];
-   }
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
 // Read and write runlength encoded vectors, with byte alignment through T
 
 // note: vector must have been allocated to accept stream
@@ -1907,7 +1698,7 @@ public:
 inline phashtable::phashtable()
 {
    for (size_t i = 0; i < HASHTABLESIZE; i++) {
-      m_table[i].code = -1;
+      m_table[i].code = static_cast<unsigned int>(-1);
    }
    m_nextcode = 256; // 0-255 for standard characters
 }
@@ -1959,7 +1750,7 @@ inline unsigned char *phashtable::decode(unsigned char *buffer, unsigned int cod
     *buffer++ = m_table[code].character;
     code = m_table[code].prefix;
   }
-  *buffer = code;
+  *buffer = static_cast<unsigned char>(code);
   return buffer;
 }
 

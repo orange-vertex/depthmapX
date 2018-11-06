@@ -25,8 +25,6 @@
 #include <string>
 #include "genlib/stringutils.h"
 
-using namespace std;
-
 #include <genlib/comm.h>  // for communicator
 #include <genlib/dxfp.h>
 
@@ -92,23 +90,23 @@ DxfLineType *DxfParser::getLineType( const std::string& line_type_name )  // con
    return &(lineTypeIter->second);
 }
 
-int DxfParser::numLayers() const
+size_t DxfParser::numLayers() const
 {
    return m_layers.size();
 }
 
-int DxfParser::numLineTypes() const
+size_t DxfParser::numLineTypes() const
 {
    return m_line_types.size();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-istream& operator >> (istream& stream, DxfParser& dxfp)
+std::istream& operator >> (std::istream& stream, DxfParser& dxfp)
 {
    if (dxfp.m_communicator)
    {
-      long size = dxfp.m_communicator->GetInfileSize();
+      long size = static_cast<long>(dxfp.m_communicator->GetInfileSize());
       dxfp.m_communicator->CommPostMessage( Communicator::NUM_RECORDS, size );
 
       qtimer( dxfp.m_time, 0 );
@@ -117,7 +115,7 @@ istream& operator >> (istream& stream, DxfParser& dxfp)
    return dxfp.open( stream );
 }
 
-istream& DxfParser::open( istream& stream )
+std::istream& DxfParser::open( std::istream& stream )
 {
    DxfToken token;
    int section = UNIDENTIFIED;
@@ -189,19 +187,16 @@ istream& DxfParser::open( istream& stream )
             if (m_communicator->IsCancelled()) {
                throw Communicator::CancelledException();
             }
-            m_communicator->CommPostMessage( Communicator::CURRENT_RECORD, m_size );
+            m_communicator->CommPostMessage( Communicator::CURRENT_RECORD, static_cast<long>(m_size) );
          }
       }
    }
-   // Get overall bounding box from layers:
-   bool first = true;
 
-   std::map<std::string, DxfLayer>::iterator iter = m_layers.begin(), end =
-   m_layers.end();
-   for ( ; iter != end; ++iter )
+   // Get overall bounding box from layers:
+   for ( const auto& layer : m_layers  )
    {
-      if (!iter->second.empty()) {
-         m_region.merge( iter->second );
+      if (!layer.second.empty()) {
+         m_region.merge( layer.second );
       }
    }
    return stream;
@@ -209,7 +204,7 @@ istream& DxfParser::open( istream& stream )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void DxfParser::openHeader( istream& stream )
+void DxfParser::openHeader( std::istream& stream )
 {
    DxfToken token;
    int subsection = UNIDENTIFIED;
@@ -271,7 +266,7 @@ void DxfParser::openHeader( istream& stream )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void DxfParser::openTables( istream& stream )
+void DxfParser::openTables( std::istream& stream )
 {
    DxfToken token;
    int subsection = UNIDENTIFIED;
@@ -365,7 +360,7 @@ void DxfParser::openTables( istream& stream )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void DxfParser::openBlocks( istream& stream )
+void DxfParser::openBlocks( std::istream& stream )
 {
    DxfToken token;
    int subsection = UNIDENTIFIED;
@@ -418,7 +413,7 @@ void DxfParser::openBlocks( istream& stream )
             if (m_communicator->IsCancelled()) {
                throw Communicator::CancelledException();
             }
-            m_communicator->CommPostMessage( Communicator::CURRENT_RECORD, m_size );
+            m_communicator->CommPostMessage( Communicator::CURRENT_RECORD, static_cast<long>(m_size) );
          }
       }
    }
@@ -426,7 +421,7 @@ void DxfParser::openBlocks( istream& stream )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void DxfParser::openEntities( istream& stream, DxfToken& token, DxfBlock *block )
+void DxfParser::openEntities( std::istream& stream, DxfToken& token, DxfBlock *block )
 {
    int subsection = UNIDENTIFIED;
    if (token.code == 0) {
@@ -526,7 +521,7 @@ void DxfParser::openEntities( istream& stream, DxfToken& token, DxfBlock *block 
                      layer = poly_line.m_p_layer;
                   }
                   layer->m_poly_lines.push_back( poly_line );
-                  int line_count = (poly_line.getAttributes() & DxfPolyLine::CLOSED) ?
+                  size_t line_count = (poly_line.getAttributes() & DxfPolyLine::CLOSED) ?
                      poly_line.numVertices() - 2 : poly_line.numVertices() - 1;
                   layer->merge(poly_line); // <- merge bounding box
                   layer->m_total_line_count += line_count;
@@ -546,7 +541,7 @@ void DxfParser::openEntities( istream& stream, DxfToken& token, DxfBlock *block 
                      layer = lw_poly_line.m_p_layer;
                   }
                   layer->m_poly_lines.push_back( lw_poly_line );
-                  int line_count = (lw_poly_line.getAttributes() & DxfPolyLine::CLOSED) ?
+                  size_t line_count = (lw_poly_line.getAttributes() & DxfPolyLine::CLOSED) ?
                      lw_poly_line.numVertices() - 2 : lw_poly_line.numVertices() - 1;
                   layer->merge(lw_poly_line); // <- merge bounding box
                   layer->m_total_line_count += line_count;
@@ -607,7 +602,7 @@ void DxfParser::openEntities( istream& stream, DxfToken& token, DxfBlock *block 
                      layer = spline.m_p_layer;
                   }
                   layer->m_splines.push_back( spline );
-                  int line_count = (spline.getAttributes() & DxfSpline::CLOSED) ?
+                  size_t line_count = (spline.getAttributes() & DxfSpline::CLOSED) ?
                     spline.numVertices() - 2 : spline.numVertices() - 1;
                   layer->merge(spline);
                   layer->m_total_line_count += line_count;
@@ -651,7 +646,7 @@ void DxfParser::openEntities( istream& stream, DxfToken& token, DxfBlock *block 
             if (m_communicator->IsCancelled()) {
                throw Communicator::CancelledException();
             }
-            m_communicator->CommPostMessage( Communicator::CURRENT_RECORD, m_size );
+            m_communicator->CommPostMessage( Communicator::CURRENT_RECORD, static_cast<long>(m_size) );
          }
       }
    }
@@ -666,7 +661,7 @@ DxfTableRow::DxfTableRow(const std::string& name)
    m_name = name;
 }
 
-bool DxfTableRow::parse( const DxfToken& token, DxfParser *parser )
+bool DxfTableRow::parse( const DxfToken& token, DxfParser * )
 {
    bool parsed = false;
 
@@ -844,7 +839,7 @@ bool DxfPolyLine::parse( const DxfToken& token, DxfParser *parser )
       if ( vertex.parse( token, parser ) ) {
          add(vertex); // <- add to region
          if (m_min.x == 0) {
-            cerr << "problem" << endl;
+            std::cerr << "problem" << std::endl;
          }
          m_vertices.push_back( vertex );
          if ( token.data == "VERTEX" ) {  // Another vertex...
@@ -875,7 +870,7 @@ bool DxfPolyLine::parse( const DxfToken& token, DxfParser *parser )
    return parsed;
 }
 
-int DxfPolyLine::numVertices() const
+size_t DxfPolyLine::numVertices() const
 {
    return m_vertices.size();
 }
@@ -1257,7 +1252,7 @@ DxfVertex DxfCircle::getVertex(int i, int segments) const
    return v;
 }
 
-void DxfCircle::reflect(double x, double y)
+void DxfCircle::reflect(double , double )
 {
    // reflect has no effect on a circle
 }
@@ -1337,12 +1332,12 @@ bool DxfSpline::parse( const DxfToken& token, DxfParser *parser )
 
 // Note: return control points not actual points!
 
-int DxfSpline::numVertices() const
+size_t DxfSpline::numVertices() const
 {
    return m_ctrl_pts.size();
 }
 
-const DxfVertex& DxfSpline::getVertex(int i) const
+const DxfVertex& DxfSpline::getVertex(size_t i) const
 {
    return m_ctrl_pts[i];
 }
@@ -1504,37 +1499,37 @@ const DxfSpline& DxfLayer::getSpline( int i ) const
    return m_splines[i];
 }
 
-int DxfLayer::numPoints() const
+size_t DxfLayer::numPoints() const
 {
    return m_points.size();
 }
 
-int DxfLayer::numLines() const
+size_t  DxfLayer::numLines() const
 {
    return m_lines.size();
 }
 
-int DxfLayer::numPolyLines() const
+size_t DxfLayer::numPolyLines() const
 {
    return m_poly_lines.size();
 }
 
-int DxfLayer::numArcs() const
+size_t DxfLayer::numArcs() const
 {
    return m_arcs.size();
 }
 
-int DxfLayer::numEllipses() const
+size_t DxfLayer::numEllipses() const
 {
    return m_ellipses.size();
 }
 
-int DxfLayer::numCircles() const
+size_t DxfLayer::numCircles() const
 {
    return m_circles.size();
 }
 
-int DxfLayer::numSplines() const
+size_t DxfLayer::numSplines() const
 {
    return m_splines.size();
 }
@@ -1657,7 +1652,7 @@ DxfToken::DxfToken()
    code = -1;
 }
 
-istream& operator >> (istream& stream, DxfToken& token)
+std::istream& operator >> (std::istream& stream, DxfToken& token)
 {
     std::string codeInputLine;
     std::getline(stream,codeInputLine);

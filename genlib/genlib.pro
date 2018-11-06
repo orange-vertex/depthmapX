@@ -46,4 +46,7 @@ HEADERS += \
     stringutils.h \
     containerutils.h \
     linreg.h \
-    bsptree.h
+    bsptree.h \
+    readwritehelpers.h \
+    pflipper.h \
+    simplematrix.h

@@ -210,9 +210,9 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
 
-      case CMSCommunicator::MAKEDRAWING:
+      case CMSCommunicator::MAKEDRAWING: {
          // option 1 is: 0 a data map, 1 an axial map
-         ok = pDoc->m_meta_graph->convertToDrawing( comm, comm->GetString().toStdString(), comm->GetOption(1) );
+         ok = pDoc->m_meta_graph->convertToDrawing( comm, comm->GetString().toStdString(), (comm->GetOption(1) == 0));
          if (ok) {
 			 pDoc->modifiedFlag = true;
          }
@@ -223,7 +223,7 @@ void RenderThread::run()
          QApplication::postEvent(pMain, new QmyEvent((enum QEvent::Type)FOCUSGRAPH, (void*)pDoc, QGraphDoc::CONTROLS_LOADDRAWING));
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_TOTAL, QGraphDoc::NEW_DATA );
          break;
-
+      }
       case CMSCommunicator::MAKEUSERMAP:
          ok = pDoc->m_meta_graph->convertDrawingToAxial( comm, comm->GetString().toStdString());
          if (ok) {
@@ -280,9 +280,15 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
       
-      case CMSCommunicator::MAKEGATESMAP:
+      case CMSCommunicator::MAKEGATESMAP: {
          // note: relies on the fact that make data map from drawing sets option 1 to -1, whereas make data layer from graph it to either 0 or 1
-         ok = pDoc->m_meta_graph->convertToData( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1), comm->GetOption(1) );
+         int shapeMapType = ShapeMap::DRAWINGMAP;
+         bool copydata = false;
+         if(comm->GetOption(1) != -1) {
+             shapeMapType = ShapeMap::DATAMAP;
+             copydata = (comm->GetOption(1) != 0);
+         }
+         ok = pDoc->m_meta_graph->convertToData( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1), shapeMapType, copydata );
          if (ok) {
             if (comm->GetOption(0) == 0) {
                // note: there is both a new table and a deleted table, but deleted table leads to a greater redraw:
@@ -297,10 +303,16 @@ void RenderThread::run()
          }
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
-
-      case CMSCommunicator::MAKECONVEXMAP:
+      }
+      case CMSCommunicator::MAKECONVEXMAP: {
          // note: relies on the fact that make convex map from drawing sets option 1 to -1, whereas make convex map from data sets it to either 0 or 1
-         ok = pDoc->m_meta_graph->convertToConvex( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1), comm->GetOption(1) );
+         int shapeMapType = ShapeMap::DRAWINGMAP;
+         bool copydata = false;
+         if(comm->GetOption(1) != -1) {
+             shapeMapType = ShapeMap::DATAMAP;
+             copydata = (comm->GetOption(1) != 0);
+         }
+         ok = pDoc->m_meta_graph->convertToConvex( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1),  shapeMapType, copydata);
          if (ok) {
             if (comm->GetOption(0) == 0) {
                // note: there is both a new table and a deleted table, but deleted table leads to a greater redraw:
@@ -315,7 +327,7 @@ void RenderThread::run()
          }
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
-
+      }
       case CMSCommunicator::MAKEBOUNDARYMAP:
          break;
 
@@ -345,8 +357,16 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
 
-      case CMSCommunicator::SEGMENTANALYSIS:
-         ok = pDoc->m_meta_graph->analyseSegments( comm, pMain->m_options );
+      case CMSCommunicator::SEGMENTANALYSISTULIP:
+         ok = pDoc->m_meta_graph->analyseSegmentsTulip( comm, pMain->m_options );
+         if (ok) {
+            pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+         }
+         pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
+         break;
+
+      case CMSCommunicator::SEGMENTANALYSISANGULAR:
+         ok = pDoc->m_meta_graph->analyseSegmentsAngular( comm, pMain->m_options );
          if (ok) {
             pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
          }
@@ -430,21 +450,6 @@ void RenderThread::run()
             } catch (depthmapX::PointMapException const & e) {
               emit runtimeExceptionThrown(e.getErrorType(), e.what());
           }
-         }
-         break;
-
-      case CMSCommunicator::BINDISPLAY:
-         {
-            // Set up for options metric point depth selection
-            Options options;
-            options.global = 0;
-            options.point_depth_selection = 4;
-
-            ok = pDoc->m_meta_graph->analyseGraph( comm, options, comm->simple_version );
-            if (ok) {
-               pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
-            }
-            pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
          }
          break;
       }
