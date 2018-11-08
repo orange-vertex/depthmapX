@@ -17,21 +17,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#ifdef _WIN32
 #include "version_defs.h"
-#else
-#ifndef APP_DATE
-#define APP_DATE "1/1/1970"
-#endif
-
-#ifndef APP_GIT_BRANCH
-#define APP_GIT_BRANCH "local-dev"
-#endif
-
-#ifndef APP_GIT_COMMIT
-#define APP_GIT_COMMIT "-"
-#endif
-#endif
 
 // use these to define the depthmap versions
 #define DEPTHMAPX_MAJOR_VERSION 0
