@@ -4,7 +4,6 @@ SUBDIRS = \
     mgraph440 \
     genlib \
     salalib \
-    settingsdialog \
     depthmapX \
     GuiUnitTest \
     GuiApp \
@@ -13,7 +12,6 @@ SUBDIRS = \
     salaTest \
     genlibTest \
     depthmapXTest
-GuiApp.depends = depthmapX genlib mgraph440 salalib settingsdialog
 
 msvc {
   QMAKE_CXXFLAGS += -openmp
@@ -34,3 +32,5 @@ mac {
     QMAKE_LFLAGS += -L/usr/local/opt/llvm/lib/
     LIBS += -fopenmp
 }
+
+GuiApp.depends = depthmapX genlib mgraph440 salalib

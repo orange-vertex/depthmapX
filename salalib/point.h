@@ -40,10 +40,12 @@ public:
    enum { CONNECT_E = 0x01, CONNECT_NE = 0x02, CONNECT_N = 0x04, CONNECT_NW = 0x08,
           CONNECT_W = 0x10, CONNECT_SW = 0x20, CONNECT_S = 0x40, CONNECT_SE = 0x80 };
 
-   int m_misc; // <- undocounter / point seen register / agent reference number, etc
-   PixelRef m_extent;       // used to speed up graph analysis (not sure whether or not it breaks it!)
+   // TODO: These intermediary variables are only used for storing arbitrary data during the
+   // analysis. They should be made into local variables and removed from this class
+   int m_misc;              // <- undocounter / point seen register / agent reference number, etc
    float m_dist;            // used to speed up metric analysis
    float m_cumangle;        // cummulative angle -- used in metric analysis and angular analysis
+   PixelRef m_extent;       // used to speed up graph analysis (not sure whether or not it breaks it!)
 
 protected:
    int m_block;   // not used, unlikely to be used, but kept for time being

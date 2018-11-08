@@ -21,10 +21,31 @@
 #include "salalib/alllinemap.h"
 #include "salalib/mapconverter.h"
 #include "salalib/isovist.h"
-#include "salalib/ntfp.h"
-#include "salalib/tigerp.h"
 #include "salalib/mgraph.h"
+
 #include "salalib/importutils.h"
+#include "salalib/parsers/ntfp.h"
+#include "salalib/parsers/tigerp.h"
+#include "salalib/parsers/dxfp.h"
+
+#include "salalib/segmmodules/segmangular.h"
+#include "salalib/segmmodules/segmtulip.h"
+#include "salalib/segmmodules/segmtulipdepth.h"
+#include "salalib/segmmodules/segmmetric.h"
+#include "salalib/segmmodules/segmmetricpd.h"
+#include "salalib/segmmodules/segmtopological.h"
+#include "salalib/segmmodules/segmtopologicalpd.h"
+#include "salalib/axialmodules/axialintegration.h"
+#include "salalib/axialmodules/axialstepdepth.h"
+#include "salalib/vgamodules/vgaisovist.h"
+#include "salalib/vgamodules/vgavisualglobal.h"
+#include "salalib/vgamodules/vgavisualglobaldepth.h"
+#include "salalib/vgamodules/vgavisuallocal.h"
+#include "salalib/vgamodules/vgametric.h"
+#include "salalib/vgamodules/vgametricdepth.h"
+#include "salalib/vgamodules/vgaangular.h"
+#include "salalib/vgamodules/vgaangulardepth.h"
+#include "salalib/vgamodules/vgathroughvision.h"
 
 #include "salalib/vgamodules/vgavisuallocaladjmatrix.h"
 #include "salalib/vgamodules/vgavisualglobalopenmp.h"
@@ -36,7 +57,6 @@
 #include "genlib/paftl.h"
 #include "genlib/pafmath.h"
 #include "genlib/p2dpoly.h"
-#include "genlib/dxfp.h"
 #include "genlib/comm.h"
 
 #include "math.h"
@@ -289,14 +309,14 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
       retvar = true;
       if (options.point_depth_selection == 1) {
          if (m_view_class & VIEWVGA) {
-            getDisplayedPointMap().analyseVisualPointDepth( communicator );
+             retvar = VGAVisualGlobalDepth().run(communicator, Options(), getDisplayedPointMap(), false);
          }
          else if (m_view_class & VIEWAXIAL) {
             if (!getDisplayedShapeGraph().isSegmentMap()) {
-               getDisplayedShapeGraph().stepdepth( communicator );
+                retvar = AxialStepDepth().run(communicator, options, getDisplayedShapeGraph(), false);
             }
             else {
-               getDisplayedShapeGraph().angularstepdepth( communicator );
+                retvar = SegmentTulipDepth().run(communicator, options, getDisplayedShapeGraph(), false);
             }
          }
          // REPLACES:
@@ -304,52 +324,45 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
       }
       else if (options.point_depth_selection == 2) {
          if (m_view_class & VIEWVGA) {
-            getDisplayedPointMap().analyseMetricPointDepth( communicator );
+             retvar = VGAMetricDepth().run(communicator, Options(), getDisplayedPointMap(), false);
          }
          else if (m_view_class & VIEWAXIAL && getDisplayedShapeGraph().isSegmentMap()) {
-            getDisplayedShapeGraph().analyseTopoMetPD( communicator, 1 ); // 1 is metric step depth
+             retvar = SegmentMetricPD().run(communicator, options, getDisplayedShapeGraph(), false);
          }
       }
       else if (options.point_depth_selection == 3) {
-         getDisplayedPointMap().analyseAngularPointDepth( communicator );
+          retvar = VGAAngularDepth().run(communicator, Options(), getDisplayedPointMap(), false);
       }
       else if (options.point_depth_selection == 4) {
          if (m_view_class & VIEWVGA) {
             getDisplayedPointMap().binDisplay( communicator );
          }
          else if (m_view_class & VIEWAXIAL && getDisplayedShapeGraph().isSegmentMap()) {
-            getDisplayedShapeGraph().analyseTopoMetPD( communicator, 0 ); // 0 is topological step depth
+             retvar = SegmentTopologicalPD().run(communicator, options, getDisplayedShapeGraph(), false);
          }
       }
       else if (options.output_type == Options::OUTPUT_ISOVIST) {
-         getDisplayedPointMap().analyseIsovist( communicator, *this, simple_version );
+         retvar = VGAIsovist().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_VISUAL) {
-         // getDisplayedPointMap().analyseVisual( communicator, options, simple_version );
-         // REPLACES:
-         // Graph::calculate_depth_matrix( communicator, options, output_graph );
-         bool localResult = true;
-         bool globalResult = true;
-         if (options.local) {
-             VGAVisualLocalAdjMatrix analysis;
-             localResult = analysis.run(communicator, options, getDisplayedPointMap(), simple_version);
-         }
-         if (options.global) {
-             VGAVisualGlobalOpenMP analysis;
-             globalResult = analysis.run(communicator, options, getDisplayedPointMap(), simple_version);
-         }
-         return globalResult & localResult;
+          bool localResult = true;
+          bool globalResult = true;
+          if (options.local) {
+              localResult = VGAVisualLocalAdjMatrix().run(communicator, options, getDisplayedPointMap(), simple_version);
+          }
+          if (options.global) {
+              globalResult = VGAVisualGlobalOpenMP().run(communicator, options, getDisplayedPointMap(), simple_version);
+          }
+          retvar = globalResult & localResult;
       }
       else if (options.output_type == Options::OUTPUT_METRIC) {
-         // getDisplayedPointMap().analyseMetric( communicator, options );
-         VGAMetricOpenMP().run(communicator, options, getDisplayedPointMap(), simple_version);
+          retvar = VGAMetric().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_ANGULAR) {
-         // getDisplayedPointMap().analyseAngular( communicator, options );
-         VGAAngularOpenMP().run(communicator, options, getDisplayedPointMap(), simple_version);
+          retvar = VGAAngular().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_THRU_VISION) {
-         retvar = analyseThruVision( communicator, options.gatelayer );
+          retvar = VGAThroughVision().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
    } 
    catch (Communicator::CancelledException) {
@@ -1262,11 +1275,7 @@ bool MetaGraph::analyseAxial( Communicator *communicator, Options options, bool 
    bool retvar = false;
 
    try {
-      std::set<int> radii;
-      for (double radius: options.radius_set) {
-         radii.insert( int(radius) );
-      }
-      retvar = getDisplayedShapeGraph().integrate( communicator, radii, options.choice, options.local, options.fulloutput, options.weighted_measure_col, simple_version );
+      AxialIntegration().run(communicator, options, getDisplayedShapeGraph(), false);
    } 
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1284,12 +1293,7 @@ bool MetaGraph::analyseSegmentsTulip( Communicator *communicator, Options option
    bool retvar = false;
 
    try {
-       retvar = getDisplayedShapeGraph().analyseTulip(communicator,
-                                                              options.tulip_bins,
-                                                              options.choice,
-                                                              options.radius_type,
-                                                              options.radius_set,
-                                                              options.weighted_measure_col);
+       SegmentTulip().run(communicator, options, getDisplayedShapeGraph(), false);
    }
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1307,7 +1311,7 @@ bool MetaGraph::analyseSegmentsAngular( Communicator *communicator, Options opti
    bool retvar = false;
 
    try {
-       retvar = getDisplayedShapeGraph().analyseAngular(communicator, options.radius_set);
+       SegmentAngular().run(communicator, options, getDisplayedShapeGraph(), false);
    }
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1327,8 +1331,12 @@ bool MetaGraph::analyseTopoMetMultipleRadii( Communicator *communicator, Options
    try {
       // note: "output_type" reused for analysis type (either 0 = topological or 1 = metric)
       for(double radius: options.radius_set) {
-          if(!getDisplayedShapeGraph().analyseTopoMet(communicator, options.output_type, radius, options.sel_only)) {
-              retvar = false;
+          if(options.output_type == 0) {
+              if(!SegmentTopological().run(communicator, options, getDisplayedShapeGraph(), false))
+                  retvar = false;
+          } else {
+              if(!SegmentMetric().run(communicator, options, getDisplayedShapeGraph(), false))
+                  retvar = false;
           }
       }
    }
@@ -1349,7 +1357,11 @@ bool MetaGraph::analyseTopoMet( Communicator *communicator, Options options ) //
 
    try {
       // note: "output_type" reused for analysis type (either 0 = topological or 1 = metric)
-      retvar = getDisplayedShapeGraph().analyseTopoMet(communicator, options.output_type, options.radius, options.sel_only);
+       if(options.output_type == 0) {
+           retvar = SegmentTopological().run(communicator, options, getDisplayedShapeGraph(), false);
+       } else {
+           retvar = SegmentMetric().run(communicator, options, getDisplayedShapeGraph(), false);
+       }
    } 
    catch (Communicator::CancelledException) {
       retvar = false;
@@ -1929,7 +1941,7 @@ void MetaGraph::runAgentEngine(Communicator *comm)
 }
 
 // Thru vision
-
+// TODO: Undocumented functionality
 bool MetaGraph::analyseThruVision(Communicator *comm, int gatelayer)
 {
    bool retvar = false;
@@ -1948,7 +1960,8 @@ bool MetaGraph::analyseThruVision(Communicator *comm, int gatelayer)
    }
 
    try {
-      retvar = getDisplayedPointMap().analyseThruVision(comm);
+       Options tempOptions;
+       retvar = VGAThroughVision().run(comm, tempOptions, getDisplayedPointMap(), false);
    }
    catch (Communicator::CancelledException) {
       retvar = false;
