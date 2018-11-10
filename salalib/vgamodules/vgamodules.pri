@@ -7,7 +7,8 @@ HEADERS += \
     $$PWD/vgaangular.h \
     $$PWD/vgaangulardepth.h \
     $$PWD/vgametricdepth.h \
-    $$PWD/vgavisualglobaldepth.h
+    $$PWD/vgavisualglobaldepth.h \
+    $$PWD/vgavisualbetweenness.h
 SOURCES += \
     $$PWD/vgaisovist.cpp \
     $$PWD/vgaangular.cpp \
@@ -17,4 +18,5 @@ SOURCES += \
     $$PWD/vgavisualglobal.cpp \
     $$PWD/vgaangulardepth.cpp \
     $$PWD/vgametricdepth.cpp \
-    $$PWD/vgavisualglobaldepth.cpp
+    $$PWD/vgavisualglobaldepth.cpp \
+    $$PWD/vgavisualbetweenness.cpp

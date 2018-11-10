@@ -40,6 +40,7 @@
 #include "salalib/vgamodules/vgaisovist.h"
 #include "salalib/vgamodules/vgavisualglobal.h"
 #include "salalib/vgamodules/vgavisualglobaldepth.h"
+#include "salalib/vgamodules/vgavisualbetweenness.h"
 #include "salalib/vgamodules/vgavisuallocal.h"
 #include "salalib/vgamodules/vgametric.h"
 #include "salalib/vgamodules/vgametricdepth.h"
@@ -304,7 +305,7 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
       retvar = true;
       if (options.point_depth_selection == 1) {
          if (m_view_class & VIEWVGA) {
-             retvar = VGAVisualGlobalDepth().run(communicator, Options(), getDisplayedPointMap(), false);
+             retvar = VGAVisualBetweenness().run(communicator, Options(), getDisplayedPointMap(), false);
          }
          else if (m_view_class & VIEWAXIAL) {
             if (!getDisplayedShapeGraph().isSegmentMap()) {
