@@ -54,7 +54,7 @@ AttributeTable::AttributeTable(const std::string& name)
    m_available_layers = 0xffffffff << 32 + 0xfffffffe;
    // display the default layer only (everything):
    m_visible_layers = 0x1;
-   m_layers.add(1,"Everything");
+   m_layers.insert(std::make_pair(1,"Everything"));
    m_visible_size = 0;
 }
 
@@ -230,7 +230,7 @@ void AttributeTable::setVisibleLayers(long layers, bool override)
 void AttributeTable::setLayerVisible(int layer, bool show)
 {
    long showlayers = 0;
-   long key = m_layers.key(layer);
+   long key = depthmapX::getMapAtIndex(m_layers, layer)->first;
    bool on = (key & m_visible_layers) != 0;
    if (key == 0x1) {
       if (show && !on) {
@@ -270,7 +270,7 @@ bool AttributeTable::selectionToLayer(const std::string& name)
    // now layer has been found, eliminate from available layers 
    // and add a lookup for the name
    m_available_layers = (m_available_layers & (~newlayer));
-   m_layers.add(newlayer,name);
+   m_layers.insert(std::make_pair(newlayer,name));
 
    // convert everything in the selection to the new layer
    for (size_t i = 0; i < size(); i++) {
@@ -314,7 +314,7 @@ bool AttributeTable::read( std::istream& stream, int version )
    for (int i = 0; i < count; i++) {
        long key;
        stream.read((char *)&key,sizeof(key));
-       m_layers.add(key,dXstring::readString(stream));
+       m_layers.insert(std::make_pair(key,dXstring::readString(stream)));
    }
    int colcount;
    stream.read((char *)&colcount, sizeof(colcount));
@@ -349,9 +349,10 @@ bool AttributeTable::write( std::ofstream& stream, int version )
    int count = m_layers.size();
    stream.write((char *)&count,sizeof(int));
    for (size_t i = 0; i < m_layers.size(); i++) {
-      long key = m_layers.key(i);
+      auto keyLayer = depthmapX::getMapAtIndex(m_layers, i);
+      long key = keyLayer->first;
       stream.write((char *)&key,sizeof(key));
-      dXstring::writeString(stream ,m_layers.value(i));
+      dXstring::writeString(stream, keyLayer->second);
    }
 
    int colcount = m_columns.size();

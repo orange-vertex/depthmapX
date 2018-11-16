@@ -21,6 +21,7 @@
 #include "salalib/mgraph_consts.h"
 #include "salalib/pafcolor.h"
 
+#include "genlib/containerutils.h"
 #include "genlib/paftl.h"
 
 #include <string>
@@ -258,7 +259,7 @@ protected:
    DisplayParams m_ref_display_params;
    //
    long m_available_layers;
-   pqmap<long,std::string> m_layers;
+   std::map<long,std::string> m_layers;
    mutable long m_visible_layers;
    mutable int m_visible_size;
    //
@@ -389,9 +390,9 @@ public:
    int getLayerCount() const
       { return (int) m_layers.size(); }
    std::string getLayerName(int layer) const
-      { return m_layers.value(layer); }
+      { return depthmapX::getMapAtIndex(m_layers, layer)->second; }
    bool isLayerVisible(int layer) const
-      { return ((m_layers.key(layer) & m_visible_layers) != 0); }
+      { return ((depthmapX::getMapAtIndex(m_layers, layer)->first & m_visible_layers) != 0); }
    void setLayerVisible(int layer, bool show);
    //
    bool isVisible(int row) const
