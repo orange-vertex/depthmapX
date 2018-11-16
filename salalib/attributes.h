@@ -135,8 +135,9 @@ inline bool operator > (const OrderedIntPair& x, const OrderedIntPair& y)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class AttributeRow : public pvector<float>
+class AttributeRow
 {
+    std::vector<float> m_data;
    friend class AttributeTable;
 protected:
    mutable bool m_selected;
@@ -305,28 +306,30 @@ public:
       { return key(size()-1); }
    // this version uses known row and col indices
    float getValue(int row, int col) const
-      { return col != -1 ? value(row).at(m_columns[col].m_physical_col) : key(row); }
+      { return col != -1 ? value(row).m_data[m_columns[col].m_physical_col] : key(row); }
    // this version is meant to use row key and col name
    float getValue(int row, const std::string& name) const
-      { int col = getColumnIndex(name); return col != -1 ? value(row).at(m_columns[col].m_physical_col) : key(row); }
+      { int col = getColumnIndex(name); return col != -1 ? value(row).m_data[m_columns[col].m_physical_col] : key(row); }
    float getNormValue(int row, int col) const
-      { return col != -1 ? m_columns[col].makeNormValue(value(row).at(m_columns[col].m_physical_col)) : (float) (double(getRowKey(row))/double(getRowKey(int(size()-1)))); }
+      { return col != -1 ? m_columns[col].makeNormValue(value(row).m_data[m_columns[col].m_physical_col]) : (float) (double(getRowKey(row))/double(getRowKey(int(size()-1)))); }
    void setValue(int row, int col, float val)
-      { value(row).at(m_columns[col].m_physical_col) = val; m_columns[col].setValue(val); }
+      { value(row).m_data[m_columns[col].m_physical_col] = val; m_columns[col].setValue(val); }
    void setValue(int row, const std::string& name, float val)
       { int col = getColumnIndex(name); if (col != -1) setValue(row,col,val); }
    void changeValue(int row, int col, float val)
-      { float& theval = value(row).at(m_columns[col].m_physical_col); m_columns[col].changeValue(theval,val); theval = val; }
+      { float& theval = value(row).m_data[m_columns[col].m_physical_col]; m_columns[col].changeValue(theval,val); theval = val; }
    void changeValue(int row, const std::string& name, float val)
       { int col = getColumnIndex(name); if (col != -1) changeValue(row,col,val); }
    void changeSelValues(int col, float val) 
       { for (size_t i = 0; i < size(); i++) { if (value(i).m_selected) changeValue((int)i,col,val);} }
    void incrValue(int row, int col, float amount = 1.0f) 
-      { float& v = value(row).at(m_columns[col].m_physical_col); v = (v == -1.0f) ? amount : v+amount ; m_columns[col].changeValue(v-amount,v); }
+      { float& v = value(row).m_data[m_columns[col].m_physical_col];
+        v = (v == -1.0f) ? amount : v+amount ; m_columns[col].changeValue(v-amount,v); }
    void incrValue(int row, const std::string& name, float amount = 1.0f)
       { int col = getColumnIndex(name);  if (col != -1) incrValue(row,col,amount); }
    void decrValue(int row, int col, float amount = 1.0f) 
-      { float& v = value(row).at(m_columns[col].m_physical_col); v = (v != -1.0f) ? v-amount : -1.0f; m_columns[col].changeValue(v+amount,v); }
+      { float& v = value(row).m_data[m_columns[col].m_physical_col];
+        v = (v != -1.0f) ? v-amount : -1.0f; m_columns[col].changeValue(v+amount,v); }
    void decrValue(int row, const std::string& name, float amount = 1.0f)
       { int col = getColumnIndex(name);  if (col != -1) decrValue(row,col,amount); }
    void setColumnValue(int col, float val);

@@ -64,7 +64,7 @@ int AttributeTable::insertColumn(const std::string& name)
    if (iter == m_columns.end() || AttributeColumn(name) < *iter) {
        iter = m_columns.insert(iter, AttributeColumn(name));
        for (size_t i = 0; i < size(); i++) {
-          at(i).push_back(-1.0f);
+          at(i).m_data.push_back(-1.0f);
        }
        iter->m_physical_col = m_columns.size() - 1;
    }
@@ -72,7 +72,7 @@ int AttributeTable::insertColumn(const std::string& name)
        iter->reset();
        int phys_col = iter->m_physical_col;
        for (size_t i = 0; i < size(); i++) {
-          at(i)[phys_col] = -1.0f;
+          at(i).m_data[phys_col] = -1.0f;
        }
    }
    return std::distance(m_columns.begin(), iter);
@@ -83,7 +83,7 @@ void AttributeTable::removeColumn(int col)
    int phys_col = m_columns[col].m_physical_col;
    // remove data:
    for (size_t i = 0; i < size(); i++) {
-      at(i).remove_at(phys_col);
+      at(i).m_data.erase(at(i).m_data.begin() + phys_col);
    }
    // remove column head:
    m_columns.erase(m_columns.begin() + col);
@@ -142,7 +142,7 @@ void AttributeTable::setColumnValue(int col, float val)
    m_columns[col].m_min = val;
    m_columns[col].m_max = val;
    for (size_t i = 0; i < size(); i++) {
-      value(i).at(phys_col) = val;
+      value(i).m_data[phys_col] = val;
       m_columns[col].m_tot += val;
    }
 }
@@ -332,7 +332,7 @@ bool AttributeTable::read( std::istream& stream, int version )
 
       stream.read((char *)&(value(index).m_layers),sizeof(long));
 
-      value(index).read(stream);
+      dXreadwrite::readIntoVector(stream, value(index).m_data);
    }
 
    // ref column display params
@@ -365,7 +365,7 @@ bool AttributeTable::write( std::ofstream& stream, int version )
       rowkey = key(i);
       stream.write((char *)&rowkey, sizeof(rowkey));
       stream.write((char *)&(value(i).m_layers),sizeof(long));
-      value(i).write(stream);
+      dXreadwrite::writeVector(stream, value(i).m_data);
    }
    // ref column display params
    stream.write((char *)&m_display_params,sizeof(m_display_params));
@@ -390,7 +390,7 @@ bool AttributeTable::outputRow( int row, std::ostream& stream, char delim, bool 
 
    for (size_t i = 0; i < m_columns.size(); i++) {
       if (!updated_only || m_columns[i].m_updated) {
-         stream << delim << value(row).at(m_columns[i].m_physical_col);
+         stream << delim << value(row).m_data[m_columns[i].m_physical_col];
       }
    }
    stream << std::endl;
@@ -492,18 +492,8 @@ bool AttributeTable::importTable(std::istream& stream, bool merge)
 
 void AttributeRow::init(size_t length)
 {
-   if (m_data) {
-      delete [] m_data;
-      m_data = NULL;
-   }
-   while (length >= storage_size())
-      m_shift++;
-   m_data = new float [storage_size()];
-   m_length = length;
-
-   for (size_t i = 0; i < m_length; i++) {
-      at(i) = -1.0;
-   }
+    m_data.resize(length);
+    std::fill(m_data.begin(), m_data.end(), -1.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////
