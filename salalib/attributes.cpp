@@ -60,22 +60,22 @@ AttributeTable::AttributeTable(const std::string& name)
 
 int AttributeTable::insertColumn(const std::string& name)
 {
-   size_t index = m_columns.searchindex(AttributeColumn(name));
-   if (index != paftl::npos) {
-      m_columns[index].reset();
-      int phys_col = m_columns[index].m_physical_col;
-      for (size_t i = 0; i < size(); i++) {
-         at(i)[phys_col] = -1.0f;
-      }
+   auto iter = std::lower_bound(m_columns.begin(), m_columns.end(), AttributeColumn(name));
+   if (iter == m_columns.end() || AttributeColumn(name) < *iter) {
+       iter = m_columns.insert(iter, AttributeColumn(name));
+       for (size_t i = 0; i < size(); i++) {
+          at(i).push_back(-1.0f);
+       }
+       iter->m_physical_col = m_columns.size() - 1;
    }
    else {
-      index = m_columns.add(AttributeColumn(name));
-      for (size_t i = 0; i < size(); i++) {
-         at(i).push_back(-1.0f);
-      }
-      m_columns[index].m_physical_col = m_columns.size() - 1;
+       iter->reset();
+       int phys_col = iter->m_physical_col;
+       for (size_t i = 0; i < size(); i++) {
+          at(i)[phys_col] = -1.0f;
+       }
    }
-   return index;
+   return std::distance(m_columns.begin(), iter);
 }
 
 void AttributeTable::removeColumn(int col)
@@ -86,7 +86,7 @@ void AttributeTable::removeColumn(int col)
       at(i).remove_at(phys_col);
    }
    // remove column head:
-   m_columns.remove_at(col);
+   m_columns.erase(m_columns.begin() + col);
    // adjust other columns:
    for (size_t j = 0; j < m_columns.size(); j++) {
       if (m_columns[j].m_physical_col > phys_col) {
@@ -100,12 +100,12 @@ void AttributeTable::removeColumn(int col)
 // note: returns new column id and may reorder the name columns
 int AttributeTable::renameColumn(int col, const std::string& name)
 {
-   size_t index = m_columns.searchindex(name);
-   if (index == col) {
+   auto iter = std::lower_bound(m_columns.begin(), m_columns.end(), name);
+   if (std::distance(m_columns.begin(), iter) == col) {
       // no change in name
       return col;
    }
-   else if (index != paftl::npos) {
+   else if (iter != m_columns.end()) {
       // column name already exists!
       return -1;
    }
@@ -113,11 +113,11 @@ int AttributeTable::renameColumn(int col, const std::string& name)
    // switch round the column names and re-add.
    // Copy column exactly (with same physical_col id)
    AttributeColumn newcolumn(m_columns[col]);
-   m_columns.remove_at(col);
+   m_columns.erase(m_columns.begin() + col);
    newcolumn.m_name = name;
-   index = m_columns.add(newcolumn);
+   iter = depthmapX::insert_sorted(m_columns, newcolumn);
    // you will now have to alter the displayed attribute accordingly...
-   return index;
+   return std::distance(m_columns.begin(), iter);
 }
 
 int AttributeTable::insertRow(int key)
@@ -320,9 +320,9 @@ bool AttributeTable::read( std::istream& stream, int version )
    stream.read((char *)&colcount, sizeof(colcount));
    for (int j = 0; j < colcount; j++) {
       m_columns.push_back(AttributeColumn());
-      m_columns.tail().read(stream, version);
+      m_columns.back().read(stream, version);
       // this may need a bit of reordering, as the reader can chop up names:
-      m_columns.sort();
+      std::sort(m_columns.begin(), m_columns.end());
    }
    int rowcount, rowkey;
    stream.read((char *)&rowcount, sizeof(rowcount));

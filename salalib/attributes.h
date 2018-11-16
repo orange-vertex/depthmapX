@@ -251,7 +251,7 @@ class AttributeTable : protected pqmap<int,AttributeRow>
 {
 protected:
    std::string m_name;
-   pqvector<AttributeColumn> m_columns;
+   std::vector<AttributeColumn> m_columns;
    pqmap<int,AttributeRow> m_data;
    // display parameters for the reference id column
    DisplayParams m_ref_display_params;
@@ -280,15 +280,18 @@ public:
    const std::string& getColumnName(int col) const
       { return col != -1 ? m_columns[col].m_name : g_ref_number_name; } 
    int getColumnIndex(const std::string& name) const
-      { size_t index = m_columns.searchindex(name); return (index == paftl::npos) ? -1 : int(index);} // note use -1 rather than paftl::npos for return value
+      { auto iter = std::find(m_columns.begin(), m_columns.end(), name);
+        return (iter == m_columns.end()) ? -1 : std::distance(m_columns.begin(), iter);} // note use -1 rather than paftl::npos for return value
    int getColumnCount() const
       { return (int) m_columns.size(); }
    int getOrInsertColumnIndex(const std::string& name)
-      { size_t col = m_columns.searchindex(name); if (col == paftl::npos) return insertColumn(name); else return (int) col; }
+      { auto iter = std::find(m_columns.begin(), m_columns.end(), name);
+        if (iter == m_columns.end()) return insertColumn(name); else return std::distance(m_columns.begin(), iter); }
    int getOrInsertLockedColumnIndex(const std::string& name)
-      { size_t col = m_columns.searchindex(name); if (col == paftl::npos) return insertLockedColumn(name); else return (int) col; }
+      { auto iter = std::find(m_columns.begin(), m_columns.end(), name);
+        if (iter == m_columns.end()) return insertLockedColumn(name); else return std::distance(m_columns.begin(), iter); }
    bool isValidColumn(const std::string& name) const
-      { return m_columns.searchindex(name) != paftl::npos || name == g_ref_number_name; }
+      { return std::find(m_columns.begin(), m_columns.end(), name) != m_columns.end() || name == g_ref_number_name; }
    //
    int getRowKey(int index) const
       { return key(index); }
