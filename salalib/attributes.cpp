@@ -218,7 +218,7 @@ void AttributeTable::setDisplayParams(int col, const DisplayParams& dp)
    } 
 }
 
-void AttributeTable::setVisibleLayers(int64 layers, bool override)
+void AttributeTable::setVisibleLayers(long layers, bool override)
 {
    if (layers != m_visible_layers || override) {
       m_visible_layers = layers;
@@ -229,8 +229,8 @@ void AttributeTable::setVisibleLayers(int64 layers, bool override)
 
 void AttributeTable::setLayerVisible(int layer, bool show)
 {
-   int64 showlayers = 0;
-   int64 key = m_layers.key(layer);
+   long showlayers = 0;
+   long key = m_layers.key(layer);
    bool on = (key & m_visible_layers) != 0;
    if (key == 0x1) {
       if (show && !on) {
@@ -266,7 +266,7 @@ bool AttributeTable::selectionToLayer(const std::string& name)
       // too many layers -- maximum 64
       return false;
    }
-   int64 newlayer = 0x1 << loc;
+   long newlayer = 0x1 << loc;
    // now layer has been found, eliminate from available layers 
    // and add a lookup for the name
    m_available_layers = (m_available_layers & (~newlayer));
@@ -307,12 +307,12 @@ bool AttributeTable::read( std::istream& stream, int version )
 {
 
    m_layers.clear();
-   stream.read((char *)&m_available_layers,sizeof(int64));
-   stream.read((char *)&m_visible_layers,sizeof(int64));
+   stream.read((char *)&m_available_layers,sizeof(long));
+   stream.read((char *)&m_visible_layers,sizeof(long));
    int count;
    stream.read((char *)&count,sizeof(int));
    for (int i = 0; i < count; i++) {
-       int64 key;
+       long key;
        stream.read((char *)&key,sizeof(key));
        m_layers.add(key,dXstring::readString(stream));
    }
@@ -330,7 +330,7 @@ bool AttributeTable::read( std::istream& stream, int version )
       stream.read((char *)&rowkey, sizeof(rowkey));
       int index = add(rowkey,AttributeRow());
 
-      stream.read((char *)&(value(index).m_layers),sizeof(int64));
+      stream.read((char *)&(value(index).m_layers),sizeof(long));
 
       value(index).read(stream);
    }
@@ -344,12 +344,12 @@ bool AttributeTable::read( std::istream& stream, int version )
 bool AttributeTable::write( std::ofstream& stream, int version )
 {
 
-   stream.write((char *)&m_available_layers,sizeof(int64));
-   stream.write((char *)&m_visible_layers,sizeof(int64));
+   stream.write((char *)&m_available_layers,sizeof(long));
+   stream.write((char *)&m_visible_layers,sizeof(long));
    int count = m_layers.size();
    stream.write((char *)&count,sizeof(int));
    for (size_t i = 0; i < m_layers.size(); i++) {
-      int64 key = m_layers.key(i);
+      long key = m_layers.key(i);
       stream.write((char *)&key,sizeof(key));
       dXstring::writeString(stream ,m_layers.value(i));
    }
@@ -364,7 +364,7 @@ bool AttributeTable::write( std::ofstream& stream, int version )
    for (int i = 0; i < rowcount; i++) {
       rowkey = key(i);
       stream.write((char *)&rowkey, sizeof(rowkey));
-      stream.write((char *)&(value(i).m_layers),sizeof(int64));
+      stream.write((char *)&(value(i).m_layers),sizeof(long));
       value(i).write(stream);
    }
    // ref column display params

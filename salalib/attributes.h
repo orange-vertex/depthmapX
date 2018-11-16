@@ -142,7 +142,7 @@ protected:
    mutable bool m_selected;
    mutable ValuePair m_display_info;
    // this is for recording layers (up to 64 are possible)
-   int64 m_layers;
+   long m_layers;
 public:
    AttributeRow()
       { m_selected = false; m_layers = 1; }
@@ -256,9 +256,9 @@ protected:
    // display parameters for the reference id column
    DisplayParams m_ref_display_params;
    //
-   int64 m_available_layers;
-   pqmap<int64,std::string> m_layers;
-   mutable int64 m_visible_layers;
+   long m_available_layers;
+   pqmap<long,std::string> m_layers;
+   mutable long m_visible_layers;
    mutable int m_visible_size;
    //
    std::string g_ref_number_name;    // = std::string("Ref Number");
@@ -378,8 +378,8 @@ public:
    mutable AttributeIndex m_display_index;
    mutable DisplayParams m_display_params;
    // Underlying layer control:
-   void setVisibleLayers(int64 layers, bool override = false);
-   const int64 getVisibleLayers() const
+   void setVisibleLayers(long layers, bool override = false);
+   const long getVisibleLayers() const
       { return m_visible_layers; }
    // More user friendly layer control:
    bool selectionToLayer(const std::string& name);
