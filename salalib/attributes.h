@@ -56,7 +56,7 @@ inline bool operator == (const ValuePair& vp1, const ValuePair& vp2)
 {
    return (vp1.value == vp2.value);
 }
-int compareValuePair(const void *p1, const void *p2);
+int compareValuePair(const ValuePair &p1, const ValuePair &p2);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -154,12 +154,13 @@ public:
 class AttributeTable;
 
 // note pvector: this is stored in order, reorder by qsort
-class AttributeIndex : public pvector<ValuePair>
+class AttributeIndex
 {
    friend class AttributeTable;
 protected:
    int m_col;
 public:
+   std::vector<ValuePair> m_valuePairs;
    AttributeIndex();
    void clear();
    int makeIndex(const AttributeTable& table, int col, bool setdisplayinfo);

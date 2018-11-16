@@ -28,9 +28,9 @@
 
 // helpers: local sorting routines
 
-int compareValuePair(const void *p1, const void *p2)
+int compareValuePair(const ValuePair &p1, const ValuePair &p2)
 {
-   double v = (((ValuePair *)p1)->value - ((ValuePair *)p2)->value);
+   double v = p1.value - p2.value;
    return (v > 0.0 ? 1 : v < 0.0 ? -1 : 0);
 }
 
@@ -551,13 +551,12 @@ bool AttributeColumn::write( std::ofstream& stream, int version )
 AttributeIndex::AttributeIndex()
 {
    m_col = -1;
-   m_data = NULL;
 }
 
 void AttributeIndex::clear()
 {
    m_col = -1;
-   pvector<ValuePair>::clear();
+   m_valuePairs.clear();
 }
 
 int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisplayinfo)
@@ -569,10 +568,7 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
    size_t rowcount = table.getRowCount();
 
    // preallocate vector:
-   while (rowcount >= storage_size())
-      m_shift++;
-   m_data = new ValuePair[storage_size()];
-   m_length = rowcount;
+   m_valuePairs = std::vector<ValuePair>(rowcount);
    //
    m_col = col;
    //
@@ -582,37 +578,37 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
    // viscount is simply a count of everything that is visible
    int viscount = 0;
    // n.b., attributes, axial lines and line refs must match
-   size_t i;
-   for (i = 0; i < rowcount; i++)
+   for (size_t i = 0; i < rowcount; i++)
    {
-      at(i).index = i;
+      auto& valuePair = m_valuePairs[i];
+      valuePair.index = i;
       if (col != -1) {
-         at(i).value = double(table.getValue(i,col));
-         if (at(i).value != -1) {
-            if (min == -1.0f || at(i).value < min) {
-               min = (double) at(i).value;
+         valuePair.value = double(table.getValue(i,col));
+         if (valuePair.value != -1) {
+            if (min == -1.0f || valuePair.value < min) {
+               min = (double) valuePair.value;
             }
-            if (max == -1.0f || at(i).value > max) {
-               max = (double) at(i).value;
+            if (max == -1.0f || valuePair.value > max) {
+               max = (double) valuePair.value;
             }
-            total += at(i).value;
+            total += valuePair.value;
             if (table.isVisible(i)) {
                // note, this may be useful -- the visible count does not include nulls
                viscount++;
-               if (vismin == -1.0f || at(i).value < vismin) {
-                  vismin = (double) at(i).value;
+               if (vismin == -1.0f || valuePair.value < vismin) {
+                  vismin = (double) valuePair.value;
                }
-               if (vismax == -1.0f || at(i).value > vismax) {
-                  vismax = (double) at(i).value;
+               if (vismax == -1.0f || valuePair.value > vismax) {
+                  vismax = (double) valuePair.value;
                }
-               vistotal += at(i).value;
+               vistotal += valuePair.value;
             }
          }
          // note: qsort is slow when many values are the same -- so these values are perturbed
          // -> perturbation used to be random, but now sub sort by ref number
          // note: value needs to be double to work out in large tables
          // (note also, max may build up through table, causing some disturbance to order)
-         at(i).value += (max * 1e-9 * double(i)) / table.getRowCount();
+         valuePair.value += (max * 1e-9 * double(i)) / table.getRowCount();
       }
       else {
          if (table.isVisible(i)) {
@@ -624,7 +620,7 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
                vismin = i;
             }
          }
-         at(i).value = double(table.getRowKey(i))/table.getMaxRowKey();
+         valuePair.value = double(table.getRowKey(i))/table.getMaxRowKey();
       }
    }
 
@@ -633,21 +629,22 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
       table.setColumnInfo(col,min,max,total,vismin,vismax,vistotal);
    }
 
-   qsort(m_data,rowcount,sizeof(ValuePair),compareValuePair);
+   std::sort(m_valuePairs.begin(), m_valuePairs.end(), compareValuePair);
 
-   for (i = 0; i < rowcount; i++) {
+   for (size_t i = 0; i < rowcount; i++) {
+       auto& valuePair = m_valuePairs[i];
       // note: this is to ensure we have save settings for the table ranges where data has been overwritten:
       if (setdisplayinfo) {
-         at(i).value = (col != -1) ? table.getNormValue(at(i).index,col) : double(table.getRowKey(at(i).index))/table.getMaxRowKey();
+         valuePair.value = (col != -1) ? table.getNormValue(valuePair.index,col) : double(table.getRowKey(valuePair.index))/table.getMaxRowKey();
          // be able to lookup index pos from row:
          ValuePair vp2;
          vp2.index = i;
-         vp2.value = at(i).value;
-         table.setDisplayInfo(at(i).index,vp2);
+         vp2.value = valuePair.value;
+         table.setDisplayInfo(valuePair.index,vp2);
       }
       else {
          // don't normalise: you want the exact value for this row
-         at(i).value = (col != -1) ? table.getValue(at(i).index,col) : double(table.getRowKey(at(i).index));
+         valuePair.value = (col != -1) ? table.getValue(valuePair.index,col) : double(table.getRowKey(valuePair.index));
       }
    }
    return viscount;

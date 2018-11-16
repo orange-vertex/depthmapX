@@ -131,7 +131,7 @@ void tableView::PrepareCache(int to)
 				}
 				else
 				{
-					Item = new QTableWidgetItem(QString("%1").arg(table.getRowKey(index[to+i].index)));
+                    Item = new QTableWidgetItem(QString("%1").arg(table.getRowKey(index.m_valuePairs[to+i].index)));
 					if(table.isSelected(to+i)) Item->setCheckState(Qt::Checked);
 					else Item->setCheckState(Qt::Unchecked);
 					setItem(to+i, 0, Item);
@@ -140,7 +140,7 @@ void tableView::PrepareCache(int to)
 			}
 			if(!item(to+i, j))
 			{
-				Item = new QTableWidgetItem(QString("%1").arg(table.getValue(index[to+i].index, j-1)));
+                Item = new QTableWidgetItem(QString("%1").arg(table.getValue(index.m_valuePairs[to+i].index, j-1)));
 				setRowHeight(to+i, ROW_HEIGHT);
 				setItem(to+i, j, Item);
 			}
@@ -159,7 +159,7 @@ void tableView::itemChanged(QTableWidgetItem * item)
         std::vector<int> x;
 		AttributeTable& table = pDoc->m_meta_graph->getAttributeTable();
 		AttributeIndex& index = table.m_display_index;
-		x.push_back(table.getRowKey(index[row].index));
+        x.push_back(table.getRowKey(index.m_valuePairs[row].index));
 		pDoc->m_meta_graph->setSelSet(x);
 		pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL,QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_SELECTION, this);
         PrepareCache(m_curr_row);
@@ -178,9 +178,9 @@ void tableView::itemChanged(QTableWidgetItem * item)
          if (graph && graph->viewingProcessed()) {
             // go for the change:
             AttributeTable &table = graph->getAttributeTable();
-            double value2 = table.getValue(table.m_display_index[row].index, col-1);
+            double value2 = table.getValue(table.m_display_index.m_valuePairs[row].index, col-1);
             if (value2 == 0 || fabs((value / value2) - 1.0) > 1e-5) {
-               table.changeValue(table.m_display_index[row].index, col-1, value);
+               table.changeValue(table.m_display_index.m_valuePairs[row].index, col-1, value);
                pDoc->modifiedFlag = true;
             }
 
