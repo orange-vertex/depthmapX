@@ -63,16 +63,16 @@ int AttributeTable::insertColumn(const std::string& name)
    auto iter = std::lower_bound(m_columns.begin(), m_columns.end(), AttributeColumn(name));
    if (iter == m_columns.end() || AttributeColumn(name) < *iter) {
        iter = m_columns.insert(iter, AttributeColumn(name));
-       for (size_t i = 0; i < size(); i++) {
-          at(i).m_data.push_back(-1.0f);
+       for (auto& row: m_rows) {
+           row.second.m_data.push_back(-1.0f);
        }
        iter->m_physical_col = m_columns.size() - 1;
    }
    else {
        iter->reset();
        int phys_col = iter->m_physical_col;
-       for (size_t i = 0; i < size(); i++) {
-          at(i).m_data[phys_col] = -1.0f;
+       for (auto& row: m_rows) {
+           row.second.m_data[phys_col] = -1.0f;
        }
    }
    return std::distance(m_columns.begin(), iter);
@@ -82,15 +82,15 @@ void AttributeTable::removeColumn(int col)
 {
    int phys_col = m_columns[col].m_physical_col;
    // remove data:
-   for (size_t i = 0; i < size(); i++) {
-      at(i).m_data.erase(at(i).m_data.begin() + phys_col);
+   for (auto& row: m_rows) {
+       row.second.m_data.erase(row.second.m_data.begin() + phys_col);
    }
    // remove column head:
    m_columns.erase(m_columns.begin() + col);
    // adjust other columns:
-   for (size_t j = 0; j < m_columns.size(); j++) {
-      if (m_columns[j].m_physical_col > phys_col) {
-         m_columns[j].m_physical_col -= 1;
+   for (auto& column: m_columns) {
+      if (column.m_physical_col > phys_col) {
+         column.m_physical_col -= 1;
       }
    }
    // done
@@ -122,17 +122,14 @@ int AttributeTable::renameColumn(int col, const std::string& name)
 
 int AttributeTable::insertRow(int key)
 {
-   int index = add(key,AttributeRow());
-   value(index).init(m_columns.size());
-   return index;
+   auto iter = m_rows.insert(std::make_pair(key,AttributeRow()));
+   iter.first->second.init(m_columns.size());
+   return std::distance(m_rows.begin(), iter.first);
 }
 
 void AttributeTable::removeRow(int key)
 {
-   size_t index = searchindex(key);
-   if (index != paftl::npos) {
-      remove_at(index);
-   }
+   m_rows.erase(key);
 }
 
 void AttributeTable::setColumnValue(int col, float val)
@@ -141,8 +138,8 @@ void AttributeTable::setColumnValue(int col, float val)
    m_columns[col].m_tot = 0.0;
    m_columns[col].m_min = val;
    m_columns[col].m_max = val;
-   for (size_t i = 0; i < size(); i++) {
-      value(i).m_data[phys_col] = val;
+   for (auto& row: m_rows) {
+      row.second.m_data[phys_col] = val;
       m_columns[col].m_tot += val;
    }
 }
@@ -153,26 +150,27 @@ void AttributeTable::setColumnValue(int col, float val)
 
 bool AttributeTable::selectRowByKey(int key) const
 {
-   size_t index = searchindex(key);
-   if (index != paftl::npos) {
-      if ((m_visible_layers & value(index).m_layers) != 0 && !value(index).m_selected) {
-         value(index).m_selected = true;
+   auto iter = m_rows.find(key);
+   if (iter != m_rows.end()) {
+      if ((m_visible_layers & iter->second.m_layers) != 0 && !iter->second.m_selected) {
+         iter->second.m_selected = true;
          m_sel_count++;
-         addSelValue(getValue(index,m_display_column));
+         addSelValue(getValue(std::distance(m_rows.begin(), iter),m_display_column));
+         return true;
       }
       else {
          // already selected or not visible
-         index = -1;
+         return false;
       }
    }
-   return index != -1;
+   return false;
 }
 
 bool AttributeTable::selectRowByIndex(int index) const
 {
    if (index != -1) {
       if ((m_visible_layers & value(index).m_layers) != 0 && !value(index).m_selected) {
-         value(index).m_selected = true;
+         depthmapX::getMapAtIndex(m_rows, index)->second.m_selected = true;
          m_sel_count++;
          addSelValue(getValue(index,m_display_column));
       }
@@ -188,8 +186,8 @@ void AttributeTable::deselectAll() const
 {
    m_sel_count = 0;
    m_sel_value = 0.0;
-   for (size_t i = 0; i < size(); i++) {
-      value(i).m_selected = false;
+   for (auto& row: m_rows) {
+      row.second.m_selected = false;
    }
 }
 
@@ -273,9 +271,10 @@ bool AttributeTable::selectionToLayer(const std::string& name)
    m_layers.insert(std::make_pair(newlayer,name));
 
    // convert everything in the selection to the new layer
-   for (size_t i = 0; i < size(); i++) {
-      if (isVisible(i) && isSelected(i)) {
-         at(i).m_layers |= newlayer;
+   for (auto& row: m_rows) {
+      if ((m_visible_layers & (row.second.m_layers)) != 0 &&
+              row.second.m_selected) {
+         row.second.m_layers |= newlayer;
       }
    }
 
@@ -328,11 +327,11 @@ bool AttributeTable::read( std::istream& stream, int version )
    stream.read((char *)&rowcount, sizeof(rowcount));
    for (int i = 0; i < rowcount; i++) {
       stream.read((char *)&rowkey, sizeof(rowkey));
-      int index = add(rowkey,AttributeRow());
+      auto iter = m_rows.insert(std::make_pair(rowkey,AttributeRow()));
 
-      stream.read((char *)&(value(index).m_layers),sizeof(long));
+      stream.read((char *)&(iter.first->second.m_layers),sizeof(long));
 
-      dXreadwrite::readIntoVector(stream, value(index).m_data);
+      dXreadwrite::readIntoVector(stream, iter.first->second.m_data);
    }
 
    // ref column display params
@@ -360,13 +359,12 @@ bool AttributeTable::write( std::ofstream& stream, int version )
    for (int j = 0; j < colcount; j++) {
       m_columns[j].write(stream,version);
    }
-   int rowcount = size(), rowkey;
+   int rowcount = m_rows.size();
    stream.write((char *)&rowcount, sizeof(rowcount));
-   for (int i = 0; i < rowcount; i++) {
-      rowkey = key(i);
-      stream.write((char *)&rowkey, sizeof(rowkey));
-      stream.write((char *)&(value(i).m_layers),sizeof(long));
-      dXreadwrite::writeVector(stream, value(i).m_data);
+   for (auto& row: m_rows) {
+      stream.write((char *)&row.first, sizeof(row.first));
+      stream.write((char *)&(row.second.m_layers),sizeof(long));
+      dXreadwrite::writeVector(stream, row.second.m_data);
    }
    // ref column display params
    stream.write((char *)&m_display_params,sizeof(m_display_params));

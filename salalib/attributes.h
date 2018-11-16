@@ -249,12 +249,12 @@ inline bool operator < (const AttributeColumn& a, const AttributeColumn& b)
 inline bool operator > (const AttributeColumn& a, const AttributeColumn& b)
 { return a.m_name > b.m_name; }
 
-class AttributeTable : protected pqmap<int,AttributeRow>
+class AttributeTable
 {
 protected:
    std::string m_name;
    std::vector<AttributeColumn> m_columns;
-   pqmap<int,AttributeRow> m_data;
+   std::map<int,AttributeRow> m_rows;
    // display parameters for the reference id column
    DisplayParams m_ref_display_params;
    //
@@ -275,9 +275,6 @@ public:
    int renameColumn(int col, const std::string& name = std::string());
    int insertRow(int key);
    void removeRow(int key);
-   void removeRowids(const pvecint& list)
-      { remove_at(list); }
-   //
    // note... retrieves from column index (which are sorted by name), not physical column
    const std::string& getColumnName(int col) const
       { return col != -1 ? m_columns[col].m_name : g_ref_number_name; } 
@@ -295,16 +292,20 @@ public:
    bool isValidColumn(const std::string& name) const
       { return std::find(m_columns.begin(), m_columns.end(), name) != m_columns.end() || name == g_ref_number_name; }
    //
+   const int& key(int index) const { return depthmapX::getMapAtIndex(m_rows, index)->first; }
+   const AttributeRow& value(int index) const { return depthmapX::getMapAtIndex(m_rows, index)->second; }
+   AttributeRow& value(int index) { return depthmapX::getMapAtIndex(m_rows, index)->second; }
+
    int getRowKey(int index) const
       { return key(index); }
    int getRowid(const int key) const
-      { size_t i = searchindex(key); return (i == paftl::npos) ? -1 : int(i);} // note use -1 rather than paftl::npos for return value
+      { auto iter = m_rows.find(key); return (iter == m_rows.end()) ? -1 : int(std::distance(m_rows.begin(), iter));} // note use -1 rather than paftl::npos for return value
    int getRowCount() const
-      { return (int) size(); }
+      { return (int) m_rows.size(); }
    int getVisibleRowCount() const
       { return m_visible_size; }
    int getMaxRowKey() const 
-      { return key(size()-1); }
+      { return key(m_rows.size()-1); }
    // this version uses known row and col indices
    float getValue(int row, int col) const
       { return col != -1 ? value(row).m_data[m_columns[col].m_physical_col] : key(row); }
@@ -312,7 +313,7 @@ public:
    float getValue(int row, const std::string& name) const
       { int col = getColumnIndex(name); return col != -1 ? value(row).m_data[m_columns[col].m_physical_col] : key(row); }
    float getNormValue(int row, int col) const
-      { return col != -1 ? m_columns[col].makeNormValue(value(row).m_data[m_columns[col].m_physical_col]) : (float) (double(getRowKey(row))/double(getRowKey(int(size()-1)))); }
+      { return col != -1 ? m_columns[col].makeNormValue(value(row).m_data[m_columns[col].m_physical_col]) : (float) (double(getRowKey(row))/double(getRowKey(int(m_rows.size()-1)))); }
    void setValue(int row, int col, float val)
       { value(row).m_data[m_columns[col].m_physical_col] = val; m_columns[col].setValue(val); }
    void setValue(int row, const std::string& name, float val)
@@ -322,7 +323,7 @@ public:
    void changeValue(int row, const std::string& name, float val)
       { int col = getColumnIndex(name); if (col != -1) changeValue(row,col,val); }
    void changeSelValues(int col, float val) 
-      { for (size_t i = 0; i < size(); i++) { if (value(i).m_selected) changeValue((int)i,col,val);} }
+      { for (size_t i = 0; i < m_rows.size(); i++) { if (value(i).m_selected) changeValue((int)i,col,val);} }
    void incrValue(int row, int col, float amount = 1.0f) 
       { float& v = value(row).m_data[m_columns[col].m_physical_col];
         v = (v == -1.0f) ? amount : v+amount ; m_columns[col].changeValue(v-amount,v); }
@@ -337,14 +338,14 @@ public:
    double getMinValue(int col) const
       { return col != -1 ? m_columns[col].getMinValue() : key(0); }
    double getMaxValue(int col) const
-      { return col != -1 ? m_columns[col].getMaxValue() : key(size()-1); }
+      { return col != -1 ? m_columns[col].getMaxValue() : key(m_rows.size()-1); }
    double getAvgValue(int col) const
       { return col != -1 ? m_columns[col].getTotValue() / double(getRowCount()) : -1.0; }
    //
    double getVisibleMinValue(int col) const
       { return col != -1 ? m_columns[col].getVisibleMinValue() : key(0); }
    double getVisibleMaxValue(int col) const
-      { return col != -1 ? m_columns[col].getVisibleMaxValue() : key(size()-1); }
+      { return col != -1 ? m_columns[col].getVisibleMaxValue() : key(m_rows.size()-1); }
    double getVisibleAvgValue(int col) const
       { return col != -1 ? m_columns[col].getVisibleTotValue() / double(getVisibleRowCount()) : -1.0; }
    //
@@ -396,20 +397,20 @@ public:
    void setLayerVisible(int layer, bool show);
    //
    bool isVisible(int row) const
-      { return (m_visible_layers & (at(row).m_layers)) != 0; }
+      { return (m_visible_layers & (value(row).m_layers)) != 0; }
    //
    void setDisplayColumn(int col, bool override = false) const;
    const int getDisplayColumn() const
       { return m_display_column; }
    const int getDisplayPos(int index) const
-      { return at(index).m_display_info.index; }
+      { return value(index).m_display_info.index; }
    const int getDisplayColor(int row) const
-      { PafColor color; return at(row).m_selected ? PafColor(SALA_SELECTED_COLOR) : color.makeColor(at(row).m_display_info.value,m_display_params); }
+      { PafColor color; return value(row).m_selected ? PafColor(SALA_SELECTED_COLOR) : color.makeColor(value(row).m_display_info.value,m_display_params); }
    const int getDisplayColorByKey(int key) const
-      { PafColor color; return color.makeColor(search(key).m_display_info.value,m_display_params); }
+      { PafColor color; return color.makeColor(m_rows.at(key).m_display_info.value,m_display_params); }
    // this also doubles up to reset the selection total:
    void setDisplayInfo(int row, ValuePair vp) const
-      { at(row).m_display_info = vp; if (at(row).m_selected) addSelValue((double)vp.value); }
+      { const auto& val = value(row); val.m_display_info = vp; if (val.m_selected) addSelValue((double)vp.value); }
    //
    // set display params for all attributes in table
    void setDisplayParams(const DisplayParams& dp);
@@ -421,7 +422,7 @@ public:
 public:
    // misc
    void clear()  // <- totally destroy, not just clear values
-   { m_columns.clear(); pqmap<int,AttributeRow>::clear(); }
+   { m_columns.clear(); m_rows.clear(); }
    //
    void setName(const std::string& name)
    { m_name = name; }
