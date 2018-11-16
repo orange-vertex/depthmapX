@@ -1259,7 +1259,7 @@ bool PointMap::sparkGraph2( Communicator *comm, bool boundarygraph, double maxdi
                      throw Communicator::CancelledException();
                   }
                   comm->CommPostMessage( Communicator::CURRENT_RECORD, count );
-               }         
+               }
             } // if (comm)
          } // if ( getPoint( curs ).getState() & Point::FILLED )
       } // rows

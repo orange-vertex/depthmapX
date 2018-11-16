@@ -22,15 +22,17 @@
 #include <salalib/attributes.h>
 
 #include "genlib/stringutils.h"
+#include "genlib/readwritehelpers.h"
 
 #include <stdexcept>
+#include <map>
 ////////////////////////////////////////////////////////////////////////////////////
 
 // helpers: local sorting routines
 
-int compareValuePair(const void *p1, const void *p2)
+int compareValuePair(const ValuePair& p1, const ValuePair& p2)
 {
-   double v = (((ValuePair *)p1)->value - ((ValuePair *)p2)->value);
+   double v = p1.value - p2.value;
    return (v > 0.0 ? 1 : v < 0.0 ? -1 : 0);
 }
 
@@ -54,43 +56,43 @@ AttributeTable::AttributeTable(const std::string& name)
    m_available_layers = 0xffffffff << 32 + 0xfffffffe;
    // display the default layer only (everything):
    m_visible_layers = 0x1;
-   m_layers.add(1,"Everything");
+   m_layers.insert(std::make_pair(1,"Everything"));
    m_visible_size = 0;
 }
 
 int AttributeTable::insertColumn(const std::string& name)
 {
-   size_t index = m_columns.searchindex(AttributeColumn(name));
-   if (index != paftl::npos) {
-      m_columns[index].reset();
-      int phys_col = m_columns[index].m_physical_col;
-      for (size_t i = 0; i < size(); i++) {
-         at(i)[phys_col] = -1.0f;
+   auto iter = std::lower_bound(m_columns.begin(), m_columns.end(), AttributeColumn(name));
+   if (iter != m_columns.end()) {
+      iter->reset();
+      int phys_col = iter->m_physical_col;
+      for (auto& row: m_rows) {
+         row.second.m_data[phys_col] = -1.0f;
       }
    }
    else {
-      index = m_columns.add(AttributeColumn(name));
-      for (size_t i = 0; i < size(); i++) {
-         at(i).push_back(-1.0f);
+      iter = m_columns.insert(iter, AttributeColumn(name));
+      for (auto& row: m_rows) {
+         row.second.m_data.push_back(-1.0f);
       }
-      m_columns[index].m_physical_col = m_columns.size() - 1;
+      iter->m_physical_col = m_columns.size() - 1;
    }
-   return index;
+   return std::distance(m_columns.begin(), iter);
 }
 
 void AttributeTable::removeColumn(int col)
 {
    int phys_col = m_columns[col].m_physical_col;
    // remove data:
-   for (size_t i = 0; i < size(); i++) {
-      at(i).remove_at(phys_col);
+   for (auto& row: m_rows) {
+      row.second.m_data.erase(row.second.m_data.begin() + phys_col);
    }
    // remove column head:
-   m_columns.remove_at(col);
+   m_columns.erase(m_columns.begin() + col);
    // adjust other columns:
-   for (size_t j = 0; j < m_columns.size(); j++) {
-      if (m_columns[j].m_physical_col > phys_col) {
-         m_columns[j].m_physical_col -= 1;
+   for (auto& column: m_columns) {
+      if (column.m_physical_col > phys_col) {
+         column.m_physical_col -= 1;
       }
    }
    // done
@@ -100,12 +102,13 @@ void AttributeTable::removeColumn(int col)
 // note: returns new column id and may reorder the name columns
 int AttributeTable::renameColumn(int col, const std::string& name)
 {
-   size_t index = m_columns.searchindex(name);
+   auto iter = std::lower_bound(m_columns.begin(), m_columns.end(), AttributeColumn(name));
+   size_t index = std::distance(m_columns.begin(), iter);
    if (index == col) {
       // no change in name
       return col;
    }
-   else if (index != paftl::npos) {
+   else if (index != -1) {
       // column name already exists!
       return -1;
    }
@@ -113,25 +116,26 @@ int AttributeTable::renameColumn(int col, const std::string& name)
    // switch round the column names and re-add.
    // Copy column exactly (with same physical_col id)
    AttributeColumn newcolumn(m_columns[col]);
-   m_columns.remove_at(col);
+   m_columns.erase(m_columns.begin() + col);
    newcolumn.m_name = name;
-   index = m_columns.add(newcolumn);
+   iter = std::lower_bound(m_columns.begin(), m_columns.end(), AttributeColumn(name));
+   iter = m_columns.insert(iter, newcolumn);
    // you will now have to alter the displayed attribute accordingly...
-   return index;
+   return std::distance(m_columns.begin(), iter);
 }
 
 int AttributeTable::insertRow(int key)
 {
-   int index = add(key,AttributeRow());
-   value(index).init(m_columns.size());
-   return index;
+   auto iter = m_rows.insert(std::make_pair(key,AttributeRow()));
+   iter.first->second.init(m_columns.size());
+   return std::distance(m_rows.begin(), m_rows.find(key));
 }
 
 void AttributeTable::removeRow(int key)
 {
-   size_t index = searchindex(key);
-   if (index != paftl::npos) {
-      remove_at(index);
+   auto iter = m_rows.find(key);
+   if (iter != m_rows.end()) {
+      m_rows.erase(iter);
    }
 }
 
@@ -141,8 +145,8 @@ void AttributeTable::setColumnValue(int col, float val)
    m_columns[col].m_tot = 0.0;
    m_columns[col].m_min = val;
    m_columns[col].m_max = val;
-   for (size_t i = 0; i < size(); i++) {
-      value(i).at(phys_col) = val;
+   for (auto& row: m_rows) {
+      row.second.m_data.at(phys_col) = val;
       m_columns[col].m_tot += val;
    }
 }
@@ -153,26 +157,28 @@ void AttributeTable::setColumnValue(int col, float val)
 
 bool AttributeTable::selectRowByKey(int key) const
 {
-   size_t index = searchindex(key);
-   if (index != paftl::npos) {
-      if ((m_visible_layers & value(index).m_layers) != 0 && !value(index).m_selected) {
-         value(index).m_selected = true;
+   auto iter = m_rows.find(key);
+   if (iter != m_rows.end()) {
+      if ((m_visible_layers & iter->second.m_layers) != 0 && !iter->second.m_selected) {
+         iter->second.m_selected = true;
          m_sel_count++;
-         addSelValue(getValue(index,m_display_column));
+         addSelValue(getValue(std::distance(m_rows.begin(), iter),m_display_column));
+         return true;
       }
       else {
          // already selected or not visible
-         index = -1;
+         return false;
       }
    }
-   return index != -1;
+   return false;
 }
 
 bool AttributeTable::selectRowByIndex(int index) const
 {
    if (index != -1) {
-      if ((m_visible_layers & value(index).m_layers) != 0 && !value(index).m_selected) {
-         value(index).m_selected = true;
+      auto& row = depthmapX::getMapAtIndex(m_rows, index)->second;
+      if ((m_visible_layers & row.m_layers) != 0 && !row.m_selected) {
+         row.m_selected = true;
          m_sel_count++;
          addSelValue(getValue(index,m_display_column));
       }
@@ -188,8 +194,8 @@ void AttributeTable::deselectAll() const
 {
    m_sel_count = 0;
    m_sel_value = 0.0;
-   for (size_t i = 0; i < size(); i++) {
-      value(i).m_selected = false;
+   for (auto& row: m_rows) {
+      row.second.m_selected = false;
    }
 }
 
@@ -218,7 +224,7 @@ void AttributeTable::setDisplayParams(int col, const DisplayParams& dp)
    } 
 }
 
-void AttributeTable::setVisibleLayers(int64 layers, bool override)
+void AttributeTable::setVisibleLayers(long layers, bool override)
 {
    if (layers != m_visible_layers || override) {
       m_visible_layers = layers;
@@ -229,8 +235,8 @@ void AttributeTable::setVisibleLayers(int64 layers, bool override)
 
 void AttributeTable::setLayerVisible(int layer, bool show)
 {
-   int64 showlayers = 0;
-   int64 key = m_layers.key(layer);
+   long showlayers = 0;
+   long key = depthmapX::getMapAtIndex(m_layers, layer)->first;
    bool on = (key & m_visible_layers) != 0;
    if (key == 0x1) {
       if (show && !on) {
@@ -266,16 +272,16 @@ bool AttributeTable::selectionToLayer(const std::string& name)
       // too many layers -- maximum 64
       return false;
    }
-   int64 newlayer = 0x1 << loc;
+   long newlayer = 0x1 << loc;
    // now layer has been found, eliminate from available layers 
    // and add a lookup for the name
    m_available_layers = (m_available_layers & (~newlayer));
-   m_layers.add(newlayer,name);
+   m_layers.insert(std::make_pair(newlayer,name));
 
    // convert everything in the selection to the new layer
-   for (size_t i = 0; i < size(); i++) {
+   for (size_t i = 0; i < m_rows.size(); i++) {
       if (isVisible(i) && isSelected(i)) {
-         at(i).m_layers |= newlayer;
+         m_rows.at(i).m_layers |= newlayer;
       }
    }
 
@@ -307,32 +313,32 @@ bool AttributeTable::read( std::istream& stream, int version )
 {
 
    m_layers.clear();
-   stream.read((char *)&m_available_layers,sizeof(int64));
-   stream.read((char *)&m_visible_layers,sizeof(int64));
+   stream.read((char *)&m_available_layers,sizeof(long));
+   stream.read((char *)&m_visible_layers,sizeof(long));
    int count;
    stream.read((char *)&count,sizeof(int));
    for (int i = 0; i < count; i++) {
-       int64 key;
+       long key;
        stream.read((char *)&key,sizeof(key));
-       m_layers.add(key,dXstring::readString(stream));
+       m_layers.insert(std::make_pair(key,dXstring::readString(stream)));
    }
    int colcount;
    stream.read((char *)&colcount, sizeof(colcount));
    for (int j = 0; j < colcount; j++) {
       m_columns.push_back(AttributeColumn());
-      m_columns.tail().read(stream, version);
+      m_columns.back().read(stream, version);
       // this may need a bit of reordering, as the reader can chop up names:
-      m_columns.sort();
+      std::sort(m_columns.begin(), m_columns.end());
    }
    int rowcount, rowkey;
    stream.read((char *)&rowcount, sizeof(rowcount));
    for (int i = 0; i < rowcount; i++) {
       stream.read((char *)&rowkey, sizeof(rowkey));
-      int index = add(rowkey,AttributeRow());
+      auto iter = m_rows.insert(std::make_pair(rowkey,AttributeRow()));
 
-      stream.read((char *)&(value(index).m_layers),sizeof(int64));
+      stream.read((char *)&(iter.first->second.m_layers),sizeof(long));
 
-      value(index).read(stream);
+      dXreadwrite::readIntoVector(stream, iter.first->second.m_data);
    }
 
    // ref column display params
@@ -344,14 +350,14 @@ bool AttributeTable::read( std::istream& stream, int version )
 bool AttributeTable::write( std::ofstream& stream, int version )
 {
 
-   stream.write((char *)&m_available_layers,sizeof(int64));
-   stream.write((char *)&m_visible_layers,sizeof(int64));
+   stream.write((char *)&m_available_layers,sizeof(long));
+   stream.write((char *)&m_visible_layers,sizeof(long));
    int count = m_layers.size();
    stream.write((char *)&count,sizeof(int));
-   for (size_t i = 0; i < m_layers.size(); i++) {
-      int64 key = m_layers.key(i);
+   for (auto& layer: m_layers) {
+      long key = layer.first;
       stream.write((char *)&key,sizeof(key));
-      dXstring::writeString(stream ,m_layers.value(i));
+      dXstring::writeString(stream, layer.second);
    }
 
    int colcount = m_columns.size();
@@ -359,13 +365,12 @@ bool AttributeTable::write( std::ofstream& stream, int version )
    for (int j = 0; j < colcount; j++) {
       m_columns[j].write(stream,version);
    }
-   int rowcount = size(), rowkey;
+   int rowcount = m_rows.size();
    stream.write((char *)&rowcount, sizeof(rowcount));
-   for (int i = 0; i < rowcount; i++) {
-      rowkey = key(i);
-      stream.write((char *)&rowkey, sizeof(rowkey));
-      stream.write((char *)&(value(i).m_layers),sizeof(int64));
-      value(i).write(stream);
+   for (auto& row: m_rows) {
+      stream.write((char *)&row.first, sizeof(row.first));
+      stream.write((char *)&(row.second.m_layers),sizeof(long));
+      dXreadwrite::writeVector(stream, row.second.m_data);
    }
    // ref column display params
    stream.write((char *)&m_display_params,sizeof(m_display_params));
@@ -388,9 +393,9 @@ bool AttributeTable::outputRow( int row, std::ostream& stream, char delim, bool 
 {
    int prec = stream.precision(8);
 
-   for (size_t i = 0; i < m_columns.size(); i++) {
-      if (!updated_only || m_columns[i].m_updated) {
-         stream << delim << value(row).at(m_columns[i].m_physical_col);
+   for (auto& column: m_columns) {
+      if (!updated_only ||column.m_updated) {
+         stream << delim << value(row).m_data.at(column.m_physical_col);
       }
    }
    stream << std::endl;
@@ -492,18 +497,8 @@ bool AttributeTable::importTable(std::istream& stream, bool merge)
 
 void AttributeRow::init(size_t length)
 {
-   if (m_data) {
-      delete [] m_data;
-      m_data = NULL;
-   }
-   while (length >= storage_size())
-      m_shift++;
-   m_data = new float [storage_size()];
-   m_length = length;
-
-   for (size_t i = 0; i < m_length; i++) {
-      at(i) = -1.0;
-   }
+   m_data.resize(length);
+   std::fill(m_data.begin(), m_data.end(), -1.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -562,13 +557,12 @@ bool AttributeColumn::write( std::ofstream& stream, int version )
 AttributeIndex::AttributeIndex()
 {
    m_col = -1;
-   m_data = NULL;
 }
 
 void AttributeIndex::clear()
 {
    m_col = -1;
-   pvector<ValuePair>::clear();
+   m_valuePairs.clear();
 }
 
 int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisplayinfo)
@@ -580,10 +574,7 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
    size_t rowcount = table.getRowCount();
 
    // preallocate vector:
-   while (rowcount >= storage_size())
-      m_shift++;
-   m_data = new ValuePair[storage_size()];
-   m_length = rowcount;
+   m_valuePairs = std::vector<ValuePair>(rowcount);
    //
    m_col = col;
    //
@@ -593,37 +584,36 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
    // viscount is simply a count of everything that is visible
    int viscount = 0;
    // n.b., attributes, axial lines and line refs must match
-   size_t i;
-   for (i = 0; i < rowcount; i++)
-   {
-      at(i).index = i;
+   for (size_t i = 0; i < rowcount; i++) {
+      auto& valuePair = m_valuePairs[i];
+      valuePair.index = i;
       if (col != -1) {
-         at(i).value = double(table.getValue(i,col));
-         if (at(i).value != -1) {
-            if (min == -1.0f || at(i).value < min) {
-               min = (double) at(i).value;
+         valuePair.value = double(table.getValue(i,col));
+         if (valuePair.value != -1) {
+            if (min == -1.0f || valuePair.value < min) {
+               min = (double) valuePair.value;
             }
-            if (max == -1.0f || at(i).value > max) {
-               max = (double) at(i).value;
+            if (max == -1.0f || valuePair.value > max) {
+               max = (double) valuePair.value;
             }
-            total += at(i).value;
+            total += valuePair.value;
             if (table.isVisible(i)) {
                // note, this may be useful -- the visible count does not include nulls
                viscount++;
-               if (vismin == -1.0f || at(i).value < vismin) {
-                  vismin = (double) at(i).value;
+               if (vismin == -1.0f || valuePair.value < vismin) {
+                  vismin = (double) valuePair.value;
                }
-               if (vismax == -1.0f || at(i).value > vismax) {
-                  vismax = (double) at(i).value;
+               if (vismax == -1.0f || valuePair.value > vismax) {
+                  vismax = (double) valuePair.value;
                }
-               vistotal += at(i).value;
+               vistotal += valuePair.value;
             }
          }
          // note: qsort is slow when many values are the same -- so these values are perturbed
          // -> perturbation used to be random, but now sub sort by ref number
          // note: value needs to be double to work out in large tables
          // (note also, max may build up through table, causing some disturbance to order)
-         at(i).value += (max * 1e-9 * double(i)) / table.getRowCount();
+         valuePair.value += (max * 1e-9 * double(i)) / table.getRowCount();
       }
       else {
          if (table.isVisible(i)) {
@@ -635,7 +625,7 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
                vismin = i;
             }
          }
-         at(i).value = double(table.getRowKey(i))/table.getMaxRowKey();
+         valuePair.value = double(table.getRowKey(i))/table.getMaxRowKey();
       }
    }
 
@@ -644,21 +634,22 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
       table.setColumnInfo(col,min,max,total,vismin,vismax,vistotal);
    }
 
-   qsort(m_data,rowcount,sizeof(ValuePair),compareValuePair);
+   std::sort(m_valuePairs.begin(), m_valuePairs.end(), compareValuePair);
 
-   for (i = 0; i < rowcount; i++) {
+   for (size_t i = 0; i < rowcount; i++) {
+       auto& valuePair = m_valuePairs[i];
       // note: this is to ensure we have save settings for the table ranges where data has been overwritten:
       if (setdisplayinfo) {
-         at(i).value = (col != -1) ? table.getNormValue(at(i).index,col) : double(table.getRowKey(at(i).index))/table.getMaxRowKey();
+         valuePair.value = (col != -1) ? table.getNormValue(valuePair.index,col) : double(table.getRowKey(valuePair.index))/table.getMaxRowKey();
          // be able to lookup index pos from row:
          ValuePair vp2;
          vp2.index = i;
-         vp2.value = at(i).value;
-         table.setDisplayInfo(at(i).index,vp2);
+         vp2.value = valuePair.value;
+         table.setDisplayInfo(valuePair.index,vp2);
       }
       else {
          // don't normalise: you want the exact value for this row
-         at(i).value = (col != -1) ? table.getValue(at(i).index,col) : double(table.getRowKey(at(i).index));
+         valuePair.value = (col != -1) ? table.getValue(valuePair.index,col) : double(table.getRowKey(valuePair.index));
       }
    }
    return viscount;

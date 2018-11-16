@@ -3219,11 +3219,10 @@ bool ShapeMap::unlinkShapeSet(std::istream& idset, int refcol)
 
    for (size_t i = 0; i < unlinks.size(); i++) {
       if (refcol != -1) {
-         size_t x;
-         x = idx.searchindex(ValuePair(-1,unlinks[i].a));
-         unlinks[i].a = (x == paftl::npos) ? -1 : idx[x].index;
-         x = idx.searchindex(ValuePair(-1,unlinks[i].b));
-         unlinks[i].b = (x == paftl::npos) ? -1 : idx[x].index;
+         auto iter = std::find(idx.m_valuePairs.begin(), idx.m_valuePairs.end(), ValuePair(-1,unlinks[i].a));
+         unlinks[i].a = (iter == idx.m_valuePairs.end()) ? -1 : iter->index;
+         iter = std::find(idx.m_valuePairs.begin(), idx.m_valuePairs.end(), ValuePair(-1,unlinks[i].b));
+         unlinks[i].b = (iter == idx.m_valuePairs.end()) ? -1 : iter->index;
       }
       if (unlinks[i].a != paftl::npos && unlinks[i].b != paftl::npos) {
          unlinkShapes(unlinks[i].a,unlinks[i].b,false);

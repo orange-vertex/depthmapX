@@ -46,6 +46,14 @@ public:
 
         return QApplication::event(event);
     }
-
+//    virtual bool notify(QObject *receiver, QEvent *event) {
+//        try {
+//            return QApplication::notify(receiver, event);
+//        } catch (std::exception &e) {
+//            e.printStackTrace();
+//            throw e;
+//        }
+//        return false;
+//    }
     int exec();
 };

@@ -19,6 +19,7 @@
 #include "salalib/vgamodules/vgathroughvision.h"
 #include "salalib/nagent.h"
 
+#include "genlib/paftl.h"
 #include "genlib/stringutils.h"
 
 // This is a slow algorithm, but should give the correct answer

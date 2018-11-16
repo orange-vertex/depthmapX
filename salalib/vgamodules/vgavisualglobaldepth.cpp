@@ -18,6 +18,7 @@
 
 #include "salalib/vgamodules/vgavisualglobaldepth.h"
 
+#include "genlib/paftl.h"
 #include "genlib/stringutils.h"
 
 bool VGAVisualGlobalDepth::run(Communicator *, const Options &, PointMap &map, bool) {

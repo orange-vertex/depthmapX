@@ -23,6 +23,7 @@
 #include "salalib/pixelref.h"
 #include "salalib/point.h"
 #include "genlib/pflipper.h"
+#include "genlib/paftl.h"
 
 const char g_col_total_counts[] = "Gate Counts";
 const char g_col_gate_counts[] = "__Internal_Gate_Counts";

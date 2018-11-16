@@ -87,43 +87,53 @@ QSize QPlotView::sizeHint() const
 static QPoint hit_point;
 bool QPlotView::eventFilter(QObject *object, QEvent *e)
 {
-	if(e->type() == QEvent::ToolTip)
-	{
-		if (!pDoc->m_communicator) {
+    if(e->type() == QEvent::ToolTip)
+    {
+        if (!pDoc->m_communicator) {
          // first, check you have a meta graph
-			if (pDoc->m_meta_graph) {
-				if (pDoc->m_meta_graph->viewingProcessed()) {
-					AttributeTable& table = pDoc->m_meta_graph->getAttributeTable();
-					size_t xfloor = idx_x.searchfloorindex(ValuePair(-1,dataX(hit_point.x()-2)));
-					size_t xceil = idx_x.searchceilindex(ValuePair(-1,dataX(hit_point.x()+2)));
-					size_t yfloor = idx_y.searchfloorindex(ValuePair(-1,dataY(hit_point.y()+2)));
-					size_t yceil = idx_y.searchceilindex(ValuePair(-1,dataY(hit_point.y()-2)));
-					// work out anything near this point...
-					pvecint xkeys;
-					for (size_t i = xfloor + 1; i < xceil; i++) {
-						int index = idx_x[i].index;
-						xkeys.add(index);
-					}
-					pvecint finalkeys;
-					for (size_t j = yfloor + 1; j < yceil; j++) {
-						size_t index = idx_y[j].index;
-						if (xkeys.searchindex(index) != paftl::npos) {
-							finalkeys.push_back( table.getRowKey(index) );
-						}
-					}
-					if (finalkeys.size()) {
-						AttributeTable& table = pDoc->m_meta_graph->getAttributeTable();
-						// and that it has an appropriate state to display a hover wnd
-						float val = table.getValue( finalkeys[0], pDoc->m_meta_graph->getDisplayedAttribute() );
-						if (val == -1.0f) 
-							setToolTip("No value");
-						else if (val != -2.0f)
-							setToolTip(QString("%1").arg(val));
-					}
-				}
-			}
-		}
-	}
+            if (pDoc->m_meta_graph) {
+                if (pDoc->m_meta_graph->viewingProcessed()) {
+                    AttributeTable& table = pDoc->m_meta_graph->getAttributeTable();
+                    size_t xfloor =
+                        std::distance(idx_x.m_valuePairs.begin(),
+                                      std::lower_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                       ValuePair(-1, dataX(hit_point.x() - 2))));
+                    size_t xceil = std::distance(idx_x.m_valuePairs.begin(),
+                                                 std::upper_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                                  ValuePair(-1, dataX(hit_point.x() + 2))));
+                    size_t yfloor =
+                        std::distance(idx_y.m_valuePairs.begin(),
+                                      std::lower_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                       ValuePair(-1, dataY(hit_point.y() + 2))));
+                    size_t yceil = std::distance(idx_y.m_valuePairs.begin(),
+                                                 std::upper_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                                  ValuePair(-1, dataY(hit_point.y() - 2))));
+                    // work out anything near this point...
+                    pvecint xkeys;
+                    for (size_t i = xfloor + 1; i < xceil; i++) {
+                        int index = idx_x.m_valuePairs[i].index;
+                        xkeys.add(index);
+                    }
+                    pvecint finalkeys;
+                    for (size_t j = yfloor + 1; j < yceil; j++) {
+                        size_t index = idx_y.m_valuePairs[j].index;
+                        if (xkeys.searchindex(index) != paftl::npos) {
+                            finalkeys.push_back( table.getRowKey(index) );
+                        }
+                    }
+                    if (finalkeys.size()) {
+                        AttributeTable& table = pDoc->m_meta_graph->getAttributeTable();
+                        // and that it has an appropriate state to display a hover wnd
+                        float val = table.getValue( finalkeys[0], pDoc->m_meta_graph->getDisplayedAttribute() );
+                        if (val == -1.0f)
+                            setToolTip("No value");
+                        else if (val != -2.0f)
+                            setToolTip(QString("%1").arg(val));
+                    }
+                                }
+            }
+        }
+    }
     return QObject::eventFilter(object, e);
 }
 
@@ -710,10 +720,18 @@ void QPlotView::mouseReleaseEvent(QMouseEvent *e)
    }
    m_selecting = false;
 
-   size_t xfloor = idx_x.searchfloorindex(ValuePair(-1,dataX(m_drag_rect_a.left()-2)));
-   size_t xceil = idx_x.searchceilindex(ValuePair(-1,dataX(m_drag_rect_a.right()+2)));
-   size_t yfloor = idx_y.searchfloorindex(ValuePair(-1,dataY(m_drag_rect_a.bottom()+2)));
-   size_t yceil = idx_y.searchceilindex(ValuePair(-1,dataY(m_drag_rect_a.top()-2)));
+   size_t xfloor =
+       std::distance(idx_x.m_valuePairs.begin(), std::lower_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                                  ValuePair(-1, dataX(m_drag_rect_a.left() - 2))));
+   size_t xceil =
+       std::distance(idx_x.m_valuePairs.begin(), std::upper_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                                  ValuePair(-1, dataX(m_drag_rect_a.right() + 2))));
+   size_t yfloor =
+       std::distance(idx_y.m_valuePairs.begin(), std::lower_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                                  ValuePair(-1, dataY(m_drag_rect_a.bottom() + 2))));
+   size_t yceil =
+       std::distance(idx_y.m_valuePairs.begin(), std::upper_bound(idx_x.m_valuePairs.begin(), idx_x.m_valuePairs.end(),
+                                                                  ValuePair(-1, dataY(m_drag_rect_a.top() - 2))));
 
    // Stop drag rect...
    m_drag_rect_a = QRect(0,0,0,0);
@@ -724,12 +742,12 @@ void QPlotView::mouseReleaseEvent(QMouseEvent *e)
    // work out selection
    pvecint xkeys;
    for (size_t i = xfloor + 1; i < xceil; i++) {
-      int index = idx_x[i].index;
+      int index = idx_x.m_valuePairs[i].index;
       xkeys.add(index);
    }
    std::vector<int> finalkeys;
    for (size_t j = yfloor + 1; j < yceil; j++) {
-      int index = idx_y[j].index;
+      int index = idx_y.m_valuePairs[j].index;
       if (xkeys.searchindex(index) != paftl::npos) {
          finalkeys.push_back( table.getRowKey(index) );
       }
