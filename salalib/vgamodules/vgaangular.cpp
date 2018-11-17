@@ -103,12 +103,12 @@ bool VGAAngular::run(Communicator *comm, const Options &options, PointMap &map, 
                     }
                 }
 
-                int row = attributes.getRowid(curs);
+                auto& row = attributes.getRowViaKey(curs);
                 if (total_nodes > 0) {
-                    attributes.setValue(row, mean_depth_col, float(double(total_angle) / double(total_nodes)));
+                    attributes.setRowValue(row, mean_depth_col_text, float(double(total_angle) / double(total_nodes)));
                 }
-                attributes.setValue(row, total_depth_col, total_angle);
-                attributes.setValue(row, count_col, float(total_nodes));
+                attributes.setRowValue(row, total_detph_col_text, total_angle);
+                attributes.setRowValue(row, count_col_text, float(total_nodes));
 
                 count++; // <- increment count
             }

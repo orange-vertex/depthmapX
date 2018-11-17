@@ -55,12 +55,12 @@ bool VGAThroughVision::run(Communicator *comm, const Options &, PointMap &map, b
                     PixelRefVector pixels = map.quickPixelateLine(x, curs);
                     for (size_t k = 1; k < pixels.size() - 1; k++) {
                         map.getPoint(pixels[k]).m_misc += 1;
-                        int index = attributes.getRowid(pixels[k]);
 
+                        int key = pixels[k];
                         // TODO: Undocumented functionality. Shows how many times a gate is passed?
-                        int gate = (index != -1) ? static_cast<int>(attributes.getValue(index, g_col_gate)) : -1;
+                        int gate = static_cast<int>(attributes.getValueViaKey(key, g_col_gate));
                         if (gate != -1 && seengates.searchindex(gate) == paftl::npos) {
-                            attributes.incrValue(index, g_col_gate_counts);
+                            attributes.incrValueViaKey(key , g_col_gate_counts);
                             seengates.add(gate, paftl::ADD_HERE);
                         }
                     }

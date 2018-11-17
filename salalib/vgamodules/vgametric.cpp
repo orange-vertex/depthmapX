@@ -110,11 +110,11 @@ bool VGAMetric::run(Communicator *comm, const Options &options, PointMap &map, b
                     }
                 }
 
-                int row = attributes.getRowid(curs);
-                attributes.setValue(row, mspa_col, float(double(total_angle) / double(total_nodes)));
-                attributes.setValue(row, mspl_col, float(double(total_depth) / double(total_nodes)));
-                attributes.setValue(row, dist_col, float(double(euclid_depth) / double(total_nodes)));
-                attributes.setValue(row, count_col, float(total_nodes));
+                auto& row = attributes.getRowViaKey(curs);
+                attributes.setRowValue(row, mspa_col_text, float(double(total_angle) / double(total_nodes)));
+                attributes.setRowValue(row, mspl_col_text, float(double(total_depth) / double(total_nodes)));
+                attributes.setRowValue(row, dist_col_text, float(double(euclid_depth) / double(total_nodes)));
+                attributes.setRowValue(row, count_col_text, float(total_nodes));
 
                 count++; // <- increment count
             }

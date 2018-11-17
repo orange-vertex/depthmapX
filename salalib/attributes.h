@@ -311,12 +311,35 @@ public:
    // this version is meant to use row key and col name
    float getValue(int row, const std::string& name) const
       { int col = getColumnIndex(name); return col != -1 ? value(row).m_data[m_columns[col].m_physical_col] : key(row); }
+   float getValueViaKey(int key, const std::string& name) const {
+       auto colIter = std::find(m_columns.begin(), m_columns.end(), name);
+       if (colIter != m_columns.end()) {
+           return m_rows.at(key).m_data[static_cast<size_t>(colIter->m_physical_col)];
+       }
+       return -1;
+   }
+   AttributeRow& getRowViaKey(int key) {
+       return m_rows.at(key);
+   }
    float getNormValue(int row, int col) const
       { return col != -1 ? m_columns[col].makeNormValue(value(row).m_data[m_columns[col].m_physical_col]) : (float) (double(getRowKey(row))/double(getRowKey(int(m_rows.size()-1)))); }
    void setValue(int row, int col, float val)
       { value(row).m_data[m_columns[col].m_physical_col] = val; m_columns[col].setValue(val); }
    void setValue(int row, const std::string& name, float val)
       { int col = getColumnIndex(name); if (col != -1) setValue(row,col,val); }
+   void setValueViaKey(int key, const std::string &name, float val) {
+       auto colIter = std::find(m_columns.begin(), m_columns.end(), name);
+       if (colIter != m_columns.end()) {
+           auto& row = m_rows.at(key);
+           row.m_data[static_cast<size_t>(colIter->m_physical_col)] = val; colIter->setValue(val);
+       }
+   }
+   void setRowValue(AttributeRow& row, const std::string &name, float val) {
+       auto colIter = std::find(m_columns.begin(), m_columns.end(), name);
+       if (colIter != m_columns.end()) {
+           row.m_data[static_cast<size_t>(colIter->m_physical_col)] = val; colIter->setValue(val);
+       }
+   }
    void changeValue(int row, int col, float val)
       { float& theval = value(row).m_data[m_columns[col].m_physical_col]; m_columns[col].changeValue(theval,val); theval = val; }
    void changeValue(int row, const std::string& name, float val)
@@ -328,6 +351,13 @@ public:
         v = (v == -1.0f) ? amount : v+amount ; m_columns[col].changeValue(v-amount,v); }
    void incrValue(int row, const std::string& name, float amount = 1.0f)
       { int col = getColumnIndex(name);  if (col != -1) incrValue(row,col,amount); }
+   void incrValueViaKey(int key, const std::string& name, float amount = 1.0f) {
+       auto colIter = std::find(m_columns.begin(), m_columns.end(), name);
+       if (colIter != m_columns.end()) {
+           float& v = m_rows.at(key).m_data[static_cast<size_t>(colIter->m_physical_col)];
+           v = (v == -1.0f) ? amount : v+amount ; colIter->changeValue(v-amount,v);
+       }
+   }
    void decrValue(int row, int col, float amount = 1.0f) 
       { float& v = value(row).m_data[m_columns[col].m_physical_col];
         v = (v != -1.0f) ? v-amount : -1.0f; m_columns[col].changeValue(v+amount,v); }
