@@ -24,15 +24,6 @@
 #include "genlib/stringutils.h"
 
 #include <stdexcept>
-////////////////////////////////////////////////////////////////////////////////////
-
-// helpers: local sorting routines
-
-int compareValuePair(const ValuePair &p1, const ValuePair &p2)
-{
-   double v = p1.value - p2.value;
-   return (v > 0.0 ? 1 : v < 0.0 ? -1 : 0);
-}
 
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -629,7 +620,7 @@ int AttributeIndex::makeIndex(const AttributeTable& table, int col, bool setdisp
       table.setColumnInfo(col,min,max,total,vismin,vismax,vistotal);
    }
 
-   std::sort(m_valuePairs.begin(), m_valuePairs.end(), compareValuePair);
+   std::sort(m_valuePairs.begin(), m_valuePairs.end());
 
    for (size_t i = 0; i < rowcount; i++) {
        auto& valuePair = m_valuePairs[i];

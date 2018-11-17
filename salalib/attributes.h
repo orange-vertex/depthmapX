@@ -55,7 +55,6 @@ inline bool operator == (const ValuePair& vp1, const ValuePair& vp2)
 {
    return (vp1.value == vp2.value);
 }
-int compareValuePair(const ValuePair &p1, const ValuePair &p2);
 
 ////////////////////////////////////////////////////////////////////////////////
 
