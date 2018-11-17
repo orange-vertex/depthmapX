@@ -15,6 +15,7 @@
 
 #include "ColumnPropertiesDlg.h"
 #include "genlib/stringutils.h"
+#include "genlib/paftl.h"
 
 CColumnPropertiesDlg::CColumnPropertiesDlg(AttributeTable *table, int col, QWidget *parent)
 : QDialog(parent)

@@ -18,6 +18,7 @@
 #include <salalib/attributes.h>
 #include <salalib/shapemap.h>
 #include <salalib/axialmap.h>
+#include "genlib/paftl.h"
 
 enum {MAKELAYER_DRAWING = 1, 
 MAKELAYER_DATA = 2,

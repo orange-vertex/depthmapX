@@ -1,6 +1,7 @@
 #include "salalib/mapconverter.h"
 #include "salalib/tidylines.h"
 #include "genlib/exceptions.h"
+#include "genlib/paftl.h"
 
 // convert line layers to an axial map
 

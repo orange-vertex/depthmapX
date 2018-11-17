@@ -22,7 +22,6 @@
 #include "salalib/pafcolor.h"
 
 #include "genlib/containerutils.h"
-#include "genlib/paftl.h"
 
 #include <string>
 

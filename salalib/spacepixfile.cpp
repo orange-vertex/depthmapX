@@ -1,5 +1,7 @@
 #include "salalib/spacepixfile.h"
 
+#include "genlib/paftl.h"
+
 void SpacePixelFile::cutLine(Line& l)//, short dir)
 {
    for (auto& pixelGroup: m_spacePixels) {

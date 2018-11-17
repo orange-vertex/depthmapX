@@ -22,6 +22,8 @@
 #include "salalib/shapemap.h"
 #include "salalib/axialmap.h"
 
+#include "genlib/paftl.h"
+
 int MapInfoData::import(std::istream& miffile, std::istream& midfile, ShapeMap& map)
 {
    int retvar = MINFO_OK;
