@@ -7,7 +7,10 @@ HEADERS += \
     $$PWD/vgaangular.h \
     $$PWD/vgaangulardepth.h \
     $$PWD/vgametricdepth.h \
-    $$PWD/vgavisualglobaldepth.h
+    $$PWD/vgavisualglobaldepth.h \
+    $$PWD/vgaangularshortestpath.h \
+    $$PWD/vgametricshortestpath.h \
+    $$PWD/vgavisualshortestpath.h
 SOURCES += \
     $$PWD/vgaisovist.cpp \
     $$PWD/vgaangular.cpp \
@@ -17,4 +20,7 @@ SOURCES += \
     $$PWD/vgavisualglobal.cpp \
     $$PWD/vgaangulardepth.cpp \
     $$PWD/vgametricdepth.cpp \
-    $$PWD/vgavisualglobaldepth.cpp
+    $$PWD/vgavisualglobaldepth.cpp \
+    $$PWD/vgaangularshortestpath.cpp \
+    $$PWD/vgametricshortestpath.cpp \
+    $$PWD/vgavisualshortestpath.cpp
