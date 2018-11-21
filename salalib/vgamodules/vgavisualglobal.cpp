@@ -46,6 +46,7 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
     std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
     integ_dv_col = attributes.insertColumn(integ_dv_col_text.c_str());
 
+    int norm_entropy_col;
 #ifndef _COMPILE_dX_SIMPLE_VERSION
     if (!simple_version) {
         std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
@@ -56,6 +57,8 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
         depth_col = attributes.insertColumn(depth_col_text.c_str());
         std::string count_col_text = std::string("Visual Node Count") + radius_text;
         count_col = attributes.insertColumn(count_col_text.c_str());
+        std::string norm_entropy_col_text = std::string("Visual Normalised Entropy") + radius_text;
+        norm_entropy_col = attributes.insertColumn(norm_entropy_col_text.c_str());
         std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
         rel_entropy_col = attributes.insertColumn(rel_entropy_col_text.c_str());
     }
@@ -165,13 +168,14 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
                             attributes.setValue(row, integ_tk_col, (float)-1);
                         }
                     }
-                    double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
+                    double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0, norm_entropy = 0;
                     // n.b., this distribution contains the root node itself in distribution[0]
                     // -> chopped from entropy to avoid divide by zero if only one node
                     for (size_t k = 1; k < distribution.size(); k++) {
                         if (distribution[k] > 0) {
                             double prob = double(distribution[k]) / double(total_nodes - 1);
                             entropy -= prob * log2(prob);
+                            norm_entropy -= prob * log2(prob)/log2(distribution.size()-1);
                             // Formula from Turner 2001, "Depthmap"
                             factorial *= double(k + 1);
                             double q = (pow(mean_depth, double(k)) / double(factorial)) * exp(-mean_depth);
@@ -180,6 +184,7 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
                     }
                     if (!simple_version) {
                         attributes.setValue(row, entropy_col, float(entropy));
+                        attributes.setValue(row, norm_entropy_col, float(norm_entropy));
                         attributes.setValue(row, rel_entropy_col, float(rel_entropy));
                     }
                 } else {
