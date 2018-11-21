@@ -20,7 +20,9 @@
 
 void GLPointMap::loadGLObjects(PointMap& pointMap) {
     QtRegion region = pointMap.getRegion();
-    m_pointMap.loadRegionData(region.bottom_left.x, region.bottom_left.y, region.top_right.x, region.top_right.y);
+    hasPointMap = true;
+    m_pointMap = &pointMap;
+    m_pointMapRaster.loadRegionData(region.bottom_left.x, region.bottom_left.y, region.top_right.x, region.top_right.y);
 
     if(m_showGrid) {
         std::vector<SimpleLine> gridData;
@@ -35,7 +37,7 @@ void GLPointMap::loadGLObjects(PointMap& pointMap) {
         }
         m_grid.loadLineData(gridData, m_gridColour);
     }
-    if(m_showLinks) {
+//    if(m_showLinks) {
         const std::vector<SimpleLine> &mergedPixelLines = depthmapX::getMergedPixelsAsLines(pointMap);
         std::vector<Point2f> mergedPixelLocations;
         for (auto& mergeLine: mergedPixelLines)
@@ -52,7 +54,7 @@ void GLPointMap::loadGLObjects(PointMap& pointMap) {
                 GeometryGenerators::generateMultipleCircleLines(32, pointMap.getSpacing()*0.25, mergedPixelLocations);
         linkFillPerimeters.insert( linkFillPerimeters.end(), mergedPixelLines.begin(), mergedPixelLines.end() );
         m_linkLines.loadLineData(linkFillPerimeters, qRgb(0,255,0));
-    }
+//    }
 }
 void GLPointMap::loadGLObjectsRequiringGLContext(const PointMap& currentPointMap) {
     QImage data(currentPointMap.getCols(),currentPointMap.getRows(), QImage::Format_RGBA8888);
@@ -68,5 +70,5 @@ void GLPointMap::loadGLObjectsRequiringGLContext(const PointMap& currentPointMap
             }
         }
     }
-    m_pointMap.loadPixelData(data);
+    m_pointMapRaster.loadPixelData(data);
 }

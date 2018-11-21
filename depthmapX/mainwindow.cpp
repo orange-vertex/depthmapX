@@ -1283,15 +1283,19 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
         ItemTreeEntry entry = iter->second;
         bool remenu = false;
         if (entry.m_cat != -1) {
-            if (entry.m_subcat == -1 && m_indexWidget->isMapColumn(col)) {
+            if (m_indexWidget->isMapColumn(col)) {
                 switch (entry.m_type) {
                 case 0:
                     if (graph->getViewClass() & MetaGraph::VIEWVGA) {
-                        if (graph->getDisplayedPointMapRef() == entry.m_cat) {
+                        if (graph->getDisplayedPointMapRef() == entry.m_cat &&
+                                entry.m_subcat == -1) {
                             graph->setViewClass(MetaGraph::SHOWHIDEVGA);
                         }
                         else {
                             graph->setDisplayedPointMapRef(entry.m_cat);
+                        }
+                        if(entry.m_subcat == 0) {
+                            graph->getDisplayedPointMap().m_showLinks = !graph->getDisplayedPointMap().m_showLinks;
                         }
                     }
                     else {
@@ -1341,7 +1345,7 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
                 }
                 m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_TABLE );
             }
-            else if (entry.m_subcat == -1 && m_indexWidget->isEditableColumn(col)) {
+            else if (m_indexWidget->isEditableColumn(col)) {
                 // hit editable box
                 if (entry.m_type == 1) {
                     int type = graph->getShapeGraphs()[entry.m_cat]->getMapType();
@@ -1501,6 +1505,9 @@ void MainWindow::SetGraphTreeChecks()
                 if (show) {
                       m_indexWidget->setItemVisibility(key, Qt::Checked);
                 }
+                else if(entry.m_type == 0 && entry.m_subcat == 0) {
+                      m_indexWidget->setItemVisibility(key, graph->getPointMaps()[entry.m_cat].m_showLinks ? Qt::Checked : Qt::Unchecked);
+                }
                 else {
                       m_indexWidget->setItemVisibility(key, Qt::Unchecked);
                 }
@@ -1564,6 +1571,10 @@ void MainWindow::MakeGraphTree()
             m_indexWidget->setItemEditability(hItem, Qt::Unchecked);
             ItemTreeEntry entry(0,(short)i,-1);
             m_treegraphmap.insert(std::make_pair(hItem,entry));
+            QTreeWidgetItem* linksItem = m_indexWidget->addNewItem("Links", hItem);
+            m_indexWidget->setItemVisibility(linksItem, Qt::Unchecked);
+            ItemTreeEntry linksEntry(0,(short)i, 0);
+            m_treegraphmap.insert(std::make_pair(linksItem,linksEntry));
             i++;
         }
     }

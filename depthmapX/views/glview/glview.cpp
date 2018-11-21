@@ -620,7 +620,7 @@ void GLView::OnViewZoomToRegion(QtRegion region) {
 }
 
 void GLView::resetView() {
-    m_visiblePointMap.showLinks(false);
+//    m_visiblePointMap.showLinks(false);
     m_visibleShapeGraph.showLinks(false);
     m_pDoc.m_meta_graph->clearSel();
     update();
@@ -631,7 +631,7 @@ void GLView::OnModeJoin()
     if (m_pDoc.m_meta_graph->getViewClass() & (MetaGraph::VIEWVGA | MetaGraph::VIEWAXIAL)) {
         resetView();
         m_mouseMode = MOUSE_MODE_JOIN;
-        m_visiblePointMap.showLinks(true);
+//        m_visiblePointMap.showLinks(true);
         m_visibleShapeGraph.showLinks(true);
         m_pDoc.m_meta_graph->clearSel();
         notifyDatasetChanged();
@@ -643,7 +643,7 @@ void GLView::OnModeUnjoin()
     if (m_pDoc.m_meta_graph->getState() & (MetaGraph::VIEWVGA | MetaGraph::VIEWAXIAL)) {
         resetView();
         m_mouseMode = MOUSE_MODE_UNJOIN;
-        m_visiblePointMap.showLinks(true);
+//        m_visiblePointMap.showLinks(true);
         m_visibleShapeGraph.showLinks(true);
         m_pDoc.m_meta_graph->clearSel();
         notifyDatasetChanged();

@@ -41,7 +41,7 @@ PointMap::PointMap(const QtRegion& parentRegion, const std::vector<SpacePixelFil
     m_parentRegion(&parentRegion), m_drawingFiles(&drawingFiles), m_points(0,0)
 {
    m_name = name;
-
+m_showLinks = false;
    m_cols = 0;
    m_rows = 0;
    m_filled_point_count = 0;

@@ -102,6 +102,7 @@ protected:
    // The attributes table replaces AttrHeader / AttrRow data format
    AttributeTable m_attributes;
 public:
+   bool m_showLinks = false;
    PointMap(const QtRegion& parentRegion, const std::vector<SpacePixelFile>& drawingFiles, const std::string& name = std::string("VGA Map"));
    const std::string& getName() const
    { return m_name; }
