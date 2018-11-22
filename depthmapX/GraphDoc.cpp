@@ -1637,6 +1637,25 @@ void QGraphDoc::OnToolsPD()
 }
 
 
+void QGraphDoc::OnToolsBinDisplay()
+{
+   if (m_communicator) {
+       QMessageBox::warning(this, tr("Warning"), tr("Please wait, another process is running"), QMessageBox::Ok, QMessageBox::Ok);
+      return;
+   }
+
+   if (m_meta_graph->viewingProcessed()) {
+      if (m_meta_graph->isSelected()) {
+         m_communicator = new CMSCommunicator();
+         CreateWaitDialog(tr("Finding bins..."));
+         m_communicator->SetFunction( CMSCommunicator::BINDISPLAY );
+
+         m_thread.render(this);
+      }
+   }
+}
+
+
 void QGraphDoc::OnToolsMPD() 
 {
    if (m_communicator) {

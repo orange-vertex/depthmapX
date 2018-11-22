@@ -145,6 +145,7 @@ private slots:
     void OnToolsAgentLoadProgram();
     void OnToolsRunAxa();
     void OnToolsPD();
+    void OnToolsBinDisplay();
     void OnToolsAPD();
     void OnToolsMakeFewestLineMap();
     void OnToolsAxialConvShapeMap();
@@ -361,6 +362,7 @@ private:
     QAction *visibilityStepAct;
     QAction *metricStepAct;
     QAction *angularStepAct;
+    QAction *binDisplayAct;
     QAction *convertDataMapLinesAct;
     QAction *runAgentAnalysisAct;
     QAction *loadAgentProgramAct;

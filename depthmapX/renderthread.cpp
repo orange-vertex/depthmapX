@@ -416,6 +416,20 @@ void RenderThread::run()
          }
          break;
 
+      case CMSCommunicator::BINDISPLAY:
+         {
+            Options options;
+            options.global = 0;
+            options.point_depth_selection = 4;
+
+            ok = pDoc->m_meta_graph->analyseGraph( comm, options, comm->simple_version);
+            if (ok) {
+               pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+            }
+            pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
+         }
+         break;
+
       case CMSCommunicator::TOPOLOGICALPOINTDEPTH:
          {
             // Set up for options topological point depth selection (segment maps only)

@@ -544,6 +544,14 @@ void MainWindow::OnToolsPD()
     }
 }
 
+void MainWindow::OnToolsBinDisplay() {
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnToolsBinDisplay();
+    }
+}
+
 void MainWindow::OnToolsMakeFewestLineMap()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -3037,6 +3045,10 @@ void MainWindow::createActions()
     angularStepAct->setStatusTip(tr("Angular distance from current selection\nAngular Depth"));
     connect(angularStepAct, SIGNAL(triggered()), this, SLOT(OnToolsAPD()));
 
+    binDisplayAct = new QAction(tr("Bin Display"), this);
+    binDisplayAct->setStatusTip(tr("Display the node bins from current selection"));
+    connect(binDisplayAct, SIGNAL(triggered()), this, SLOT(OnToolsBinDisplay()));
+
     convertDataMapLinesAct = new QAction(tr("Convert Data Map Lines to Merge Points"), this);
     convertDataMapLinesAct->setStatusTip(tr("Convert displayed data map lines to merge points for current visibility graph"));
     connect(convertDataMapLinesAct, SIGNAL(triggered()), this, SLOT(OnToolsPointConvShapeMap()));
@@ -3536,6 +3548,7 @@ void MainWindow::createMenus()
     stepDepthSubMenu->addAction(angularStepAct);
     visibilitySubMenu->addSeparator();
     visibilitySubMenu->addAction(convertDataMapLinesAct);
+    visibilitySubMenu->addAction(binDisplayAct);
     agentToolsSubMenu = toolsMenu->addMenu(tr("&Agent Tools"));
     agentToolsSubMenu->addAction(runAgentAnalysisAct);
     agentToolsSubMenu->addAction(loadAgentProgramAct);
