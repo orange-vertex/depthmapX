@@ -46,6 +46,9 @@
 #include "salalib/vgamodules/vgaangular.h"
 #include "salalib/vgamodules/vgaangulardepth.h"
 #include "salalib/vgamodules/vgathroughvision.h"
+#include "salalib/vgamodules/vgavisualshortestpath.h"
+#include "salalib/vgamodules/vgametricshortestpath.h"
+#include "salalib/vgamodules/vgaangularshortestpath.h"
 
 #include "mgraph440/mgraph.h"
 
@@ -285,6 +288,16 @@ bool MetaGraph::makeGraph( Communicator *communicator, int algorithm, double max
    }
 
    return retvar;
+}
+
+bool MetaGraph::visualShortestPath(Communicator *communicator) {
+    return VGAVisualShortestPath().run(communicator, Options(), getDisplayedPointMap(), false);
+}
+bool MetaGraph::metricShortestPath(Communicator *communicator) {
+    return VGAMetricShortestPath().run(communicator, Options(), getDisplayedPointMap(), false);
+}
+bool MetaGraph::angularShortestPath(Communicator *communicator) {
+    return VGAAngularShortestPath().run(communicator, Options(), getDisplayedPointMap(), false);
 }
 
 bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool simple_version )   // <- options copied to keep thread safe

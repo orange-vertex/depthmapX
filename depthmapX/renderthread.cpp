@@ -371,20 +371,65 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
 
+
+      case CMSCommunicator::VISUALSHORTESTPATHS:
+         {
+            // Set up for options step depth selection
+            Options options;
+            options.global = 0;
+            options.point_depth_selection = 1;
+
+            ok = pDoc->m_meta_graph->visualShortestPath( comm );
+            if (ok) {
+               pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+            }
+            pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
+         }
+         break;
+
+      case CMSCommunicator::METRICSHORTESTPATHS:
+         {
+            // Set up for options step depth selection
+            Options options;
+            options.global = 0;
+            options.point_depth_selection = 1;
+
+            ok = pDoc->m_meta_graph->metricShortestPath( comm );
+            if (ok) {
+               pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+            }
+            pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
+         }
+         break;
+
+      case CMSCommunicator::ANGULARSHORTESTPATHS:
+         {
+            // Set up for options step depth selection
+            Options options;
+            options.global = 0;
+            options.point_depth_selection = 1;
+
+            ok = pDoc->m_meta_graph->angularShortestPath( comm );
+            if (ok) {
+               pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+            }
+            pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
+         }
+         break;
       case CMSCommunicator::POINTDEPTH:
          {
             // Set up for options step depth selection
             Options options;
             options.global = 0;
             options.point_depth_selection = 1;
-            
+
             ok = pDoc->m_meta_graph->analyseGraph( comm, options, comm->simple_version);
             if (ok) {
                pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
             }
             pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
          }
-         break;     
+         break;
 
       case CMSCommunicator::METRICPOINTDEPTH:
          {
