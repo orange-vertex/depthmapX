@@ -23,7 +23,7 @@
 #include "salalib/pixelref.h"
 #include "salalib/pointdata.h"
 
-class VGAMetricDepthShortestPath : IVGA {
+class VGAMetricShortestPath : IVGA {
   public:
     std::string getAnalysisName() const override { return "Metric Shortest Path"; }
     bool run(Communicator *comm, const Options &options, PointMap &map, bool) override;
