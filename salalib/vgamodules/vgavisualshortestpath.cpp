@@ -22,10 +22,11 @@
 
 bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) {
 
-    auto& attributes = map.getAttributeTable();
-    auto& selection_set = map.getSelSet();
+    auto &attributes = map.getAttributeTable();
+    auto &selection_set = map.getSelSet();
 
-    int col = attributes.insertColumn("Visual Shortest Path");
+    int linked_col = attributes.insertColumn("Visual Shortest Path Linked");
+    int order_col = attributes.insertColumn("Visual Shortest Path Order");
 
     for (int i = 0; i < attributes.getRowCount(); i++) {
         PixelRef pix = attributes.getRowKey(i);
@@ -51,6 +52,7 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
         auto &nextLevelPix = search_tree[level + 1];
         for (auto iter = currLevelPix.rbegin(); iter != currLevelPix.rend(); ++iter) {
             PixelRefVector newPixels;
+            PixelRefVector mergePixels;
             Point &p = map.getPoint(*iter);
             if (p.filled() && p.m_misc != ~0) {
                 if (!p.contextfilled() || iter->iseven() || level == 0) {
@@ -59,7 +61,11 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
                     if (!p.getMergePixel().empty()) {
                         Point &p2 = map.getPoint(p.getMergePixel());
                         if (p2.m_misc != ~0) {
-                            p2.getNode().extractUnseen(newPixels, &map, p2.m_misc); // did say p.misc
+                            newPixels.push_back(p.getMergePixel());
+                            p2.getNode().extractUnseen(mergePixels, &map, p2.m_misc);
+                            for (auto &pixel : mergePixels) {
+                                parents[pixel] = p.getMergePixel();
+                            }
                             p2.m_misc = ~0;
                         }
                     }
@@ -72,29 +78,46 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
                 parents[pixel] = *iter;
             }
             nextLevelPix.insert(nextLevelPix.end(), newPixels.begin(), newPixels.end());
+            nextLevelPix.insert(nextLevelPix.end(), mergePixels.begin(), mergePixels.end());
         }
         for (auto iter = nextLevelPix.rbegin(); iter != nextLevelPix.rend(); ++iter) {
             if (*iter == pixelTo) {
                 int counter = 0;
                 int row = attributes.getRowid(*iter);
-                attributes.setValue(row, col, counter);
+                attributes.setValue(row, order_col, counter);
+                attributes.setValue(row, linked_col, 0);
                 counter++;
                 auto currParent = parents.find(*iter);
+                int lastPixelRow = row;
                 while (currParent != parents.end()) {
+                    Point &p = map.getPoint(currParent->second);
                     int row = attributes.getRowid(currParent->second);
-                    attributes.setValue(row, col, counter);
+                    attributes.setValue(row, order_col, counter);
+
+                    if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
+                        attributes.setValue(row, linked_col, 1);
+                        attributes.setValue(lastPixelRow, linked_col, 1);
+                    } else {
+                        // apparently we can't just have 1 number in the whole column
+                        attributes.setValue(row, linked_col, 0);
+                    }
+
+                    lastPixelRow = row;
                     currParent = parents.find(currParent->second);
+
                     counter++;
                 }
+
+                map.overrideDisplayedAttribute(-2);
+                map.setDisplayedAttribute(order_col);
+
+                return true;
             }
         }
         level++;
     }
 
-    map.setDisplayedAttribute(-2);
-    map.setDisplayedAttribute(col);
-
-    return true;
+    return false;
 }
 
 void VGAVisualShortestPath::extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,

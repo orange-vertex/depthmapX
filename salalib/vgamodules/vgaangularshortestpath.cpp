@@ -22,77 +22,125 @@
 
 bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map, bool) {
 
-    auto& attributes = map.getAttributeTable();
-    auto& selection_set = map.getSelSet();
+    auto &attributes = map.getAttributeTable();
+    auto &selection_set = map.getSelSet();
 
-    int col = attributes.insertColumn("Angular Shortest Path");
+    int linked_col = attributes.insertColumn("Angular Shortest Path Linked");
+    int order_col = attributes.insertColumn("Angular Shortest Path Order");
 
     for (int i = 0; i < attributes.getRowCount(); i++) {
-       PixelRef pix = attributes.getRowKey(i);
-       map.getPoint(pix).m_misc = 0;
-       map.getPoint(pix).m_dist = 0.0f;
-       map.getPoint(pix).m_cumangle = -1.0f;
+        PixelRef pix = attributes.getRowKey(i);
+        map.getPoint(pix).m_misc = 0;
+        map.getPoint(pix).m_dist = 0.0f;
+        map.getPoint(pix).m_cumangle = -1.0f;
     }
 
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<AngularTriple> search_list; // contains root point
 
-    if(selection_set.size() != 2) {
+    if (selection_set.size() != 2) {
         throw depthmapX::RuntimeException("Two nodes must be selected");
     }
     PixelRef pixelFrom = *selection_set.begin();
     PixelRef pixelTo = *std::next(selection_set.begin());
 
-    search_list.insert(AngularTriple(0.0f,pixelFrom,NoPixel));
+    search_list.insert(AngularTriple(0.0f, pixelFrom, NoPixel));
     map.getPoint(pixelFrom).m_cumangle = 0.0f;
 
     // note that m_misc is used in a different manner to analyseGraph / PointDepth
     // here it marks the node as used in calculation only
     std::map<PixelRef, PixelRef> parents;
     while (search_list.size()) {
-       std::set<AngularTriple>::iterator it = search_list.begin();
-       AngularTriple here = *it;
-       search_list.erase(it);
-       Point& p = map.getPoint(here.pixel);
-       std::set<AngularTriple> newPixels;
-       // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-       if (p.filled() && p.m_misc != ~0) {
-          p.getNode().extractAngular(newPixels, &map, here);
-          p.m_misc = ~0;
-          if (!p.getMergePixel().empty()) {
-             Point& p2 = map.getPoint(p.getMergePixel());
-             if (p2.m_misc != ~0) {
-                p2.m_cumangle = p.m_cumangle;
-                p2.getNode().extractAngular(newPixels, &map, AngularTriple(here.angle,p.getMergePixel(), NoPixel));
-                p2.m_misc = ~0;
-             }
-          }
-       }
-       for (auto& pixel : newPixels) {
-           if(pixel.pixel == pixelTo) {
-               int counter = 0;
-               int row = attributes.getRowid(pixel.pixel);
-               attributes.setValue(row, col, counter);
-               counter++;
-               row = attributes.getRowid(here.pixel);
-               attributes.setValue(row, col, counter);
-               counter++;
-               auto currParent = parents.find(here.pixel);
-               while (currParent != parents.end()) {
-                   int row = attributes.getRowid(currParent->second);
-                   attributes.setValue(row, col, counter);
-                   currParent = parents.find(currParent->second);
-                   counter++;
-               }
+        std::set<AngularTriple>::iterator it = search_list.begin();
+        AngularTriple here = *it;
+        search_list.erase(it);
+        Point &p = map.getPoint(here.pixel);
+        std::set<AngularTriple> newPixels;
+        std::set<AngularTriple> mergePixels;
+        // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
+        if (p.filled() && p.m_misc != ~0) {
+            p.getNode().extractAngular(newPixels, &map, here);
+            p.m_misc = ~0;
+            if (!p.getMergePixel().empty()) {
+                Point &p2 = map.getPoint(p.getMergePixel());
+                if (p2.m_misc != ~0) {
+                    auto newTripleIter = newPixels.insert(AngularTriple(here.angle, p.getMergePixel(), NoPixel));
+                    p2.m_cumangle = p.m_cumangle;
+                    p2.getNode().extractAngular(mergePixels, &map, *newTripleIter.first);
+                    for (auto &pixel : mergePixels) {
+                        parents[pixel.pixel] = p.getMergePixel();
+                    }
+                    p2.m_misc = ~0;
+                }
+            }
+        }
+        for (auto &pixel : newPixels) {
+            parents[pixel.pixel] = here.pixel;
+        }
+        newPixels.insert(mergePixels.begin(), mergePixels.end());
+        for (auto &pixel : newPixels) {
+            if (pixel.pixel == pixelTo) {
+                int counter = 0;
+                int row = attributes.getRowid(pixel.pixel);
+                attributes.setValue(row, order_col, counter);
+                counter++;
+                int lastPixelRow = row;
+                auto currParent = parents.find(pixel.pixel);
+                row = attributes.getRowid(currParent->second);
+                attributes.setValue(row, order_col, counter);
 
-               map.setDisplayedAttribute(-2);
-               map.setDisplayedAttribute(col);
+                if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
+                    attributes.setValue(row, linked_col, 1);
+                    attributes.setValue(lastPixelRow, linked_col, 1);
+                } else {
+                    // apparently we can't just have 1 number in the whole column
+                    attributes.setValue(row, linked_col, 0);
+                }
 
-               return true;
-           }
-           parents[pixel.pixel] = here.pixel;
-       }
-       search_list.insert(newPixels.begin(), newPixels.end());
+                lastPixelRow = row;
+                currParent = parents.find(currParent->second);
+                counter++;
+                if (currParent->first != here.pixel) {
+                    row = attributes.getRowid(here.pixel);
+                    attributes.setValue(row, order_col, counter);
+
+                    if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
+                        attributes.setValue(row, linked_col, 1);
+                        attributes.setValue(lastPixelRow, linked_col, 1);
+                    } else {
+                        // apparently we can't just have 1 number in the whole column
+                        attributes.setValue(row, linked_col, 0);
+                    }
+
+                    lastPixelRow = row;
+                    currParent = parents.find(here.pixel);
+                    counter++;
+                }
+                while (currParent != parents.end()) {
+                    Point &p = map.getPoint(currParent->second);
+                    int row = attributes.getRowid(currParent->second);
+                    attributes.setValue(row, order_col, counter);
+
+                    if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
+                        attributes.setValue(row, linked_col, 1);
+                        attributes.setValue(lastPixelRow, linked_col, 1);
+                    } else {
+                        // apparently we can't just have 1 number in the whole column
+                        attributes.setValue(row, linked_col, 0);
+                    }
+
+                    lastPixelRow = row;
+                    currParent = parents.find(currParent->second);
+                    counter++;
+                }
+
+                map.overrideDisplayedAttribute(-2);
+                map.setDisplayedAttribute(order_col);
+
+                return true;
+            }
+        }
+        search_list.insert(newPixels.begin(), newPixels.end());
     }
 
     return false;
