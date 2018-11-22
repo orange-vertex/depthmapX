@@ -25,8 +25,11 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
     auto &attributes = map.getAttributeTable();
     auto &selection_set = map.getSelSet();
 
+    int path_col = attributes.insertColumn("Angular Shortest Path");
     int linked_col = attributes.insertColumn("Angular Shortest Path Linked");
     int order_col = attributes.insertColumn("Angular Shortest Path Order");
+    int zone_col = attributes.insertColumn("Angular Shortest Path Zone");
+    int zone_3m_col = attributes.insertColumn("Angular Shortest Path Zone 3m");
 
     for (int i = 0; i < attributes.getRowCount(); i++) {
         PixelRef pix = attributes.getRowKey(i);
@@ -78,8 +81,21 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
             parents[pixel.pixel] = here.pixel;
         }
         newPixels.insert(mergePixels.begin(), mergePixels.end());
+        int linePixelCounter = 0;
         for (auto &pixel : newPixels) {
             if (pixel.pixel == pixelTo) {
+
+
+                for (int i = 0; i < attributes.getRowCount(); i++) {
+                    PixelRef pix = attributes.getRowKey(i);
+                    map.getPoint(pix).m_misc = 0;
+                    map.getPoint(pix).m_dist = 0.0f;
+                    map.getPoint(pix).m_cumangle = -1.0f;
+                }
+
+
+
+
                 int counter = 0;
                 int row = attributes.getRowid(pixel.pixel);
                 attributes.setValue(row, order_col, counter);
@@ -95,6 +111,32 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
                 } else {
                     // apparently we can't just have 1 number in the whole column
                     attributes.setValue(row, linked_col, 0);
+                    auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                    for (auto &linePixel : pixelated) {
+                        int linePixelRow = attributes.getRowid(linePixel);
+                        if (linePixelRow != -1) {
+                            attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+
+                            std::set<AngularTriple> newPixels;
+                            Point &p = map.getPoint(linePixel);
+                            p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
+                            for (auto &zonePixel: newPixels) {
+                                int zonePixelRow = attributes.getRowid(zonePixel.pixel);
+                                if (zonePixelRow != -1) {
+                                    if(attributes.getValue(zonePixelRow, zone_col) == -1) {
+                                        attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                    }
+                                    if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                        attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                    } else {
+                                        map.getPoint(zonePixel.pixel).m_misc = 0;
+                                        map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
+                                    }
+                                }
+                            }
+
+                        }
+                    }
                 }
 
                 lastPixelRow = row;
@@ -110,6 +152,32 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
                     } else {
                         // apparently we can't just have 1 number in the whole column
                         attributes.setValue(row, linked_col, 0);
+                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                        for (auto &linePixel : pixelated) {
+                            int linePixelRow = attributes.getRowid(linePixel);
+                            if (linePixelRow != -1) {
+                                attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+
+                                std::set<AngularTriple> newPixels;
+                                Point &p = map.getPoint(linePixel);
+                                p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
+                                for (auto &zonePixel: newPixels) {
+                                    int zonePixelRow = attributes.getRowid(zonePixel.pixel);
+                                    if (zonePixelRow != -1) {
+                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
+                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                        }
+                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                            attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                        } else {
+                                            map.getPoint(zonePixel.pixel).m_misc = 0;
+                                            map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
                     }
 
                     lastPixelRow = row;
@@ -127,6 +195,32 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
                     } else {
                         // apparently we can't just have 1 number in the whole column
                         attributes.setValue(row, linked_col, 0);
+                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                        for (auto &linePixel : pixelated) {
+                            int linePixelRow = attributes.getRowid(linePixel);
+                            if (linePixelRow != -1) {
+                                attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+
+                                std::set<AngularTriple> newPixels;
+                                Point &p = map.getPoint(linePixel);
+                                p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
+                                for (auto &zonePixel: newPixels) {
+                                    int zonePixelRow = attributes.getRowid(zonePixel.pixel);
+                                    if (zonePixelRow != -1) {
+                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
+                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                        }
+                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                            attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                        } else {
+                                            map.getPoint(zonePixel.pixel).m_misc = 0;
+                                            map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
                     }
 
                     lastPixelRow = row;

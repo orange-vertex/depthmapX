@@ -25,8 +25,11 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
     auto &attributes = map.getAttributeTable();
     auto &selection_set = map.getSelSet();
 
+    int path_col = attributes.insertColumn("Visual Shortest Path");
     int linked_col = attributes.insertColumn("Visual Shortest Path Linked");
     int order_col = attributes.insertColumn("Visual Shortest Path Order");
+    int zone_col = attributes.insertColumn("Visual Shortest Path Zone");
+    int zone_3m_col = attributes.insertColumn("Visual Shortest Path Zone 3m");
 
     for (int i = 0; i < attributes.getRowCount(); i++) {
         PixelRef pix = attributes.getRowKey(i);
@@ -80,8 +83,19 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
             nextLevelPix.insert(nextLevelPix.end(), newPixels.begin(), newPixels.end());
             nextLevelPix.insert(nextLevelPix.end(), mergePixels.begin(), mergePixels.end());
         }
+        int linePixelCounter = 0;
         for (auto iter = nextLevelPix.rbegin(); iter != nextLevelPix.rend(); ++iter) {
             if (*iter == pixelTo) {
+
+
+                for (int i = 0; i < attributes.getRowCount(); i++) {
+                    PixelRef pix = attributes.getRowKey(i);
+                    map.getPoint(pix).m_misc = 0;
+                    map.getPoint(pix).m_extent = pix;
+                }
+
+
+
                 int counter = 0;
                 int row = attributes.getRowid(*iter);
                 attributes.setValue(row, order_col, counter);
@@ -100,6 +114,32 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
                     } else {
                         // apparently we can't just have 1 number in the whole column
                         attributes.setValue(row, linked_col, 0);
+                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                        for (auto &linePixel : pixelated) {
+                            int linePixelRow = attributes.getRowid(linePixel);
+                            if (linePixelRow != -1) {
+                                attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+
+                                PixelRefVector newPixels;
+                                Point &p = map.getPoint(linePixel);
+                                p.getNode().extractUnseen(newPixels, &map, p.m_misc);
+                                for (auto &zonePixel: newPixels) {
+                                    int zonePixelRow = attributes.getRowid(zonePixel);
+                                    if (zonePixelRow != -1) {
+                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
+                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                        }
+                                        if(dist(linePixel, zonePixel)*map.getSpacing() < 3000) {
+                                            attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                        } else {
+                                            map.getPoint(zonePixel).m_misc = 0;
+                                            map.getPoint(zonePixel).m_extent = zonePixel;
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
                     }
 
                     lastPixelRow = row;
