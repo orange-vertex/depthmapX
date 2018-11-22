@@ -79,6 +79,7 @@ bool VGAMetricDepth::run(Communicator *comm, const Options &options, PointMap &m
                             row, dist_col,
                             float(map.getSpacing() * dist(p.getMergePixel(), *map.getSelSet().begin())));
                     }
+                    int prevNum = search_list.size();
                     p2.getNode().extractMetric(search_list, &map, MetricTriple(here.dist, p.getMergePixel(), NoPixel));
                     p2.m_misc = ~0;
                 }

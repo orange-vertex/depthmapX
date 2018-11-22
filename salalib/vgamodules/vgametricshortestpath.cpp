@@ -25,8 +25,11 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     auto &attributes = map.getAttributeTable();
     auto &selection_set = map.getSelSet();
 
+    int path_col = attributes.insertColumn("Metric Shortest Path");
     int linked_col = attributes.insertColumn("Metric Shortest Path Linked");
     int order_col = attributes.insertColumn("Metric Shortest Path Order");
+    int zone_col = attributes.insertColumn("Metric Shortest Path Zone");
+    int zone_3m_col = attributes.insertColumn("Metric Shortest Path Zone 3m");
 
     for (int i = 0; i < attributes.getRowCount(); i++) {
         PixelRef pix = attributes.getRowKey(i);
@@ -77,8 +80,22 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
             parents[pixel.pixel] = here.pixel;
         }
         newPixels.insert(mergePixels.begin(), mergePixels.end());
+        int linePixelCounter = 0;
         for (auto &pixel : newPixels) {
             if (pixel.pixel == pixelTo) {
+
+
+
+                for (int i = 0; i < attributes.getRowCount(); i++) {
+                    PixelRef pix = attributes.getRowKey(i);
+                    map.getPoint(pix).m_misc = 0;
+                    map.getPoint(pix).m_dist = -1.0f;
+                    map.getPoint(pix).m_cumangle = 0.0f;
+                }
+
+
+
+
                 int counter = 0;
                 int row = attributes.getRowid(pixel.pixel);
                 attributes.setValue(row, order_col, counter);
@@ -94,6 +111,32 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                 } else {
                     // apparently we can't just have 1 number in the whole column
                     attributes.setValue(row, linked_col, 0);
+                    auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                    for (auto &linePixel : pixelated) {
+                        int linePixelRow = attributes.getRowid(linePixel);
+                        if (linePixelRow != -1) {
+                            attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+
+                            std::set<MetricTriple> newPixels;
+                            Point &p = map.getPoint(linePixel);
+                            p.getNode().extractMetric(newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel));
+                            for (auto &zonePixel: newPixels) {
+                                int zonePixelRow = attributes.getRowid(zonePixel.pixel);
+                                if (zonePixelRow != -1) {
+                                    if(attributes.getValue(zonePixelRow, zone_col) == -1) {
+                                        attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                    }
+                                    if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                        attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                    } else {
+                                        map.getPoint(zonePixel.pixel).m_misc = 0;
+                                        map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
+                                    }
+                                }
+                            }
+
+                        }
+                    }
                 }
 
                 lastPixelRow = row;
@@ -109,6 +152,32 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                     } else {
                         // apparently we can't just have 1 number in the whole column
                         attributes.setValue(row, linked_col, 0);
+                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                        for (auto &linePixel : pixelated) {
+                            int linePixelRow = attributes.getRowid(linePixel);
+                            if (linePixelRow != -1) {
+                                attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+
+                                std::set<MetricTriple> newPixels;
+                                Point &p = map.getPoint(linePixel);
+                                p.getNode().extractMetric(newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel));
+                                for (auto &zonePixel: newPixels) {
+                                    int zonePixelRow = attributes.getRowid(zonePixel.pixel);
+                                    if (zonePixelRow != -1) {
+                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
+                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                        }
+                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                            attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                        } else {
+                                            map.getPoint(zonePixel.pixel).m_misc = 0;
+                                            map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
                     }
 
                     lastPixelRow = row;
@@ -126,6 +195,32 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                     } else {
                         // apparently we can't just have 1 number in the whole column
                         attributes.setValue(row, linked_col, 0);
+                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                        for (auto &linePixel : pixelated) {
+                            int linePixelRow = attributes.getRowid(linePixel);
+                            if (linePixelRow != -1) {
+                                attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+
+                                std::set<MetricTriple> newPixels;
+                                Point &p = map.getPoint(linePixel);
+                                p.getNode().extractMetric(newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel));
+                                for (auto &zonePixel: newPixels) {
+                                    int zonePixelRow = attributes.getRowid(zonePixel.pixel);
+                                    if (zonePixelRow != -1) {
+                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
+                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                        }
+                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                            attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                        } else {
+                                            map.getPoint(zonePixel.pixel).m_misc = 0;
+                                            map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
                     }
 
                     lastPixelRow = row;
