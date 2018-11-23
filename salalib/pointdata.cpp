@@ -514,7 +514,7 @@ void PointMap::outputMergeLines(std::ostream& stream, char delim)
 
 void PointMap::outputSummary(std::ostream& myout, char delimiter)
 {
-   myout << "Ref" << delimiter << "x" << delimiter << "y";
+   myout << "Ref" << delimiter << "x" << delimiter << "y"  << delimiter << "blocked";
 
    m_attributes.outputHeader(myout, delimiter);
    myout.precision(12);
@@ -524,7 +524,8 @@ void PointMap::outputSummary(std::ostream& myout, char delimiter)
          PixelRef pix = m_attributes.getRowKey(i);
          myout << pix << delimiter;
          Point2f p = depixelate(pix);
-         myout << p.x << delimiter << p.y;
+         myout << p.x << delimiter << p.y << delimiter;
+         myout << (getPoint(pix).blocked() ? "1" : "0");
          m_attributes.outputRow(i, myout, delimiter); // , update_only = false
       }
    }
