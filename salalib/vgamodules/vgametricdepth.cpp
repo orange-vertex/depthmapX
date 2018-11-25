@@ -25,6 +25,7 @@ bool VGAMetricDepth::run(Communicator *comm, const Options &options, PointMap &m
     AttributeTable &attributes = map.getAttributeTable();
 
     // n.b., insert columns sets values to -1 if the column already exists
+    int blocked_col = attributes.insertColumn("Blocked");
     int path_angle_col = attributes.insertColumn("Metric Step Shortest-Path Angle");
     int path_length_col = attributes.insertColumn("Metric Step Shortest-Path Length");
     int dist_col;
@@ -38,6 +39,7 @@ bool VGAMetricDepth::run(Communicator *comm, const Options &options, PointMap &m
         map.getPoint(pix).m_misc = 0;
         map.getPoint(pix).m_dist = -1.0f;
         map.getPoint(pix).m_cumangle = 0.0f;
+        attributes.setValue(i, blocked_col, map.getPoint(pix).blocked() ? 0 : (map.blockedAdjacent(pix) ? 1 : (static_cast<int>(map.getPoint(pix).getMergePixel()) != -1 ? 2 : -1)));
     }
 
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
