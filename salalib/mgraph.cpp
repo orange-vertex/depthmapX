@@ -356,10 +356,10 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
           retvar = globalResult & localResult;
       }
       else if (options.output_type == Options::OUTPUT_METRIC) {
-          retvar = VGAMetric().run(communicator, options, getDisplayedPointMap(), simple_version);
+          retvar = VGAMetricOpenMP().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_ANGULAR) {
-          retvar = VGAAngular().run(communicator, options, getDisplayedPointMap(), simple_version);
+          retvar = VGAAngularOpenMP().run(communicator, options, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_THRU_VISION) {
           retvar = VGAThroughVision().run(communicator, options, getDisplayedPointMap(), simple_version);

@@ -25,34 +25,57 @@
 
 #include "genlib/simplematrix.h"
 
+#include <unordered_set>
+
 class VGAMetricOpenMP : IVGA {
+  public:
+    struct NewNode {
+        int idx, merge = -1;
+        PixelRef ref;
+        std::vector<int> hood;
+        bool edge;
+        NewNode(PixelRef r = NoPixel) { ref = r; }
+    };
+    struct MetricIntermediateData {
+        bool seen = false;
+        float dist = -1.0f, cumangle = 0.0f;
+        NewNode *n;
+    };
+
+    static MetricIntermediateData noPixelNode;
+    struct NewMetricTriple {
+        float dist;
+        MetricIntermediateData *mid;
+        PixelRef lastpixel;
+        NewMetricTriple(float d = 0.0f, MetricIntermediateData *m = &noPixelNode, PixelRef lp = NoPixel) {
+            dist = d;
+            mid = m;
+            lastpixel = lp;
+        }
+        bool operator==(const NewMetricTriple &mp2) const {
+            return (dist == mp2.dist && mid->n->ref == mp2.mid->n->ref);
+        }
+        bool operator<(const NewMetricTriple &mp2) const {
+            return (dist < mp2.dist) || (dist == mp2.dist && mid->n->ref < mp2.mid->n->ref);
+        }
+        bool operator>(const NewMetricTriple &mp2) const {
+            return (dist > mp2.dist) || (dist == mp2.dist && mid->n->ref > mp2.mid->n->ref);
+        }
+        bool operator!=(const NewMetricTriple &mp2) const {
+            return (dist != mp2.dist) || (mid->n->ref != mp2.mid->n->ref);
+        }
+    };
+
+    struct NewMetricTripleHasher
+    {
+    };
+
+    std::vector<NewNode> getNodes(PointMap &map);
+    std::vector<MetricIntermediateData> getSourceData(const std::vector<NewNode> &nodes);
+
   public:
     std::string getAnalysisName() const override { return "Metric Analysis (OpenMP)"; }
     bool run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) override;
-    void extractMetric(Node &node, std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple &curs,
-                       depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &dists,
-                       depthmapX::RowMatrix<float> &cumangles) {
-        if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
-            for (int i = 0; i < 32; i++) {
-                Bin &bin = node.bin(i);
-                for (auto pixVec : bin.m_pixel_vecs) {
-                    for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
-                        float &pixdist = dists(pix.y, pix.x);
-                        if (miscs(pix.y, pix.x) == 0 &&
-                            (pixdist == -1.0 || (curs.dist + dist(pix, curs.pixel) < pixdist))) {
-                            pixdist = curs.dist + (float)dist(pix, curs.pixel);
-                            // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
-                            cumangles(pix.y, pix.x) =
-                                cumangles(curs.pixel.y, curs.pixel.x) +
-                                (curs.lastpixel == NoPixel
-                                     ? 0.0f
-                                     : (float)(angle(pix, curs.pixel, curs.lastpixel) / (M_PI * 0.5)));
-                            pixels.insert(MetricTriple(pixdist, pix, curs.pixel));
-                        }
-                        pix.move(bin.m_dir);
-                    }
-                }
-            }
-        }
-    }
+    void extractMetric(std::set<NewMetricTriple> &pixels, const NewMetricTriple &curs,
+                       std::vector<MetricIntermediateData> &iData);
 };
