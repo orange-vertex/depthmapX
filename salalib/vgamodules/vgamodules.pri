@@ -10,7 +10,9 @@ HEADERS += \
     $$PWD/vgavisualglobaldepth.h \
     $$PWD/vgavisualglobalopenmp.h \
     $$PWD/vgavisuallocalopenmp.h \
-    $$PWD/vgavisuallocaladjmatrix.h
+    $$PWD/vgavisuallocaladjmatrix.h \
+    $$PWD/vgametricopenmp.h \
+    $$PWD/vgaangularopenmp.h
 SOURCES += \
     $$PWD/vgaisovist.cpp \
     $$PWD/vgaangular.cpp \
@@ -23,4 +25,6 @@ SOURCES += \
     $$PWD/vgavisualglobaldepth.cpp \
     $$PWD/vgavisualglobalopenmp.cpp \
     $$PWD/vgavisuallocalopenmp.cpp \
-    $$PWD/vgavisuallocaladjmatrix.cpp
+    $$PWD/vgavisuallocaladjmatrix.cpp \
+    $$PWD/vgametricopenmp.cpp \
+    $$PWD/vgaangularopenmp.cpp
