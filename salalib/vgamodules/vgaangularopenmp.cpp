@@ -33,21 +33,23 @@ bool VGAAngularOpenMP::run(Communicator *comm, const Options &options, PointMap 
     std::vector<PixelRef> filled;
     std::vector<int> rows;
 
+    int lastFilledIdx = 0;
     for (short i = 0; i < map.getCols(); i++) {
         for (short j = 0; j < map.getRows(); j++) {
             PixelRef curs = PixelRef(i, j);
             if (map.getPoint(curs).filled()) {
                 filled.push_back(curs);
                 rows.push_back(attributes.getRowid(curs));
+                lastFilledIdx = curs;
             }
         }
     }
 
     int count = 0;
-
-    std::vector<float> total_depth_col_data(filled.size());
-    std::vector<float> mean_depth_col_data(filled.size());
-    std::vector<float> count_col_data(filled.size());
+    struct AngularColData {
+        float total_depth, mean_depth, count;
+    };
+    std::vector<AngularColData> colData(filled.size());
 
     int i, N = int(filled.size());
 #pragma omp parallel for default(shared) private(i) schedule(dynamic)
@@ -103,11 +105,12 @@ bool VGAAngularOpenMP::run(Communicator *comm, const Options &options, PointMap 
             }
         }
 
+        auto& rowData = colData[static_cast<size_t>(i)];
         if (total_nodes > 0) {
-            mean_depth_col_data[size_t(i)] = float(double(total_angle) / double(total_nodes));
+            rowData.mean_depth = float(double(total_angle) / double(total_nodes));
         }
-        total_depth_col_data[size_t(i)] = total_angle;
-        count_col_data[size_t(i)] = float(total_nodes);
+        rowData.total_depth = total_angle;
+        rowData.count = float(total_nodes);
 
         count++; // <- increment count
 
@@ -120,10 +123,12 @@ bool VGAAngularOpenMP::run(Communicator *comm, const Options &options, PointMap 
             }
         }
 
-        // kept to achieve parity in binary comparison with old versions
-        // TODO: Remove at next version of .graph file
-        map.getPoint(filled[size_t(i)]).m_misc = miscs(filled[size_t(i)].y, filled[size_t(i)].x);
-        map.getPoint(filled[size_t(i)]).m_cumangle = cumangles(filled[size_t(i)].y, filled[size_t(i)].x);
+        if(lastFilledIdx == i) {
+            // kept to achieve parity in binary comparison with old versions
+            // TODO: Remove at next version of .graph file
+            map.getPoint(filled[size_t(i)]).m_misc = miscs(filled[size_t(i)].y, filled[size_t(i)].x);
+            map.getPoint(filled[size_t(i)]).m_cumangle = cumangles(filled[size_t(i)].y, filled[size_t(i)].x);
+        }
     }
 
     std::string radius_text;
@@ -145,9 +150,10 @@ bool VGAAngularOpenMP::run(Communicator *comm, const Options &options, PointMap 
     int count_col = attributes.insertColumn(count_col_text.c_str());
 
     for (size_t i = 0; i < rows.size(); i++) {
-        attributes.setValue(rows[i], mean_depth_col, mean_depth_col_data[i]);
-        attributes.setValue(rows[i], total_depth_col, total_depth_col_data[i]);
-        attributes.setValue(rows[i], count_col, count_col_data[i]);
+        auto& rowData = colData[static_cast<size_t>(i)];
+        attributes.setValue(rows[i], mean_depth_col, rowData.mean_depth);
+        attributes.setValue(rows[i], total_depth_col, rowData.total_depth);
+        attributes.setValue(rows[i], count_col, rowData.count);
     }
 
     map.overrideDisplayedAttribute(-2);
