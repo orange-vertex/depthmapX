@@ -116,6 +116,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                         int linePixelRow = attributes.getRowid(linePixel);
                         if (linePixelRow != -1) {
                             attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+                            attributes.setValue(linePixelRow, zone_col, 1);
 
                             std::set<MetricTriple> newPixels;
                             Point &p = map.getPoint(linePixel);
@@ -123,10 +124,12 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                             for (auto &zonePixel: newPixels) {
                                 int zonePixelRow = attributes.getRowid(zonePixel.pixel);
                                 if (zonePixelRow != -1) {
-                                    if(attributes.getValue(zonePixelRow, zone_col) == -1) {
-                                        attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                    double zoneLineDist = dist(linePixel, zonePixel.pixel);
+                                    float currZonePixelVal = attributes.getValue(zonePixelRow, zone_col);
+                                    if(currZonePixelVal == -1 ||  1.0f/(zoneLineDist+1) > currZonePixelVal) {
+                                        attributes.setValue(zonePixelRow, zone_col, 1.0f/(zoneLineDist+1));
                                     }
-                                    if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                    if(zoneLineDist*map.getSpacing() < 3000) {
                                         attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
                                     } else {
                                         map.getPoint(zonePixel.pixel).m_misc = 0;
@@ -157,6 +160,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                             int linePixelRow = attributes.getRowid(linePixel);
                             if (linePixelRow != -1) {
                                 attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+                                attributes.setValue(linePixelRow, zone_col, 1);
 
                                 std::set<MetricTriple> newPixels;
                                 Point &p = map.getPoint(linePixel);
@@ -164,10 +168,12 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                                 for (auto &zonePixel: newPixels) {
                                     int zonePixelRow = attributes.getRowid(zonePixel.pixel);
                                     if (zonePixelRow != -1) {
-                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
-                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                        double zoneLineDist = dist(linePixel, zonePixel.pixel);
+                                        float currZonePixelVal = attributes.getValue(zonePixelRow, zone_col);
+                                        if(currZonePixelVal == -1 ||  1.0f/(zoneLineDist+1) > currZonePixelVal) {
+                                            attributes.setValue(zonePixelRow, zone_col, 1.0f/(zoneLineDist+1));
                                         }
-                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                        if(zoneLineDist*map.getSpacing() < 3000) {
                                             attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
                                         } else {
                                             map.getPoint(zonePixel.pixel).m_misc = 0;
@@ -200,6 +206,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                             int linePixelRow = attributes.getRowid(linePixel);
                             if (linePixelRow != -1) {
                                 attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+                                attributes.setValue(linePixelRow, zone_col, 1);
 
                                 std::set<MetricTriple> newPixels;
                                 Point &p = map.getPoint(linePixel);
@@ -207,10 +214,12 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                                 for (auto &zonePixel: newPixels) {
                                     int zonePixelRow = attributes.getRowid(zonePixel.pixel);
                                     if (zonePixelRow != -1) {
-                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
-                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
+                                        double zoneLineDist = dist(linePixel, zonePixel.pixel);
+                                        float currZonePixelVal = attributes.getValue(zonePixelRow, zone_col);
+                                        if(currZonePixelVal == -1 ||  1.0f/(zoneLineDist+1) > currZonePixelVal) {
+                                            attributes.setValue(zonePixelRow, zone_col, 1.0f/(zoneLineDist+1));
                                         }
-                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
+                                        if(zoneLineDist*map.getSpacing() < 3000) {
                                             attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
                                         } else {
                                             map.getPoint(zonePixel.pixel).m_misc = 0;
