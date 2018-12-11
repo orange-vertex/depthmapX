@@ -158,6 +158,7 @@ public:
    bool visualShortestPath( Communicator *communicator );
    bool metricShortestPath( Communicator *communicator );
    bool angularShortestPath( Communicator *communicator );
+   bool extractLinkData( Communicator *communicator );
    bool analyseGraph(Communicator *communicator, Options options , bool simple_version); // <- options copied to keep thread safe
    //
    // helpers for editing maps

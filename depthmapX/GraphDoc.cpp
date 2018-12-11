@@ -1674,6 +1674,24 @@ void QGraphDoc::OnToolsASP()
    }
 }
 
+void QGraphDoc::OnToolsELD() {
+    if (m_communicator) {
+        QMessageBox::warning(this, tr("Warning"), tr("Please wait, another process is running"), QMessageBox::Ok,
+                             QMessageBox::Ok);
+        return;
+    }
+
+    if (m_meta_graph->viewingProcessed()) {
+
+        // This is easy too... too easy... hmm... crossed-fingers, here goes:
+        m_communicator = new CMSCommunicator();
+        CreateWaitDialog(tr("Extracting link data..."));
+        m_communicator->SetFunction(CMSCommunicator::EXTRACTLINKDATA);
+
+        m_thread.render(this);
+    }
+}
+
 void QGraphDoc::OnToolsPD() 
 {
    if (m_communicator) {
