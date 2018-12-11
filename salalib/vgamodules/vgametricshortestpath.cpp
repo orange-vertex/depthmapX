@@ -31,6 +31,9 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     int zone_col = attributes.insertColumn("Metric Shortest Path Zone");
     int zone_3m_col = attributes.insertColumn("Metric Shortest Path Zone 3m");
 
+    // custom linking costs from the attribute table
+    int link_metric_cost_col = attributes.getColumnIndex("Link Metric Cost");
+
     for (int i = 0; i < attributes.getRowCount(); i++) {
         PixelRef pix = attributes.getRowKey(i);
         map.getPoint(pix).m_misc = 0;
@@ -62,14 +65,19 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
         std::set<MetricTriple> mergePixels;
         // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
         if (p.filled() && p.m_misc != ~0) {
-            extractMetric(p.getNode(), newPixels, &map, here);
+            extractMetric(p.getNode(), newPixels, &map, here, 0);
             p.m_misc = ~0;
             if (!p.getMergePixel().empty()) {
                 Point &p2 = map.getPoint(p.getMergePixel());
                 if (p2.m_misc != ~0) {
                     auto newTripleIter = newPixels.insert(MetricTriple(here.dist, p.getMergePixel(), NoPixel));
                     p2.m_cumangle = p.m_cumangle;
-                    extractMetric(p2.getNode(), mergePixels, &map, *newTripleIter.first);
+                    float extraMetricCost = 0;
+                    if(link_metric_cost_col != -1) {
+                        int mergeRow = attributes.getRowid(p.getMergePixel());
+                        extraMetricCost = attributes.getValue(mergeRow, link_metric_cost_col);
+                    }
+                    extractMetric(p2.getNode(), mergePixels, &map, *newTripleIter.first, extraMetricCost);
                     for (auto &pixel : mergePixels) {
                         parents[pixel.pixel] = p.getMergePixel();
                     }
@@ -128,7 +136,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
 
                         std::set<MetricTriple> newPixels;
                         Point &p = map.getPoint(linePixel);
-                        extractMetric(p.getNode(), newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel));
+                        extractMetric(p.getNode(), newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel), 0);
                         for (auto &zonePixel : newPixels) {
                             int zonePixelRow = attributes.getRowid(zonePixel.pixel);
                             if (zonePixelRow != -1) {
@@ -164,15 +172,15 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
 }
 
 void VGAMetricShortestPath::extractMetric(Node n, std::set<MetricTriple> &pixels, PointMap *pointdata,
-                                          const MetricTriple &curs) {
+                                          const MetricTriple &curs, float extraMetricCost) {
     if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
         for (int i = 0; i < 32; i++) {
             Bin &bin = n.bin(i);
             for (auto pixVec : bin.m_pixel_vecs) {
                 for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
                     Point &pt = pointdata->getPoint(pix);
-                    if (pt.m_misc == 0 && (pt.m_dist == -1.0 || (curs.dist + dist(pix, curs.pixel) < pt.m_dist))) {
-                        pt.m_dist = curs.dist + (float)dist(pix, curs.pixel);
+                    if (pt.m_misc == 0 && (pt.m_dist == -1.0 || (extraMetricCost + curs.dist + dist(pix, curs.pixel) < pt.m_dist))) {
+                        pt.m_dist = extraMetricCost + curs.dist + (float)dist(pix, curs.pixel);
                         // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
                         pt.m_cumangle = pointdata->getPoint(curs.pixel).m_cumangle +
                                         (curs.lastpixel == NoPixel
