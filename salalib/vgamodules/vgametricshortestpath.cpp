@@ -62,14 +62,14 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
         std::set<MetricTriple> mergePixels;
         // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
         if (p.filled() && p.m_misc != ~0) {
-            p.getNode().extractMetric(newPixels, &map, here);
+            extractMetric(p.getNode(), newPixels, &map, here);
             p.m_misc = ~0;
             if (!p.getMergePixel().empty()) {
                 Point &p2 = map.getPoint(p.getMergePixel());
                 if (p2.m_misc != ~0) {
                     auto newTripleIter = newPixels.insert(MetricTriple(here.dist, p.getMergePixel(), NoPixel));
                     p2.m_cumangle = p.m_cumangle;
-                    p2.getNode().extractMetric(mergePixels, &map, *newTripleIter.first);
+                    extractMetric(p2.getNode(), mergePixels, &map, *newTripleIter.first);
                     for (auto &pixel : mergePixels) {
                         parents[pixel.pixel] = p.getMergePixel();
                     }
@@ -86,7 +86,8 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                 pixelFound = true;
             }
         }
-        if(!pixelFound) search_list.insert(newPixels.begin(), newPixels.end());
+        if (!pixelFound)
+            search_list.insert(newPixels.begin(), newPixels.end());
     }
 
     int linePixelCounter = 0;
@@ -127,16 +128,16 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
 
                         std::set<MetricTriple> newPixels;
                         Point &p = map.getPoint(linePixel);
-                        p.getNode().extractMetric(newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel));
-                        for (auto &zonePixel: newPixels) {
+                        extractMetric(p.getNode(), newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel));
+                        for (auto &zonePixel : newPixels) {
                             int zonePixelRow = attributes.getRowid(zonePixel.pixel);
                             if (zonePixelRow != -1) {
                                 double zoneLineDist = dist(linePixel, zonePixel.pixel);
                                 float currZonePixelVal = attributes.getValue(zonePixelRow, zone_col);
-                                if(currZonePixelVal == -1 ||  1.0f/(zoneLineDist+1) > currZonePixelVal) {
-                                    attributes.setValue(zonePixelRow, zone_col, 1.0f/(zoneLineDist+1));
+                                if (currZonePixelVal == -1 || 1.0f / (zoneLineDist + 1) > currZonePixelVal) {
+                                    attributes.setValue(zonePixelRow, zone_col, 1.0f / (zoneLineDist + 1));
                                 }
-                                if(zoneLineDist*map.getSpacing() < 3000) {
+                                if (zoneLineDist * map.getSpacing() < 3000) {
                                     attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
                                 } else {
                                     map.getPoint(zonePixel.pixel).m_misc = 0;
@@ -144,7 +145,6 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -161,4 +161,28 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     }
 
     return false;
+}
+
+void VGAMetricShortestPath::extractMetric(Node n, std::set<MetricTriple> &pixels, PointMap *pointdata,
+                                          const MetricTriple &curs) {
+    if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
+        for (int i = 0; i < 32; i++) {
+            Bin &bin = n.bin(i);
+            for (auto pixVec : bin.m_pixel_vecs) {
+                for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
+                    Point &pt = pointdata->getPoint(pix);
+                    if (pt.m_misc == 0 && (pt.m_dist == -1.0 || (curs.dist + dist(pix, curs.pixel) < pt.m_dist))) {
+                        pt.m_dist = curs.dist + (float)dist(pix, curs.pixel);
+                        // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
+                        pt.m_cumangle = pointdata->getPoint(curs.pixel).m_cumangle +
+                                        (curs.lastpixel == NoPixel
+                                             ? 0.0f
+                                             : (float)(angle(pix, curs.pixel, curs.lastpixel) / (M_PI * 0.5)));
+                        pixels.insert(MetricTriple(pt.m_dist, pix, curs.pixel));
+                    }
+                    pix.move(bin.m_dir);
+                }
+            }
+        }
+    }
 }
