@@ -416,6 +416,20 @@ void RenderThread::run()
             pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
          }
          break;
+      case CMSCommunicator::EXTRACTLINKDATA:
+         {
+            // Set up for options step depth selection
+            Options options;
+            options.global = 0;
+            options.point_depth_selection = 1;
+
+            ok = pDoc->m_meta_graph->extractLinkData( comm );
+            if (ok) {
+               pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+            }
+            pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
+         }
+         break;
       case CMSCommunicator::POINTDEPTH:
          {
             // Set up for options step depth selection

@@ -147,6 +147,7 @@ private slots:
     void OnToolsVSP();
     void OnToolsMSP();
     void OnToolsASP();
+    void OnToolsELD();
     void OnToolsPD();
     void OnToolsAPD();
     void OnToolsMakeFewestLineMap();
@@ -368,6 +369,7 @@ private:
     QAction *visibilityShortestPathAct;
     QAction *metricShortestPathAct;
     QAction *angularShortestPathAct;
+    QAction *extractLinkDataAct;
     QAction *convertDataMapLinesAct;
     QAction *runAgentAnalysisAct;
     QAction *loadAgentProgramAct;

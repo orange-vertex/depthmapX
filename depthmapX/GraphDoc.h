@@ -76,6 +76,7 @@ class CMSCommunicator : public Communicator
 public:
    enum { IMPORT, IMPORTMIF, MAKEPOINTS, MAKEGRAPH, ANALYSEGRAPH,
           VISUALSHORTESTPATHS, METRICSHORTESTPATHS, ANGULARSHORTESTPATHS,
+          EXTRACTLINKDATA,
           POINTDEPTH, METRICPOINTDEPTH, ANGULARPOINTDEPTH, TOPOLOGICALPOINTDEPTH,
           MAKEISOVIST, MAKEISOVISTPATH,
           MAKEALLLINEMAP, MAKEFEWESTLINEMAP, MAKEDRAWING,
@@ -283,6 +284,7 @@ public:
     void OnToolsVSP();
     void OnToolsMSP();
     void OnToolsASP();
+    void OnToolsELD();
     void OnToolsPD();
 	void OnPushToLayer();
 	void OnEditGrid();

@@ -49,6 +49,7 @@
 #include "salalib/vgamodules/vgavisualshortestpath.h"
 #include "salalib/vgamodules/vgametricshortestpath.h"
 #include "salalib/vgamodules/vgaangularshortestpath.h"
+#include "salalib/vgamodules/extractlinkdata.h"
 
 #include "mgraph440/mgraph.h"
 
@@ -298,6 +299,10 @@ bool MetaGraph::metricShortestPath(Communicator *communicator) {
 }
 bool MetaGraph::angularShortestPath(Communicator *communicator) {
     return VGAAngularShortestPath().run(communicator, Options(), getDisplayedPointMap(), false);
+}
+
+bool MetaGraph::extractLinkData(Communicator *communicator) {
+    return ExtractLinkData().run(communicator, Options(), getDisplayedPointMap(), false);
 }
 
 bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool simple_version )   // <- options copied to keep thread safe
