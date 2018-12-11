@@ -53,6 +53,7 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
     // note that m_misc is used in a different manner to analyseGraph / PointDepth
     // here it marks the node as used in calculation only
     std::map<PixelRef, PixelRef> parents;
+    bool pixelFound = false;
     while (search_list.size()) {
         std::set<AngularTriple>::iterator it = search_list.begin();
         AngularTriple here = *it;
@@ -81,160 +82,83 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
             parents[pixel.pixel] = here.pixel;
         }
         newPixels.insert(mergePixels.begin(), mergePixels.end());
-        int linePixelCounter = 0;
         for (auto &pixel : newPixels) {
             if (pixel.pixel == pixelTo) {
-
-
-                for (int i = 0; i < attributes.getRowCount(); i++) {
-                    PixelRef pix = attributes.getRowKey(i);
-                    map.getPoint(pix).m_misc = 0;
-                    map.getPoint(pix).m_dist = 0.0f;
-                    map.getPoint(pix).m_cumangle = -1.0f;
-                }
-
-
-
-
-                int counter = 0;
-                int row = attributes.getRowid(pixel.pixel);
-                attributes.setValue(row, order_col, counter);
-                counter++;
-                int lastPixelRow = row;
-                auto currParent = parents.find(pixel.pixel);
-                row = attributes.getRowid(currParent->second);
-                attributes.setValue(row, order_col, counter);
-
-                if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
-                    attributes.setValue(row, linked_col, 1);
-                    attributes.setValue(lastPixelRow, linked_col, 1);
-                } else {
-                    // apparently we can't just have 1 number in the whole column
-                    attributes.setValue(row, linked_col, 0);
-                    auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
-                    for (auto &linePixel : pixelated) {
-                        int linePixelRow = attributes.getRowid(linePixel);
-                        if (linePixelRow != -1) {
-                            attributes.setValue(linePixelRow, path_col, linePixelCounter++);
-
-                            std::set<AngularTriple> newPixels;
-                            Point &p = map.getPoint(linePixel);
-                            p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
-                            for (auto &zonePixel: newPixels) {
-                                int zonePixelRow = attributes.getRowid(zonePixel.pixel);
-                                if (zonePixelRow != -1) {
-                                    if(attributes.getValue(zonePixelRow, zone_col) == -1) {
-                                        attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
-                                    }
-                                    if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
-                                        attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
-                                    } else {
-                                        map.getPoint(zonePixel.pixel).m_misc = 0;
-                                        map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-                }
-
-                lastPixelRow = row;
-                currParent = parents.find(currParent->second);
-                counter++;
-                if (currParent->first != here.pixel) {
-                    row = attributes.getRowid(here.pixel);
-                    attributes.setValue(row, order_col, counter);
-
-                    if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
-                        attributes.setValue(row, linked_col, 1);
-                        attributes.setValue(lastPixelRow, linked_col, 1);
-                    } else {
-                        // apparently we can't just have 1 number in the whole column
-                        attributes.setValue(row, linked_col, 0);
-                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
-                        for (auto &linePixel : pixelated) {
-                            int linePixelRow = attributes.getRowid(linePixel);
-                            if (linePixelRow != -1) {
-                                attributes.setValue(linePixelRow, path_col, linePixelCounter++);
-
-                                std::set<AngularTriple> newPixels;
-                                Point &p = map.getPoint(linePixel);
-                                p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
-                                for (auto &zonePixel: newPixels) {
-                                    int zonePixelRow = attributes.getRowid(zonePixel.pixel);
-                                    if (zonePixelRow != -1) {
-                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
-                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
-                                        }
-                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
-                                            attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
-                                        } else {
-                                            map.getPoint(zonePixel.pixel).m_misc = 0;
-                                            map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-                    }
-
-                    lastPixelRow = row;
-                    currParent = parents.find(here.pixel);
-                    counter++;
-                }
-                while (currParent != parents.end()) {
-                    Point &p = map.getPoint(currParent->second);
-                    int row = attributes.getRowid(currParent->second);
-                    attributes.setValue(row, order_col, counter);
-
-                    if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
-                        attributes.setValue(row, linked_col, 1);
-                        attributes.setValue(lastPixelRow, linked_col, 1);
-                    } else {
-                        // apparently we can't just have 1 number in the whole column
-                        attributes.setValue(row, linked_col, 0);
-                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
-                        for (auto &linePixel : pixelated) {
-                            int linePixelRow = attributes.getRowid(linePixel);
-                            if (linePixelRow != -1) {
-                                attributes.setValue(linePixelRow, path_col, linePixelCounter++);
-
-                                std::set<AngularTriple> newPixels;
-                                Point &p = map.getPoint(linePixel);
-                                p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
-                                for (auto &zonePixel: newPixels) {
-                                    int zonePixelRow = attributes.getRowid(zonePixel.pixel);
-                                    if (zonePixelRow != -1) {
-                                        if(attributes.getValue(zonePixelRow, zone_col) == -1) {
-                                            attributes.setValue(zonePixelRow, zone_col, linePixelCounter);
-                                        }
-                                        if(dist(linePixel, zonePixel.pixel)*map.getSpacing() < 3000) {
-                                            attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
-                                        } else {
-                                            map.getPoint(zonePixel.pixel).m_misc = 0;
-                                            map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-                    }
-
-                    lastPixelRow = row;
-                    currParent = parents.find(currParent->second);
-                    counter++;
-                }
-
-                map.overrideDisplayedAttribute(-2);
-                map.setDisplayedAttribute(order_col);
-
-                return true;
+                pixelFound = true;
             }
         }
-        search_list.insert(newPixels.begin(), newPixels.end());
+        if(!pixelFound) search_list.insert(newPixels.begin(), newPixels.end());
+    }
+
+    int linePixelCounter = 0;
+    auto pixelToParent = parents.find(pixelTo);
+    if (pixelToParent != parents.end()) {
+
+        for (int i = 0; i < attributes.getRowCount(); i++) {
+            PixelRef pix = attributes.getRowKey(i);
+            map.getPoint(pix).m_misc = 0;
+            map.getPoint(pix).m_dist = 0.0f;
+            map.getPoint(pix).m_cumangle = -1.0f;
+        }
+
+        int counter = 0;
+        int row = attributes.getRowid(pixelTo);
+        attributes.setValue(row, order_col, counter);
+        counter++;
+        int lastPixelRow = row;
+        auto currParent = pixelToParent;
+        counter++;
+        while (currParent != parents.end()) {
+            Point &p = map.getPoint(currParent->second);
+            int row = attributes.getRowid(currParent->second);
+            attributes.setValue(row, order_col, counter);
+
+            if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
+                attributes.setValue(row, linked_col, 1);
+                attributes.setValue(lastPixelRow, linked_col, 1);
+            } else {
+                // apparently we can't just have 1 number in the whole column
+                attributes.setValue(row, linked_col, 0);
+                auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                for (auto &linePixel : pixelated) {
+                    int linePixelRow = attributes.getRowid(linePixel);
+                    if (linePixelRow != -1) {
+                        attributes.setValue(linePixelRow, path_col, linePixelCounter++);
+                        attributes.setValue(linePixelRow, zone_col, 1);
+
+                        std::set<AngularTriple> newPixels;
+                        Point &p = map.getPoint(linePixel);
+                        p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
+                        for (auto &zonePixel: newPixels) {
+                            int zonePixelRow = attributes.getRowid(zonePixel.pixel);
+                            if (zonePixelRow != -1) {
+                                double zoneLineDist = dist(linePixel, zonePixel.pixel);
+                                float currZonePixelVal = attributes.getValue(zonePixelRow, zone_col);
+                                if(currZonePixelVal == -1 ||  1.0f/(zoneLineDist+1) > currZonePixelVal) {
+                                    attributes.setValue(zonePixelRow, zone_col, 1.0f/(zoneLineDist+1));
+                                }
+                                if(zoneLineDist*map.getSpacing() < 3000) {
+                                    attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                } else {
+                                    map.getPoint(zonePixel.pixel).m_misc = 0;
+                                    map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            lastPixelRow = row;
+            currParent = parents.find(currParent->second);
+            counter++;
+        }
+
+        map.overrideDisplayedAttribute(-2);
+        map.setDisplayedAttribute(order_col);
+
+        return true;
     }
 
     return false;
