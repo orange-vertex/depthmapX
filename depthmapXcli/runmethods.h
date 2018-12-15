@@ -28,6 +28,7 @@
 #include "exportparser.h"
 #include "linkparser.h"
 #include "salalib/isovistdef.h"
+#include "shortestpathparser.h"
 #include <vector>
 
 class Line;
@@ -44,5 +45,7 @@ namespace dm_runmethods{
     void runIsovists(const CommandLineParser &cmdP, const std::vector<IsovistDefinition> &isovists, IPerformanceSink &perfWriter );
     void exportData(const CommandLineParser &cmdP, const ExportParser &exportP, IPerformanceSink &perfWriter );
     void runStepDepth(const CommandLineParser &clp, const std::vector<Point2f> &stepDepthPoints, IPerformanceSink &perfWriter);
+    void runShortestPath(const CommandLineParser &clp, const ShortestPathParser::ShortestPathType &shortestPathType,
+                         const Point2f &origin, const Point2f &destination, IPerformanceSink &perfWriter);
     void runMapConversion(const CommandLineParser& clp, const MapConvertParser &mcp, IPerformanceSink &perfWriter);
 }

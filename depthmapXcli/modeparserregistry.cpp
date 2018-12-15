@@ -25,6 +25,7 @@
 #include "exportparser.h"
 #include "stepdepthparser.h"
 #include "mapconvertparser.h"
+#include "shortestpathparser.h"
 
 
 void ModeParserRegistry::populateParsers()
@@ -41,5 +42,6 @@ void ModeParserRegistry::populateParsers()
     REGISTER_PARSER(ImportParser);
     REGISTER_PARSER(StepDepthParser);
     REGISTER_PARSER(MapConvertParser);
+    REGISTER_PARSER(ShortestPathParser);
     // *********
 }
