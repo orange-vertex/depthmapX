@@ -693,6 +693,52 @@ namespace dm_runmethods
                 std::cout << " ok" << std::endl;
     }
 
+    void runShortestPath(const CommandLineParser &clp, const ShortestPathParser::ShortestPathType &shortestPathType,
+                         const Point2f &origin, const Point2f &destination, IPerformanceSink &perfWriter) {
+        auto mGraph = loadGraph(clp.getFileName().c_str(), perfWriter);
+
+        std::cout << "ok\nSelecting cells... " << std::flush;
+
+        auto graphRegion = mGraph->getRegion();
+
+        if (!graphRegion.contains(origin)) {
+            throw depthmapX::RuntimeException("Origin point outside of target region");
+        }
+        if (!graphRegion.contains(destination)) {
+            throw depthmapX::RuntimeException("Destination point outside of target region");
+        }
+        QtRegion r(origin, origin);
+        mGraph->setCurSel(r, false);
+        r.bottom_left = destination;
+        r.top_right = destination;
+        mGraph->setCurSel(r, true);
+
+        std::cout << "ok\nCalculating shortest path... " << std::flush;
+
+        Options options;
+        options.global = 0;
+        options.point_depth_selection = 1;
+
+        std::unique_ptr<Communicator> comm(new ICommunicator());
+
+        DO_TIMED("Calculating shortest path", switch (shortestPathType) {
+            case ShortestPathParser::ShortestPathType::ANGULAR:
+                mGraph->angularShortestPath(comm.get());
+                break;
+            case ShortestPathParser::ShortestPathType::METRIC:
+                mGraph->metricShortestPath(comm.get());
+                break;
+            case ShortestPathParser::ShortestPathType::VISUAL:
+                mGraph->visualShortestPath(comm.get());
+                break;
+            default: { throw depthmapX::SetupCheckException("Error, unsupported shortest path mode"); }
+        });
+
+        std::cout << " ok\nWriting out result..." << std::flush;
+        DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
+        std::cout << " ok" << std::endl;
+    }
+
     void runMapConversion(const CommandLineParser &clp, const MapConvertParser &mcp, IPerformanceSink &perfWriter)
     {
         auto mGraph = loadGraph(clp.getFileName().c_str(), perfWriter);
