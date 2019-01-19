@@ -4,9 +4,9 @@ include(views/views.pri)
 
 QT            += core gui opengl widgets
 DEFINES       += _DEPTHMAP
-TEMPLATE      = lib
-CONFIG        += staticlib
+TEMPLATE      = app
 TARGET        = depthmapX
+ICON       = icons/depthmapX.icns
 HEADERS       += GraphDoc.h \
                 indexWidget.h \
                 mainwindow.h \
@@ -16,7 +16,8 @@ HEADERS       += GraphDoc.h \
     mainwindowfactory.h \
     version.h \
     settings.h \
-    settingsimpl.h
+    settingsimpl.h \
+    coreapplication.h
 
 SOURCES       += GraphDoc.cpp \
                 indexWidget.cpp \
@@ -25,7 +26,26 @@ SOURCES       += GraphDoc.cpp \
                 renderthread.cpp \
                 treeWindow.cpp \
     mainwindowfactory.cpp \
-    settingsimpl.cpp
+    settingsimpl.cpp \
+    coreapplication.cpp \
+    main.cpp
+
+
+win32:RC_ICONS += icons/depthmapX.ico
+
+win32:Release:LIBS += -L../depthmapX/release -L../genlib/release -L../mgraph440/release  -L../salalib/release
+win32:Debug:LIBS += -L../depthmapX/debug -L../genlib/debug -L../mgraph440/debug -L../salalib/debug
+!win32:LIBS += -L../depthmapX -L../genlib -L../mgraph440 -L../salalib
+
+LIBS += -ldepthmapX -lsalalib -lmgraph440 -lgenlib
+
+!win32:!macx:LIBS += -L/usr/lib/i386-linux-gnu/
+
+!win32:!macx:LIBS += -lGL -lGLU
+
+
+win32:LIBS += -lOpenGl32 -lglu32 -lgdi32
+
 
 RESOURCES     += resource.qrc
 
@@ -64,6 +84,13 @@ FORMS += \
     UI/AgentAnalysisDlg.ui \
     UI/AboutDlg.ui \
     UI/licenseagreement.ui
+
+mac {
+    QMAKE_INFO_PLIST = resources/Info.plist
+    BUNDLE_RESOURCES.files = icons/graph.icns
+    BUNDLE_RESOURCES.path = Contents/Resources
+    QMAKE_BUNDLE_DATA += BUNDLE_RESOURCES
+}
 
 win32: system(make_version_header.bat)
 !win32: system(sh ./make_version_header.sh)

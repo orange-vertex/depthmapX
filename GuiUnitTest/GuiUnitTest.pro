@@ -13,7 +13,9 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     testviewhelpers.cpp \
-    testsettings.cpp
+    testsettings.cpp \
+    ../depthmapX/settingsimpl.cpp \
+    ../depthmapX/views/viewhelpers.cpp
 
 win32:Release:LIBS += -L../depthmapX/release
 win32:Debug:LIBS += -L../depthmapX/debug

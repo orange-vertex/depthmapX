@@ -6,7 +6,6 @@ SUBDIRS = \
     salalib \
     depthmapX \
     GuiUnitTest \
-    GuiApp \
     depthmapXcli \
     cliTest \
     salaTest \
