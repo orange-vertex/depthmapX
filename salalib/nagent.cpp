@@ -134,7 +134,7 @@ void AgentEngine::run(Communicator *comm, PointMap *pointmap)
       }
 
       for (auto& agentSet: agentSets) {
-         agentSet.move();
+         agentSet.move(i);
       }
 
       if (comm) {
@@ -202,11 +202,12 @@ void AgentSet::init(int agent, int trail_num)
    }
 }
 
-void AgentSet::move()
+void AgentSet::move(int currentTimeStep)
 {
    // go through backwards so remove does not affect later agents
    for (auto rev_iter = agents.rbegin(); rev_iter != agents.rend(); ++rev_iter) {
       rev_iter->onMove();
+      rev_iter->onUpdateTrail(currentTimeStep);
       if (rev_iter->getFrame() >= m_lifetime) {
          agents.erase( std::next(rev_iter).base() );
       }
@@ -689,6 +690,11 @@ void Agent::onMove()
    }
    // done. happy hamster.
 }
+void Agent::onUpdateTrail(double currentTime) {
+    if (!m_stopped && m_trail_num != -1) {
+        m_program->m_trails[m_trail_num].push_back(Event2f(m_loc, currentTime));
+    }
+}
 void Agent::onDestination()
 {
    m_at_destination = true;
@@ -724,9 +730,6 @@ void Agent::onStep()
    }
    else {
       m_loc = nextloc;
-   }
-   if (!m_stopped && m_trail_num != -1) {
-      m_program->m_trails[m_trail_num].push_back(Event2f(m_loc, m_program->m_steps));
    }
 }
 bool Agent::diagonalStep() 

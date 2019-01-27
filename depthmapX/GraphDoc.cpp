@@ -887,6 +887,53 @@ void QGraphDoc::OnFileExportLinks()
     stream.close();
 }
 
+void QGraphDoc::OnFileExportTraces()
+{
+    if (m_communicator) {
+        QMessageBox::warning(this, tr("Notice"), tr("Sorry, cannot export as another process is running"), QMessageBox::Ok, QMessageBox::Ok);
+        return;  // Locked
+    }
+    if (!m_meta_graph->viewingProcessedTraces()) {
+        QMessageBox::warning(this, tr("Notice"), tr("Sorry, can only export traces maps"), QMessageBox::Ok, QMessageBox::Ok);
+        return;  // No graph to export
+    }
+
+    QFilePath path(m_opened_name);
+    QString defaultname = path.m_path + (path.m_name.isEmpty() ? windowTitle() : path.m_name);
+
+    QString template_string = tr("Traceset XML file (*.xml)\n");
+
+    QFileDialog::Options options = 0;
+    QString selectedFilter;
+    QString outfile = QFileDialog::getSaveFileName(
+                0, tr("Save Output As"),
+                defaultname,
+                template_string,
+                &selectedFilter,
+                options);
+    if(outfile.isEmpty())
+    {
+        return;
+    }
+
+    FILE* fp = fopen(outfile.toLatin1(), "wb");
+    fclose(fp);
+
+    QFilePath filepath(outfile);
+    QString ext = filepath.m_ext;
+
+    std::ofstream stream(outfile.toLatin1());
+    if (stream.fail() || stream.bad()) {
+      QMessageBox::warning(this, tr("Notice"), tr("Sorry, unable to open file for export"), QMessageBox::Ok, QMessageBox::Ok);
+      stream.close();
+      return;
+    }
+
+    m_meta_graph->getDisplayedTraceMap().writeTracesToXMLFile(stream);
+
+    stream.close();
+}
+
 void QGraphDoc::OnAxialConnectionsExportAsDot()
 {
     if (m_communicator) {
@@ -927,6 +974,7 @@ void QGraphDoc::OnAxialConnectionsExportAsDot()
 
     if (stream.fail() || stream.bad()) {
        QMessageBox::warning(this, tr("Notice"), tr("Sorry, unable to open file for export"), QMessageBox::Ok, QMessageBox::Ok);
+       stream.close();
        return;
     }
     shapeGraph.writeAxialConnectionsAsDotGraph(stream);
@@ -974,6 +1022,7 @@ void QGraphDoc::OnAxialConnectionsExportAsPairCSV()
 
     if (stream.fail() || stream.bad()) {
        QMessageBox::warning(this, tr("Notice"), tr("Sorry, unable to open file for export"), QMessageBox::Ok, QMessageBox::Ok);
+       stream.close();
        return;
     }
     shapeGraph.writeAxialConnectionsAsPairsCSV(stream);
@@ -1021,6 +1070,7 @@ void QGraphDoc::OnSegmentConnectionsExportAsPairCSV()
 
     if (stream.fail() || stream.bad()) {
        QMessageBox::warning(this, tr("Notice"), tr("Sorry, unable to open file for export"), QMessageBox::Ok, QMessageBox::Ok);
+       stream.close();
        return;
     }
     shapeGraph.writeSegmentConnectionsAsPairsCSV(stream);
@@ -1078,6 +1128,7 @@ void QGraphDoc::OnPointmapExportConnectionsAsCSV()
 
     if (stream.fail() || stream.bad()) {
        QMessageBox::warning(this, tr("Notice"), tr("Sorry, unable to open file for export"), QMessageBox::Ok, QMessageBox::Ok);
+       stream.close();
        return;
     }
     pointMap.outputConnectionsAsCSV(stream, ",");

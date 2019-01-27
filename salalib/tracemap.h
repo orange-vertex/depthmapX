@@ -31,4 +31,5 @@ class TraceMap : public ShapeMap {
     int makeTrace(const std::vector<Event2f> &trace, const std::map<int, float> &extraAttributes = std::map<int,float>());
     bool read( std::istream& stream, int version );
     bool write(std::ofstream &stream, int version);
+    void writeTracesToXMLFile(std::ofstream &stream);
 };

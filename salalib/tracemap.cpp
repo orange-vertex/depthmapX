@@ -35,18 +35,17 @@ int TraceMap::makeTrace(const std::vector<Event2f> &trace, const std::map<int, f
     return makeTraceWithRef(trace, getNextShapeKey(), extraAttributes);
 }
 
-bool TraceMap::read( std::istream& stream, int version )
-{
+bool TraceMap::read(std::istream &stream, int version) {
     ShapeMap::read(stream, version, false);
 
     int count = 0;
-    stream.read((char *) &count, sizeof(count));
+    stream.read((char *)&count, sizeof(count));
     for (int j = 0; j < count; j++) {
-       int key;
-       stream.read((char *) &key, sizeof(key));
-       m_traceTimes.insert(std::make_pair(key, dXreadwrite::readVector<double>(stream)));
+        int key;
+        stream.read((char *)&key, sizeof(key));
+        m_traceTimes.insert(std::make_pair(key, dXreadwrite::readVector<double>(stream)));
     }
-   return true;
+    return true;
 }
 
 bool TraceMap::write(std::ofstream &stream, int version) {
@@ -62,4 +61,26 @@ bool TraceMap::write(std::ofstream &stream, int version) {
     }
 
     return true;
+}
+
+void TraceMap::writeTracesToXMLFile(std::ofstream &stream) {
+    stream << "<traceset>" << std::endl;
+
+    stream.precision(12);
+    for (auto &refShape : m_shapes) {
+        stream << "<trace id=\"" << refShape.first << "\">" << std::endl;
+        const auto &times = m_traceTimes[refShape.first];
+        int counter = 0;
+        for (Point2f &point : refShape.second.m_points) {
+            stream << "<event"
+                   << " x=\"" << point.x << "\""
+                   << " y=\"" << point.y << "\""
+                   << " t=\"" << times[counter] << "\""
+                   << " />" << std::endl;
+            counter++;
+        }
+        stream << "</trace>" << std::endl;
+    }
+
+    stream << "</traceset>" << std::endl;
 }

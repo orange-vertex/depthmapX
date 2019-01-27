@@ -273,6 +273,7 @@ public:
 	void OnFileExport();
     void OnFileExportMapGeometry();
     void OnFileExportLinks();
+    void OnFileExportTraces();
     void OnAxialConnectionsExportAsDot();
     void OnAxialConnectionsExportAsPairCSV();
     void OnSegmentConnectionsExportAsPairCSV();

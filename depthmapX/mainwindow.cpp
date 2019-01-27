@@ -383,6 +383,16 @@ void MainWindow::OnFileExportLinks()
     }
 }
 
+
+void MainWindow::OnFileExportTraces()
+{
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnFileExportTraces();
+    }
+}
+
 void MainWindow::OnAxialConnectionsExportAsDot()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -2646,6 +2656,7 @@ void MainWindow::updateMapMenu()
         exportAct->setEnabled(true);
         exportGeometryAct->setEnabled(true);
         exportLinksAct->setEnabled(true);
+        exportTracesAct->setEnabled(true);
         exportAxialConnectionsDotAct->setEnabled(true);
         exportAxialConnectionsPairAct->setEnabled(true);
         exportSegmentConnectionsPairAct->setEnabled(true);
@@ -2655,6 +2666,7 @@ void MainWindow::updateMapMenu()
         exportAct->setEnabled(0);
         exportGeometryAct->setEnabled(false);
         exportLinksAct->setEnabled(0);
+        exportTracesAct->setEnabled(false);
         exportAxialConnectionsDotAct->setEnabled(0);
         exportAxialConnectionsPairAct->setEnabled(0);
         exportSegmentConnectionsPairAct->setEnabled(0);
@@ -3094,6 +3106,9 @@ void MainWindow::createActions()
     exportLinksAct = new QAction(tr("&Export links..."), this);
     exportLinksAct->setStatusTip(tr("Export the links of the active map"));
     connect(exportLinksAct, SIGNAL(triggered()), this, SLOT(OnFileExportLinks()));
+
+    exportTracesAct = new QAction(tr("&Export traces..."), this);
+    connect(exportTracesAct, SIGNAL(triggered()), this, SLOT(OnFileExportTraces()));
 
     exportAxialConnectionsPairAct = new QAction(tr("&Axial Connections as CSV..."), this);
     exportAxialConnectionsPairAct->setStatusTip(tr("Export a list of line-line intersections"));
@@ -3616,6 +3631,7 @@ void MainWindow::createMenus()
     exportSubMenu->addAction(exportAct);
     exportSubMenu->addAction(exportGeometryAct);
     exportSubMenu->addAction(exportLinksAct);
+    exportSubMenu->addAction(exportTracesAct);
     exportSubMenu->addAction(exportAxialConnectionsDotAct);
     exportSubMenu->addAction(exportAxialConnectionsPairAct);
     exportSubMenu->addAction(exportSegmentConnectionsPairAct);

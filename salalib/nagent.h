@@ -204,7 +204,7 @@ struct AgentSet : public AgentProgram
    double m_release_rate;
    int m_lifetime;
    AgentSet();
-   void move();
+   void move(int currentTimeStep);
    void init(int agent, int trail_num = -1);
 };
 
@@ -280,6 +280,7 @@ public:
    void calcLoS(int directionbin, bool curr);
    void calcLoS2(int directionbin, bool curr);
    void onMove();
+   void onUpdateTrail(double currentTime);
    void onTarget();
    void onDestination();
    void onStep();
