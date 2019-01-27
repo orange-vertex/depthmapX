@@ -168,6 +168,9 @@ void QGraphDoc::UpdateMainframestatus()
        else if ((state & MetaGraph::DATAMAPS) && m_meta_graph->getViewClass() & MetaGraph::VIEWDATA) {
           n = (int) m_meta_graph->getDisplayedDataMap().getShapeCount();
        }
+       else if ((state & MetaGraph::TRACEMAPS) && m_meta_graph->getViewClass() & MetaGraph::VIEWTRACES) {
+          n = (int) m_meta_graph->getDisplayedTraceMap().getShapeCount();
+       }
        // either showing or constructing the VGA graph
        else if ((state & MetaGraph::POINTMAPS) && m_meta_graph->getViewClass() & MetaGraph::VIEWVGA) {
           n = (int) m_meta_graph->getDisplayedPointMap().getFilledPointCount();
@@ -1612,6 +1615,9 @@ void QGraphDoc::OnEditClear()
    else if (m_meta_graph->viewingProcessedShapes()) {
       modified = m_meta_graph->getDisplayedDataMap().removeSelected();
    }
+   else if (m_meta_graph->viewingProcessedShapes()) {
+      modified = m_meta_graph->getDisplayedTraceMap().removeSelected();
+   }
 
    if(modified) {
        modifiedFlag = true;
@@ -2152,6 +2158,9 @@ void QGraphDoc::OnUpdateColumn()
    else if (vc & MetaGraph::VIEWDATA) {
       shapemap = &(m_meta_graph->getDisplayedDataMap());
    }
+   else if (vc & MetaGraph::VIEWTRACES) {
+      shapemap = &(m_meta_graph->getDisplayedTraceMap());
+   }
 
    if (ReplaceColumnContents(pointmap,shapemap,col)) {
       m_meta_graph->setDisplayedAttribute(col);
@@ -2242,6 +2251,9 @@ void QGraphDoc::OnEditQuery()
    else if (vc & MetaGraph::VIEWDATA) {
       shapemap = &(m_meta_graph->getDisplayedDataMap());
    }
+   else if (vc & MetaGraph::VIEWTRACES) {
+      shapemap = &(m_meta_graph->getDisplayedTraceMap());
+   }
 
    if (SelectByQuery(pointmap,shapemap)) {
       SetRedrawFlag(VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
@@ -2321,7 +2333,7 @@ bool QGraphDoc::SelectByQuery(PointMap *pointmap, ShapeMap *shapemap)
 
 void QGraphDoc::OnEditSelectToLayer()
 {
-   if ((m_meta_graph->getViewClass() & (MetaGraph::VIEWAXIAL|MetaGraph::VIEWDATA))
+   if ((m_meta_graph->getViewClass() & (MetaGraph::VIEWAXIAL|MetaGraph::VIEWDATA|MetaGraph::VIEWTRACES))
       && m_meta_graph->isSelected()) {
 
       CRenameObjectDlg dlg("Layer"); // note, without specifying existing layer name, this defaults to "New layer" behaviour

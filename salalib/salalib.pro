@@ -48,7 +48,8 @@ SOURCES += \
     tidylines.cpp \
     mapconverter.cpp \
     importutils.cpp \
-    attributetableindex.cpp
+    attributetableindex.cpp \
+    tracemap.cpp
 
 HEADERS += \
     attributes.h \
@@ -92,7 +93,8 @@ HEADERS += \
     iaxial.h \
     isegment.h \
     importutils.h \
-    importtypedefs.h
+    importtypedefs.h \
+    tracemap.h
 
 DISTFILES += \
     salascript-tests.txt

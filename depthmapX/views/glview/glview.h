@@ -100,6 +100,7 @@ private:
     GLLinesUniform m_visibleDrawingLines;
     GLPointMap m_visiblePointMap;
     GLShapeMap m_visibleDataMap;
+    GLShapeMap m_visibleTraceMap;
 
     QPoint m_mouseLastPos;
     float m_eyePosX;

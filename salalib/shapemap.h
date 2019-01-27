@@ -196,7 +196,7 @@ public:
    // Do not change numeric values!  They are saved to file.
    // Note the Pesh map does auto-overlap of shape-shape (yet...), so can be used for an arbitrary shape map
    enum { EMPTYMAP = 0x0000, DRAWINGMAP = 0x0001, DATAMAP = 0x0002, POINTMAP = 0x0004, CONVEXMAP = 0x0008, 
-          ALLLINEMAP = 0x0010, AXIALMAP = 0x0020, SEGMENTMAP = 0x0040, PESHMAP = 0x0080, LINEMAP = 0x0070 };
+          ALLLINEMAP = 0x0010, AXIALMAP = 0x0020, SEGMENTMAP = 0x0040, PESHMAP = 0x0080, LINEMAP = 0x0070, TRACEMAP = 0x0100 };
    enum { COPY_NAME = 0x0001, COPY_GEOMETRY = 0x0002, COPY_ATTRIBUTES = 0x0004, COPY_GRAPH = 0x0008, COPY_ALL = 0x000f };
 protected:
    std::string m_name;

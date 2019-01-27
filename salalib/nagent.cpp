@@ -151,7 +151,7 @@ void AgentEngine::run(Communicator *comm, PointMap *pointmap)
    pointmap->setDisplayedAttribute(displaycol);
 }
 
-ShapeMap AgentEngine::getTrailsAsMap(std::string mapName) {
+ShapeMap AgentEngine::getTrailsAsShapeMap(std::string mapName) {
     ShapeMap trailsMap(mapName, ShapeMap::DATAMAP);
     for (auto &agentSet : agentSets) {
         // there is currently only one AgentSet. If at any point there are more then
@@ -161,6 +161,20 @@ ShapeMap AgentEngine::getTrailsAsMap(std::string mapName) {
             trailsMap.makePolyShape(trailGeometry, true, false);
         }
     }
+    return (trailsMap);
+}
+
+TraceMap AgentEngine::getTrailsAsMap(std::string mapName) {
+    TraceMap trailsMap(mapName);
+    for (auto &agentSet : agentSets) {
+        // there is currently only one AgentSet. If at any point there are more then
+        // this could be amended to put the AgentSet id as a property of the trail
+        for (auto &trail : agentSet.m_trails) {
+            trailsMap.makeTrace(trail);
+        }
+    }
+    trailsMap.overrideDisplayedAttribute(-2);
+    trailsMap.setDisplayedAttribute(-1);
     return (trailsMap);
 }
 

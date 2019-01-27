@@ -1341,6 +1341,21 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
                    }
                     remenu = true;
                     break;
+                case 3:
+                   if (graph->getViewClass() & MetaGraph::VIEWTRACES) {
+                      if (graph->getDisplayedTraceMapRef() == entry.m_cat) {
+                         graph->setViewClass(MetaGraph::SHOWHIDETRACES);
+                      }
+                      else {
+                         graph->setDisplayedTraceMapRef(entry.m_cat);
+                      }
+                   }
+                   else {
+                      graph->setDisplayedTraceMapRef(entry.m_cat);
+                      graph->setViewClass(MetaGraph::SHOWTRACESTOP);
+                   }
+                    remenu = true;
+                    break;
                 case 4:
                     // slightly different for this one
                     break;
@@ -1365,6 +1380,10 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
                     graph->getDataMaps()[entry.m_cat].setEditable(m_indexWidget->isItemSetEditable(hItem));
                     update = true;
                 }
+                if (entry.m_type == 3) {
+                    graph->getTraceMaps()[entry.m_cat].setEditable(m_indexWidget->isItemSetEditable(hItem));
+                    update = true;
+                }
                 if (update) {
                     // Depending on if the map is displayed you may have to redraw -- I'm just going to redraw *anyway*
                     // (it may be worth switching it to topmost when they do click here)
@@ -1380,6 +1399,10 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
                 else if (entry.m_type == 2) {
                    update = true;
                    graph->getDataMaps()[entry.m_cat].setLayerVisible(entry.m_subcat, m_indexWidget->isItemSetVisible(hItem));
+                }
+                else if (entry.m_type == 3) {
+                   update = true;
+                   graph->getTraceMaps()[entry.m_cat].setLayerVisible(entry.m_subcat, m_indexWidget->isItemSetVisible(hItem));
                 }
                 if (update) {
                     m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_TABLE );
@@ -1452,6 +1475,16 @@ void MainWindow::SetGraphTreeChecks()
                             m_backgraph = key;
                         }
                         break;
+                    case 3:
+                        if (viewclass & MetaGraph::VIEWTRACES && graph->getDisplayedTraceMapRef() == entry.m_cat) {
+                            checkstyle = 5;
+                            m_topgraph = key;
+                        }
+                        else if (viewclass & MetaGraph::VIEWBACKTRACES && graph->getDisplayedTraceMapRef() == entry.m_cat) {
+                            checkstyle = 6;
+                            m_backgraph = key;
+                        }
+                        break;
                 }
 
                 if(checkstyle == 5)
@@ -1486,6 +1519,9 @@ void MainWindow::SetGraphTreeChecks()
                     case 2:
                         editable = graph->getDataMaps()[entry.m_cat].isEditable() ? MetaGraph::EDITABLE_ON : MetaGraph::EDITABLE_OFF;
                         break;
+                    case 3:
+                        editable = graph->getTraceMaps()[entry.m_cat].isEditable() ? MetaGraph::EDITABLE_ON : MetaGraph::EDITABLE_OFF;
+                        break;
                 }
                 switch (editable) {
                     case MetaGraph::NOT_EDITABLE:
@@ -1508,6 +1544,9 @@ void MainWindow::SetGraphTreeChecks()
                 }
                 else if (entry.m_type == 2) {
                     show = graph->getDataMaps()[entry.m_cat].isLayerVisible(entry.m_subcat);
+                }
+                else if (entry.m_type == 3) {
+                    show = graph->getTraceMaps()[entry.m_cat].isLayerVisible(entry.m_subcat);
                 }
                 if (show) {
                       m_indexWidget->setItemVisibility(key, Qt::Checked);
@@ -1545,7 +1584,7 @@ void MainWindow::ClearGraphTree()
 {
     m_attribute_locked.clear();
 
-    for (int i = 2; i >= 0; i--) {
+    for (int i = 3; i >= 0; i--) {
         if (m_treeroots[i]) {
             m_treeroots[i] = NULL;
         }
@@ -1657,6 +1696,44 @@ void MainWindow::MakeGraphTree()
             m_treegraphmap.erase(iter);
         }
         m_treeroots[2] = NULL;
+    }
+
+
+    if (state & MetaGraph::TRACEMAPS) {
+        if (!m_treeroots[3]) {
+            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(tr("Trace Maps"));
+            hItem->setIcon(0, m_tree_icon[2]);
+            ItemTreeEntry entry(3,-1,-1);
+            m_treegraphmap[hItem] = entry;
+            m_treeroots[3] = hItem;
+        }
+        for (size_t i = 0; i < m_treeDoc->m_meta_graph->getTraceMaps().size(); i++) {
+            QString name = QString(m_treeDoc->m_meta_graph->getTraceMaps()[i].getName().c_str());
+            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(name, m_treeroots[3]);
+            m_indexWidget->setItemVisibility(hItem, Qt::Unchecked);
+            m_indexWidget->setItemEditability(hItem, Qt::Unchecked);
+            ItemTreeEntry entry(3,(short)i,-1);
+            m_treegraphmap[hItem] = entry;
+
+            AttributeTable& table = m_treeDoc->m_meta_graph->getTraceMaps()[i].getAttributeTable();
+            if(table.getLayerCount() > 1) {
+                for (int j = 0; j < table.getLayerCount(); j++) {
+                    QString name = QString(table.getLayerName(j).c_str());
+                    QTreeWidgetItem* hNewItem = m_indexWidget->addNewItem(name, hItem);
+                    m_indexWidget->setItemVisibility(hNewItem, Qt::Unchecked);
+                    ItemTreeEntry entry(3,(short)i,j);
+                    m_treegraphmap.insert(std::make_pair(hNewItem,entry));
+                }
+            }
+        }
+    }
+    else if (m_treeroots[3]) {
+        m_treeroots[3]->removeChild(m_treeroots[3]);
+        auto iter = m_treegraphmap.find(m_treeroots[3]);
+        if(iter != m_treegraphmap.end()) {
+            m_treegraphmap.erase(iter);
+        }
+        m_treeroots[3] = NULL;
     }
 
     SetGraphTreeChecks();
@@ -2178,7 +2255,7 @@ void MainWindow::RedoPlotViewMenu(QGraphDoc* pDoc)
    in_FocusGraph = true;
 
    // this will be used to distinguish between viewing VGA and axial maps
-   int view_class = pDoc->m_meta_graph->getViewClass() & (MetaGraph::VIEWVGA | MetaGraph::VIEWAXIAL | MetaGraph::VIEWDATA);
+   int view_class = pDoc->m_meta_graph->getViewClass() & (MetaGraph::VIEWVGA | MetaGraph::VIEWAXIAL | MetaGraph::VIEWDATA | MetaGraph::VIEWTRACES);
    int curr_j = 0;
 
    {
@@ -2214,6 +2291,19 @@ void MainWindow::RedoPlotViewMenu(QGraphDoc* pDoc)
           else if (view_class == MetaGraph::VIEWDATA) {
              // using attribute tables is very, very simple...
              const ShapeMap& map = pDoc->m_meta_graph->getDisplayedDataMap();
+             const AttributeTable& table = map.getAttributeTable();
+             m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
+             curr_j = 0;
+             for (int i = 0; i < table.getColumnCount(); i++) {
+                m_view_map_entries.insert(std::make_pair(i+1, table.getColumnName(i)));
+                if (map.getDisplayedAttribute() == i) {
+                   curr_j = i + 1;
+                }
+             }
+          }
+          else if (view_class == MetaGraph::VIEWTRACES) {
+             // using attribute tables is very, very simple...
+             const ShapeMap& map = pDoc->m_meta_graph->getDisplayedTraceMap();
              const AttributeTable& table = map.getAttributeTable();
              m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
              curr_j = 0;

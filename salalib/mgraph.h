@@ -23,6 +23,7 @@
 #include "salalib/displayparams.h"
 #include "salalib/fileproperties.h"
 #include "salalib/importtypedefs.h"
+#include "salalib/tracemap.h"
 
 // still call paftl:
 #include "salalib/attributes.h"
@@ -70,7 +71,7 @@ public:
 
    enum { ADD = 0x0001, REPLACE = 0x0002, CAT = 0x0010, DXF = 0x0020, NTF = 0x0040, RT1 = 0x0080, GML = 0x0100 };
    enum { NONE = 0x0000, POINTMAPS = 0x0002, LINEDATA = 0x0004,
-          ANGULARGRAPH = 0x0010, DATAMAPS = 0x0020, AXIALLINES = 0x0040, SHAPEGRAPHS = 0x0100,
+          ANGULARGRAPH = 0x0010, DATAMAPS = 0x0020, AXIALLINES = 0x0040, SHAPEGRAPHS = 0x0100, TRACEMAPS = 0x0200,
           BUGGY = 0x8000 };
    enum { NOT_EDITABLE = 0, EDITABLE_OFF = 1, EDITABLE_ON = 2 };
 protected:
@@ -86,6 +87,8 @@ public:
 
    std::vector<std::unique_ptr<ShapeGraph>> m_shapeGraphs;
    int m_displayed_shapegraph = -1;
+
+   std::vector<TraceMap> m_traceMaps;
 
 public:
    MetaGraph(std::string name = "");
@@ -235,6 +238,25 @@ public:
       m_displayed_datamap = map;
    }
 
+
+   size_t m_displayed_tracemap = -1;
+   TraceMap& getDisplayedTraceMap()
+   { return m_traceMaps[m_displayed_tracemap]; }
+   const TraceMap& getDisplayedTraceMap() const
+   { return m_traceMaps[m_displayed_tracemap]; }
+   size_t getDisplayedTraceMapRef() const
+   { return m_displayed_tracemap; }
+
+   void removeTraceMap(int i)
+   { if (m_displayed_tracemap >= i) m_displayed_tracemap--; m_traceMaps.erase(m_traceMaps.begin() + i); }
+
+   void setDisplayedTraceMapRef(size_t map)
+   {
+      if (m_displayed_tracemap != -1 && m_displayed_tracemap != map)
+         m_traceMaps[m_displayed_tracemap].clearSel();
+      m_displayed_tracemap = map;
+   }
+
    template <class T>
    size_t getMapRef(std::vector<T>& maps, const std::string& name) const
    {
@@ -276,6 +298,12 @@ public:
 
    bool readDataMaps(std::istream &stream, int version );
    bool writeDataMaps( std::ofstream& stream, int version, bool displayedmaponly = false );
+
+   std::vector<TraceMap>& getTraceMaps()
+   { return m_traceMaps; }
+
+   bool readTraceMaps(std::istream &stream, int version );
+   bool writeTraceMaps( std::ofstream& stream, int version, bool displayedmaponly = false );
 
    //
    int getDisplayedMapType();
@@ -325,9 +353,10 @@ public:
 protected:
    int m_view_class;
 public:
-   enum { SHOWHIDEVGA = 0x0100, SHOWVGATOP = 0x0200, SHOWHIDEAXIAL = 0x0400, SHOWAXIALTOP = 0x0800, SHOWHIDESHAPE = 0x1000, SHOWSHAPETOP = 0x2000 };
+   enum { SHOWHIDEVGA = 0x0100, SHOWVGATOP = 0x0200, SHOWHIDEAXIAL = 0x0400, SHOWAXIALTOP = 0x0800, SHOWHIDESHAPE = 0x1000, SHOWSHAPETOP = 0x2000,
+          SHOWHIDETRACES = 0x4000, SHOWTRACESTOP = 0x8000 };
    enum { VIEWNONE = 0x00, VIEWVGA = 0x01, VIEWBACKVGA = 0x02, VIEWAXIAL = 0x04, VIEWBACKAXIAL = 0x08,
-          VIEWDATA = 0x20, VIEWBACKDATA = 0x40, VIEWFRONT = 0x25 };
+          VIEWDATA = 0x20, VIEWBACKDATA = 0x40, VIEWTRACES = 0x80, VIEWBACKTRACES = 0x100, VIEWFRONT = 0xA5 };
    //
    int getViewClass()
    { return m_view_class; }
@@ -335,13 +364,15 @@ public:
    bool viewingNone()
    { return (m_view_class == VIEWNONE); }
    bool viewingProcessed()
-   { return ((m_view_class & (VIEWAXIAL | VIEWDATA)) || (m_view_class & VIEWVGA && getDisplayedPointMap().isProcessed())); }
+   { return ((m_view_class & (VIEWAXIAL | VIEWDATA | VIEWTRACES)) || (m_view_class & VIEWVGA && getDisplayedPointMap().isProcessed())); }
    bool viewingShapes()
-   { return (m_view_class & (VIEWAXIAL | VIEWDATA)) != 0; }
+   { return (m_view_class & (VIEWAXIAL | VIEWDATA | VIEWTRACES)) != 0; }
    bool viewingProcessedLines()
    { return ((m_view_class & VIEWAXIAL) == VIEWAXIAL); } 
    bool viewingProcessedShapes()
    { return ((m_view_class & VIEWDATA) == VIEWDATA); } 
+   bool viewingProcessedTraces()
+   { return ((m_view_class & VIEWTRACES) == VIEWTRACES); }
    bool viewingProcessedPoints()
    { return ((m_view_class & VIEWVGA) && getDisplayedPointMap().isProcessed()); }
    bool viewingUnprocessedPoints()
@@ -360,6 +391,8 @@ public:
          return getDisplayedShapeGraph().isSelected();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().isSelected();
+       else if (m_view_class & VIEWTRACES)
+          return getDisplayedTraceMap().isSelected();
       else 
          return false;
    }
@@ -368,6 +401,8 @@ public:
          return getDisplayedShapeGraph().setCurSel(r, add);
       else if (m_view_class & VIEWDATA)
          return getDisplayedDataMap().setCurSel( r, add );
+      else if (m_view_class & VIEWTRACES)
+         return getDisplayedTraceMap().setCurSel( r, add );
       else if (m_view_class & VIEWVGA)
          return getDisplayedPointMap().setCurSel( r, add );
       else if (m_state & POINTMAPS && !getDisplayedPointMap().isProcessed()) // this is a default select application
@@ -386,6 +421,8 @@ public:
          return getDisplayedShapeGraph().clearSel();
       else if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().clearSel();
+      else if (m_view_class & VIEWTRACES)
+         return getDisplayedTraceMap().clearSel();
       else
          return false;
    }
@@ -395,8 +432,10 @@ public:
          return getDisplayedPointMap().getSelCount();
       else if (m_view_class & VIEWAXIAL) 
          return (int) getDisplayedShapeGraph().getSelCount();
-      else if (m_view_class & VIEWDATA) 
+      else if (m_view_class & VIEWDATA)
          return (int) getDisplayedDataMap().getSelCount();
+      else if (m_view_class & VIEWTRACES)
+         return (int) getDisplayedTraceMap().getSelCount();
       else
          return 0;
    }
@@ -406,8 +445,10 @@ public:
          return (float)getDisplayedPointMap().getAttributeTable().getSelAvg();
       else if (m_view_class & VIEWAXIAL) 
          return (float)getDisplayedShapeGraph().getAttributeTable().getSelAvg();
-      else if (m_view_class & VIEWDATA) 
+      else if (m_view_class & VIEWDATA)
          return (float)getDisplayedDataMap().getAttributeTable().getSelAvg();
+      else if (m_view_class & VIEWTRACES)
+         return (float)getDisplayedTraceMap().getAttributeTable().getSelAvg();
       else
          return -1.0f;
    }
@@ -417,8 +458,10 @@ public:
          return getDisplayedPointMap().getSelBounds();
       else if (m_view_class & VIEWAXIAL) 
          return getDisplayedShapeGraph().getSelBounds();
-      else if (m_view_class & VIEWDATA) 
+      else if (m_view_class & VIEWDATA)
          return getDisplayedDataMap().getSelBounds();
+      else if (m_view_class & VIEWTRACES)
+         return getDisplayedTraceMap().getSelBounds();
       else
          return QtRegion();
    }
@@ -428,6 +471,8 @@ public:
          getDisplayedPointMap().setCurSel(selset,add);
       else if (m_view_class & VIEWAXIAL) 
          getDisplayedShapeGraph().setCurSel(selset,add);
+      else if (m_view_class & VIEWTRACES)
+         getDisplayedTraceMap().setCurSel(selset,add);
       else // if (m_view_class & VIEWDATA) 
          getDisplayedDataMap().setCurSel(selset,add); }
    std::set<int>& getSelSet()
@@ -435,6 +480,8 @@ public:
          return getDisplayedPointMap().getSelSet();
       else if (m_view_class & VIEWAXIAL) 
          return getDisplayedShapeGraph().getSelSet();
+      else if (m_view_class & VIEWTRACES)
+         return getDisplayedTraceMap().getSelSet();
       else // if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelSet(); }
    const std::set<int>& getSelSet() const
@@ -442,6 +489,8 @@ public:
          return getDisplayedPointMap().getSelSet();
       else if (m_view_class & VIEWAXIAL) 
          return getDisplayedShapeGraph().getSelSet();
+      else if (m_view_class & VIEWTRACES)
+         return getDisplayedTraceMap().getSelSet();
       else // if (m_view_class & VIEWDATA) 
          return getDisplayedDataMap().getSelSet(); }
 //

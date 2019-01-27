@@ -24,6 +24,7 @@
 #include "salalib/point.h"
 #include "salalib/pointdata.h"
 #include "salalib/shapemap.h"
+#include "salalib/tracemap.h"
 
 #include "genlib/pflipper.h"
 
@@ -142,7 +143,8 @@ public:
 public:
    AgentEngine();
    void run(Communicator *comm, PointMap *pointmap);
-   ShapeMap getTrailsAsMap(std::string mapName = "Agent Trails");
+   ShapeMap getTrailsAsShapeMap(std::string mapName = "Agent Trails");
+   TraceMap getTrailsAsMap(std::string mapName = "Agent Trails");
 };
 
 struct AgentProgram
