@@ -2075,15 +2075,9 @@ void MetaGraph::runAgentEngine(Communicator *comm)
            mapName = "Agent Trails " + std::to_string(count);
            count++;
        }
-       m_traceMaps.push_back(m_agent_engine.getTrailsAsMap(mapName));
+       m_traceMaps.push_back(mapName);
+       m_agent_engine.insertTrailsInMap(m_traceMaps.back());
        m_state |= TRACEMAPS;
-//       setViewClass(SHOWTRACESTOP);
-//       setDisplayedTraceMapRef(m_traceMaps.size() -1);
-
-//       SetUpdateFlag(NEW_TABLE);
-//       SetRedrawFlag(VIEW_ALL,REDRAW_GRAPH, NEW_DATA);
-//       m_dataMaps.push_back(m_agent_engine.getTrailsAsMap(mapName));
-//       m_state |= DATAMAPS;
    }
 
    if (m_agent_engine.m_gatelayer != -1) {

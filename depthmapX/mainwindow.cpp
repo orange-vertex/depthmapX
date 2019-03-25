@@ -1724,7 +1724,7 @@ void MainWindow::MakeGraphTree()
             ItemTreeEntry entry(3,(short)i,-1);
             m_treegraphmap[hItem] = entry;
 
-            LayerManagerImpl layers = m_treeDoc->m_meta_graph->getDataMaps()[i].getLayers();
+            LayerManagerImpl layers = m_treeDoc->m_meta_graph->getTraceMaps()[i].getLayers();
             if(layers.getNumLayers() > 1) {
                 for (int j = 0; j < layers.getNumLayers(); j++) {
                     QString name = QString(layers.getLayerName(j).c_str());

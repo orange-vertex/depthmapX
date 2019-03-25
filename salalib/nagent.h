@@ -143,8 +143,8 @@ public:
 public:
    AgentEngine();
    void run(Communicator *comm, PointMap *pointmap);
-   ShapeMap getTrailsAsShapeMap(std::string mapName = "Agent Trails");
-   TraceMap getTrailsAsMap(std::string mapName = "Agent Trails");
+   void insertTrailsInMap(ShapeMap& trailMap);
+   void insertTrailsInMap(TraceMap& trailMap);
 };
 
 struct AgentProgram
