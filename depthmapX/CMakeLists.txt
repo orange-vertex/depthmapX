@@ -82,11 +82,5 @@ if(UNIX)
 	target_link_libraries(${depthmapX} salalib genlib mgraph440 Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL GL GLU)
 endif(UNIX)
 
-qt5_use_modules(${depthmapX} 
-    core
-    gui
-    opengl
-    widgets)
-
 add_subdirectory(dialogs)
 add_subdirectory(views)

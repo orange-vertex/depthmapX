@@ -20,7 +20,7 @@ set(depthmapXcli_SRCS
     segmentparser.cpp
     mapconvertparser.cpp)
 
-set(LINK_LIBS genlib salalib mgraph440)
+set(LINK_LIBS salalib genlib mgraph440)
 
 add_executable(${depthmapXcli} ${depthmapXcli_SRCS})
 target_link_libraries(${depthmapXcli} ${LINK_LIBS})
