@@ -8,7 +8,7 @@ notifications:
 before_install:
   - sudo add-apt-repository --yes ppa:beineri/opt-qt-5.11.0-bionic
   - sudo add-apt-repository --yes ppa:deadsnakes/ppa
-  - sudo add-apt-repository ppa:andrew-fuller/cmake
+  - sudo add-apt-repository --yes ppa:andrew-fuller/cmake
   - sudo apt-get update -qq
 
 install:
