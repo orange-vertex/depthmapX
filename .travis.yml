@@ -1,5 +1,5 @@
 sudo: required
-dist: trusty
+dist: bionic
 language: c++
 notifications:
     slack: depthmapx:B3CKNlNDLrNz1vSOU5yoQQqA
