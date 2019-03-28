@@ -6,7 +6,7 @@ notifications:
 
 
 before_install:
-  - sudo add-apt-repository --yes ppa:beineri/opt-qt511-xenial
+  - sudo add-apt-repository --yes ppa:beineri/opt-qt-5.11.3-xenial
   - sudo add-apt-repository --yes ppa:deadsnakes/ppa
   - sudo add-apt-repository --yes ppa:andrew-fuller/cmake
   - sudo apt-get update -qq
