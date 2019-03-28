@@ -6,13 +6,13 @@ notifications:
 
 
 before_install:
-  - sudo add-apt-repository --yes ppa:beineri/opt-qt571-trusty
+  - sudo add-apt-repository --yes ppa:beineri/opt-qt511-xenial
   - sudo add-apt-repository --yes ppa:deadsnakes/ppa
   - sudo add-apt-repository --yes ppa:andrew-fuller/cmake
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get -y install qt573d qt57tools libgl1-mesa-dev libglu1-mesa-dev python3.5 cmake
+  - sudo apt-get -y install qt5113d qt511tools libgl1-mesa-dev libglu1-mesa-dev python3.5 cmake
 
 script:
   - source /opt/qt511/bin/qt511-env.sh
