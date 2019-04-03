@@ -3,9 +3,9 @@ dist: xenial
 language: c++
 env:
     global:
-        - CMAKE_PREFIX = $HOME/prebuilt/cmake
-        - CMAKE_BIN = $CMAKE_PREFIX/bin/cmake
-        - CMAKE_LINUX_URL==https://cmake.org/files/v3.13/cmake-3.13.1-Linux-x86_64.sh ;
+        - CMAKE_PREFIX=$HOME/prebuilt/cmake
+        - CMAKE_BIN=$CMAKE_PREFIX/bin/cmake
+        - CMAKE_LINUX_URL=https://cmake.org/files/v3.13/cmake-3.13.1-Linux-x86_64.sh ;
 
 notifications:
     slack: depthmapx:B3CKNlNDLrNz1vSOU5yoQQqA
