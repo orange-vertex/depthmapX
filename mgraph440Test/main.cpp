@@ -1,5 +1,4 @@
-// depthmapX - spatial network analysis platform
-// Copyright (C) 2017, Petros Koutsolampros
+// Copyright (C) 2017 Christian Sailer
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,10 +13,5 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "glshapemap.h"
-
-void GLShapeMap::loadGLObjects(ShapeMap &shapeMap) {
-    m_lines.loadLineData(shapeMap.getAllLinesWithColour());
-    m_polygons.loadPolygonData(shapeMap.getAllPolygonsWithColour());
-    m_points.loadPolygonData(shapeMap.getAllPointsWithColour(), 8, shapeMap.getSpacing()*0.1);
-}
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"

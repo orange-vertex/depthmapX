@@ -46,10 +46,10 @@
 #include "salalib/vgamodules/vgaangular.h"
 #include "salalib/vgamodules/vgaangulardepth.h"
 #include "salalib/vgamodules/vgathroughvision.h"
+#include "salalib/agents/agenthelpers.h"
 
 #include "mgraph440/mgraph.h"
 
-#include "genlib/paftl.h"
 #include "genlib/pafmath.h"
 #include "genlib/p2dpoly.h"
 #include "genlib/comm.h"
@@ -1502,7 +1502,11 @@ int MetaGraph::loadLineData( Communicator *communicator, int load_type )
          m_drawingFiles.pop_back();
          return 0;
       }
-      catch (pexception) {
+      catch (std::invalid_argument&) {
+         m_drawingFiles.pop_back();
+         return -1;
+      }
+      catch (std::out_of_range&) {
          m_drawingFiles.pop_back();
          return -1;
       }
@@ -1707,7 +1711,11 @@ int MetaGraph::loadRT1(const std::vector<std::string>& fileset, Communicator *co
       m_drawingFiles.pop_back();
       return 0;
    }
-   catch (pexception) {
+   catch (std::invalid_argument&) {
+      m_drawingFiles.pop_back();
+      return -1;
+   }
+   catch (std::out_of_range&) {
       m_drawingFiles.pop_back();
       return -1;
    }
@@ -2601,25 +2609,23 @@ int MetaGraph::readFromStream( std::istream &stream, const std::string& filename
       }
    }
    if (type == 'l') {
-      try {
-         m_name = dXstring::readString(stream);
-         stream.read( (char *) &m_region, sizeof(m_region) );
-         int count;
-         stream.read( (char *) &count, sizeof(count) );
-         for (int i = 0; i < count; i++) {
-             m_drawingFiles.emplace_back();
-             m_drawingFiles.back().read(stream,version,true);
-         }
-
-         if (m_name.empty()) {
-             m_name = "<unknown>";
-         }
-         temp_state |= LINEDATA;
-         if (!stream.eof()) {
-            stream.read( &type, 1 );         
-         }
+      m_name = dXstring::readString(stream);
+      stream.read( (char *) &m_region, sizeof(m_region) );
+      int count;
+      stream.read( (char *) &count, sizeof(count) );
+      for (int i = 0; i < count; i++) {
+          m_drawingFiles.emplace_back();
+          m_drawingFiles.back().read(stream,version,true);
       }
-      catch (pexception) {
+
+      if (m_name.empty()) {
+          m_name = "<unknown>";
+      }
+      temp_state |= LINEDATA;
+      if (!stream.eof()) {
+         stream.read( &type, 1 );
+      }
+      if (!stream.eof() && !stream.good()) {
          // erk... this shouldn't happen
          return DAMAGED_FILE;
       }
@@ -2780,7 +2786,6 @@ std::streampos MetaGraph::skipVirtualMem(std::istream& stream)
    for (int i = 0; i < nodes; i++) {
       int connections;
       stream.read( (char *) &connections, sizeof(connections) );
-      // This relies on the pvecint storage... hope it don't change!
       stream.seekg( stream.tellg() + std::streamoff(connections * sizeof(connections)) );
    }
    return (stream.tellg());
@@ -3003,7 +3008,7 @@ bool MetaGraph::readShapeGraphs(std::istream& stream, int version )
             // these are additional essentially for all line axial maps
             // should probably be kept *with* the all line axial map...
             alllinemap->m_poly_connections.clear();
-            alllinemap->m_poly_connections.read(stream);
+            dXreadwrite::readIntoVector(stream, alllinemap->m_poly_connections);
             alllinemap->m_radial_lines.clear();
             dXreadwrite::readIntoVector(stream, alllinemap->m_radial_lines);
 
@@ -3056,11 +3061,11 @@ bool MetaGraph::writeShapeGraphs( std::ofstream& stream, int version, bool displ
     }
 
     if(m_all_line_map == -1) {
-        prefvec<PolyConnector> temp_poly_connections;
-        pqvector<RadialLine> temp_radial_lines;
+        std::vector<PolyConnector> temp_poly_connections;
+        std::vector<RadialLine> temp_radial_lines;
 
-        temp_poly_connections.write(stream);
-        temp_radial_lines.write(stream);
+        dXreadwrite::writeVector(stream, temp_poly_connections);
+        dXreadwrite::writeVector(stream, temp_radial_lines);
     } else {
         AllLineMap* alllinemap = dynamic_cast<AllLineMap *>(m_shapeGraphs[size_t(m_all_line_map)].get());
 
@@ -3068,7 +3073,7 @@ bool MetaGraph::writeShapeGraphs( std::ofstream& stream, int version, bool displ
             throw depthmapX::RuntimeException("Failed to cast from ShapeGraph to AllLineMap");
         }
 
-        alllinemap->m_poly_connections.write(stream);
+        dXreadwrite::writeVector(stream, alllinemap->m_poly_connections);
         dXreadwrite::writeVector(stream, alllinemap->m_radial_lines);
     }
     return true;
@@ -3077,11 +3082,13 @@ bool MetaGraph::writeShapeGraphs( std::ofstream& stream, int version, bool displ
 void MetaGraph::makeViewportShapes( const QtRegion& viewport ) const
 {
    m_current_layer = -1;
-   for (size_t i = m_drawingFiles.size() - 1; i != paftl::npos; i--) {
-      if (m_drawingFiles[i].isShown()) {
+   size_t i = m_drawingFiles.size() - 1;
+   for (auto iter = m_drawingFiles.rbegin(); iter != m_drawingFiles.rend(); iter++) {
+      if (iter->isShown()) {
          m_current_layer = (int) i;
-         m_drawingFiles[i].makeViewportShapes( (viewport.atZero() ? m_region : viewport) );
+         iter->makeViewportShapes( (viewport.atZero() ? m_region : viewport) );
       }
+      i--;
    }
 }
 

@@ -1,5 +1,4 @@
-// depthmapX - spatial network analysis platform
-// Copyright (C) 2017, Petros Koutsolampros
+// Copyright (C) 2017 Christian Sailer
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,10 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "glshapemap.h"
+#include "../mgraph440/legacyconverters.h"
+#include "catch.hpp"
 
-void GLShapeMap::loadGLObjects(ShapeMap &shapeMap) {
-    m_lines.loadLineData(shapeMap.getAllLinesWithColour());
-    m_polygons.loadPolygonData(shapeMap.getAllPolygonsWithColour());
-    m_points.loadPolygonData(shapeMap.getAllPointsWithColour(), 8, shapeMap.getSpacing()*0.1);
+TEST_CASE("vector conversion") {
+    std::vector<int> vec{1, 4, 5};
+    mgraph440::pvector<int> result = genshim440::toPVector(vec);
+    REQUIRE(result.size() == 3);
+    REQUIRE(result[0] == 1);
+    REQUIRE(result[1] == 4);
+    REQUIRE(result[2] == 5);
 }

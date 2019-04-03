@@ -14,175 +14,186 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 // This is my code to make a set of axial lines from a set of boundary lines
 
 #pragma once
 
-#include "salalib/importtypedefs.h"
 #include "salalib/attributetable.h"
-#include "salalib/attributetableview.h"
 #include "salalib/attributetablehelpers.h"
-#include "salalib/layermanagerimpl.h"
-#include "salalib/spacepix.h"
-#include "salalib/parsers/mapinfodata.h"
+#include "salalib/attributetableview.h"
 #include "salalib/connector.h"
+#include "salalib/importtypedefs.h"
+#include "salalib/layermanagerimpl.h"
+#include "salalib/parsers/mapinfodata.h"
+#include "salalib/spacepix.h"
 
 #include "genlib/bsptree.h"
 #include "genlib/containerutils.h"
 #include "genlib/p2dpoly.h"
-#include "genlib/stringutils.h"
 #include "genlib/readwritehelpers.h"
+#include "genlib/stringutils.h"
 
-#include <vector>
-#include <string>
-#include <set>
 #include <map>
-
+#include <set>
+#include <string>
+#include <vector>
 
 // each pixel has various lists of information:
 
-struct ShapeRef
-{
-   enum {SHAPE_REF_NULL = 0xFFFFFFFF};
-   enum {SHAPE_L = 0x01, SHAPE_B = 0x02, SHAPE_R = 0x04, SHAPE_T = 0x08 };
-   enum {SHAPE_EDGE = 0x0f, SHAPE_INTERNAL_EDGE = 0x10, SHAPE_CENTRE = 0x20, SHAPE_OPEN = 0x40 };
-   unsigned char m_tags;
-   unsigned int m_shape_ref;
-   std::vector<short> m_polyrefs;
-   ShapeRef( unsigned int sref = SHAPE_REF_NULL, unsigned char tags = 0x00 )
-      { m_shape_ref = sref; m_tags = tags; }
-   friend bool operator == (const ShapeRef& a, const ShapeRef& b);
-   friend bool operator != (const ShapeRef& a, const ShapeRef& b);
-   friend bool operator < (const ShapeRef& a, const ShapeRef& b);
-   friend bool operator > (const ShapeRef& a, const ShapeRef& b);
+struct ShapeRef {
+    enum { SHAPE_REF_NULL = 0xFFFFFFFF };
+    enum { SHAPE_L = 0x01, SHAPE_B = 0x02, SHAPE_R = 0x04, SHAPE_T = 0x08 };
+    enum { SHAPE_EDGE = 0x0f, SHAPE_INTERNAL_EDGE = 0x10, SHAPE_CENTRE = 0x20, SHAPE_OPEN = 0x40 };
+    unsigned char m_tags;
+    unsigned int m_shape_ref;
+    std::vector<short> m_polyrefs;
+    ShapeRef(unsigned int sref = SHAPE_REF_NULL, unsigned char tags = 0x00) {
+        m_shape_ref = sref;
+        m_tags = tags;
+    }
+    friend bool operator==(const ShapeRef &a, const ShapeRef &b);
+    friend bool operator!=(const ShapeRef &a, const ShapeRef &b);
+    friend bool operator<(const ShapeRef &a, const ShapeRef &b);
+    friend bool operator>(const ShapeRef &a, const ShapeRef &b);
 };
-inline bool operator == (const ShapeRef& a, const ShapeRef& b)
-{ return a.m_shape_ref == b.m_shape_ref; }
-inline bool operator != (const ShapeRef& a, const ShapeRef& b)
-{ return a.m_shape_ref != b.m_shape_ref; }
-inline bool operator < (const ShapeRef& a, const ShapeRef& b)
-{ return a.m_shape_ref < b.m_shape_ref; }
-inline bool operator > (const ShapeRef& a, const ShapeRef& b)
-{ return a.m_shape_ref > b.m_shape_ref; }
+inline bool operator==(const ShapeRef &a, const ShapeRef &b) { return a.m_shape_ref == b.m_shape_ref; }
+inline bool operator!=(const ShapeRef &a, const ShapeRef &b) { return a.m_shape_ref != b.m_shape_ref; }
+inline bool operator<(const ShapeRef &a, const ShapeRef &b) { return a.m_shape_ref < b.m_shape_ref; }
+inline bool operator>(const ShapeRef &a, const ShapeRef &b) { return a.m_shape_ref > b.m_shape_ref; }
 
 struct ShapeRefHash {
-public:
-    size_t operator()(const ShapeRef & shapeRef) const {
-        return shapeRef.m_shape_ref;
-    }
+  public:
+    size_t operator()(const ShapeRef &shapeRef) const { return shapeRef.m_shape_ref; }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 // this is a helper for cutting polygons to fit a viewport / cropping frame
-struct SalaEdgeU : public EdgeU
-{
-   int index;
-   bool entry; // or exit
-   SalaEdgeU() : EdgeU() 
-   { index = -1; entry = false; }
-   SalaEdgeU(int i, bool e, const EdgeU& eu) : EdgeU(eu)
-   { index = i; entry = e; }
+struct SalaEdgeU : public EdgeU {
+    int index;
+    bool entry; // or exit
+    SalaEdgeU() : EdgeU() {
+        index = -1;
+        entry = false;
+    }
+    SalaEdgeU(int i, bool e, const EdgeU &eu) : EdgeU(eu) {
+        index = i;
+        entry = e;
+    }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 class PointMap;
 
-class SalaShape
-{
-public:
-   std::vector<Point2f> m_points;
-   enum {SHAPE_POINT = 0x01, SHAPE_LINE = 0x02, SHAPE_POLY = 0x04, SHAPE_CIRCLE = 0x08, SHAPE_TYPE = 0x0f, SHAPE_CLOSED = 0x40, SHAPE_CCW = 0x80 };
-   friend class ShapeMap;
-protected:
-   unsigned char m_type;
-   Point2f m_centroid; // centre of mass, but also used as for point if object is a point
-   Line m_region; // bounding box, but also used as a line if object is a line, hence type
-   double m_area;
-   double m_perimeter;
-   // these are all temporary data which are recalculated on reload
-   mutable bool m_selected;
-   mutable float m_color;
-   mutable int m_draworder;
-public:
-   SalaShape(unsigned char type = 0)
-   { m_type = type; m_draworder = -1; m_selected = false; m_area = 0.0; m_perimeter = 0.0; }
-   SalaShape(const Point2f& point)
-   { m_type = SHAPE_POINT; m_draworder = -1; m_selected = false; m_region = Line(point,point); m_centroid = point; m_area = 0.0; m_perimeter = 0.0; }
-   SalaShape(const Line& line)
-   { m_type = SHAPE_LINE; m_draworder = -1; m_selected = false; m_region = line; m_centroid = m_region.getCentre(); m_area = 0.0; m_perimeter = m_region.length(); }
-   //
-   bool isOpen() const
-   { return (m_type & SHAPE_CLOSED) == 0; }
-   bool isClosed() const
-   { return (m_type & SHAPE_CLOSED) == SHAPE_CLOSED; }
-   bool isPoint() const
-   { return (m_type == SHAPE_POINT); }
-   bool isLine() const
-   { return (m_type == SHAPE_LINE); }
-   bool isPolyLine() const
-   { return (m_type & (SHAPE_POLY | SHAPE_CLOSED)) == SHAPE_POLY; } 
-   bool isPolygon() const
-   { return (m_type & (SHAPE_POLY | SHAPE_CLOSED)) == (SHAPE_POLY | SHAPE_CLOSED); } 
-   bool isCCW() const
-   { return (m_type & SHAPE_CCW) == SHAPE_CCW; }
-   //
-   const Point2f& getPoint() const
-   { return m_centroid; }
-   const Line& getLine() const
-   { return m_region; }
-   const QtRegion& getBoundingBox() const
-   { return m_region; }
-   //
-   double getArea() const
-   { return m_area; }
-   double getPerimeter() const
-   { return m_perimeter; }
-   // duplicate function, but easier to understand naming convention
-   double getLength() const
-   { return m_perimeter; }
-   //
-   void setCentroidAreaPerim();
-   void setCentroid(const Point2f& p);
-   // duplicate function, but easier to understand naming convention
-   const Point2f& getCentroid() const
-   { return m_centroid; }  
-   //
-   double getAngDev() const;
-   //
-   std::vector<SalaEdgeU> getClippingSet(QtRegion& clipframe) const;
-   //
-   bool read(std::istream &stream, int version);
-   bool write(std::ofstream& stream);
+class SalaShape {
+  public:
+    std::vector<Point2f> m_points;
+    enum {
+        SHAPE_POINT = 0x01,
+        SHAPE_LINE = 0x02,
+        SHAPE_POLY = 0x04,
+        SHAPE_CIRCLE = 0x08,
+        SHAPE_TYPE = 0x0f,
+        SHAPE_CLOSED = 0x40,
+        SHAPE_CCW = 0x80
+    };
+    friend class ShapeMap;
 
-   std::vector<Line> getAsLines() const {
-       std::vector<Line> lines;
-       if (isLine()) {
-          lines.push_back(getLine());
-       }
-       else if (isPolyLine() || isPolygon()) {
-          for (size_t j = 0; j < m_points.size() - 1; j++) {
-             lines.push_back(Line(m_points[j], m_points[j+1]));
-          }
-          if(isClosed()) {
-              lines.push_back(Line(m_points[m_points.size() - 1], m_points[0]));
-          }
-       }
-       return lines;
-   }
+  protected:
+    unsigned char m_type;
+    Point2f m_centroid; // centre of mass, but also used as for point if object is a point
+    Line m_region;      // bounding box, but also used as a line if object is a line, hence type
+    double m_area;
+    double m_perimeter;
+    // these are all temporary data which are recalculated on reload
+    mutable bool m_selected;
+    mutable float m_color;
+    mutable int m_draworder;
+
+  public:
+    SalaShape(unsigned char type = 0) {
+        m_type = type;
+        m_draworder = -1;
+        m_selected = false;
+        m_area = 0.0;
+        m_perimeter = 0.0;
+    }
+    SalaShape(const Point2f &point) {
+        m_type = SHAPE_POINT;
+        m_draworder = -1;
+        m_selected = false;
+        m_region = Line(point, point);
+        m_centroid = point;
+        m_area = 0.0;
+        m_perimeter = 0.0;
+    }
+    SalaShape(const Line &line) {
+        m_type = SHAPE_LINE;
+        m_draworder = -1;
+        m_selected = false;
+        m_region = line;
+        m_centroid = m_region.getCentre();
+        m_area = 0.0;
+        m_perimeter = m_region.length();
+    }
+    //
+    bool isOpen() const { return (m_type & SHAPE_CLOSED) == 0; }
+    bool isClosed() const { return (m_type & SHAPE_CLOSED) == SHAPE_CLOSED; }
+    bool isPoint() const { return (m_type == SHAPE_POINT); }
+    bool isLine() const { return (m_type == SHAPE_LINE); }
+    bool isPolyLine() const { return (m_type & (SHAPE_POLY | SHAPE_CLOSED)) == SHAPE_POLY; }
+    bool isPolygon() const { return (m_type & (SHAPE_POLY | SHAPE_CLOSED)) == (SHAPE_POLY | SHAPE_CLOSED); }
+    bool isCCW() const { return (m_type & SHAPE_CCW) == SHAPE_CCW; }
+    //
+    const Point2f &getPoint() const { return m_centroid; }
+    const Line &getLine() const { return m_region; }
+    const QtRegion &getBoundingBox() const { return m_region; }
+    //
+    double getArea() const { return m_area; }
+    double getPerimeter() const { return m_perimeter; }
+    // duplicate function, but easier to understand naming convention
+    double getLength() const { return m_perimeter; }
+    //
+    void setCentroidAreaPerim();
+    void setCentroid(const Point2f &p);
+    // duplicate function, but easier to understand naming convention
+    const Point2f &getCentroid() const { return m_centroid; }
+    //
+    double getAngDev() const;
+    //
+    std::vector<SalaEdgeU> getClippingSet(QtRegion &clipframe) const;
+    //
+    bool read(std::istream &stream, int version);
+    bool write(std::ofstream &stream);
+
+    std::vector<Line> getAsLines() const {
+        std::vector<Line> lines;
+        if (isLine()) {
+            lines.push_back(getLine());
+        } else if (isPolyLine() || isPolygon()) {
+            for (size_t j = 0; j < m_points.size() - 1; j++) {
+                lines.push_back(Line(m_points[j], m_points[j + 1]));
+            }
+            if (isClosed()) {
+                lines.push_back(Line(m_points[m_points.size() - 1], m_points[0]));
+            }
+        }
+        return lines;
+    }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct SalaEvent
-{
-   enum { SALA_NULL_EVENT, SALA_CREATED, SALA_DELETED, SALA_MOVED };
-   int m_action;
-   int m_shape_ref;
-   SalaShape m_geometry;
-   SalaEvent(int action = SALA_NULL_EVENT, int shape_ref = -1) { m_action = action; m_shape_ref = shape_ref; }
+struct SalaEvent {
+    enum { SALA_NULL_EVENT, SALA_CREATED, SALA_DELETED, SALA_MOVED };
+    int m_action;
+    int m_shape_ref;
+    SalaShape m_geometry;
+    SalaEvent(int action = SALA_NULL_EVENT, int shape_ref = -1) {
+        m_action = action;
+        m_shape_ref = shape_ref;
+    }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -526,66 +537,70 @@ public:
 
    // Quick mod - TV
 #if !defined(_WIN32)
-#define     __max(x,y)  ((x<y) ? y: x)
-#define     __min(x,y)	((x<y) ? x: y)
+#define __max(x, y) ((x < y) ? y : x)
+#define __min(x, y) ((x < y) ? x : y)
 #endif
-   //
-   double getSpacing()
-   { return __max(m_region.width(), m_region.height()) / (10 * log((double)10+m_shapes.size())); }
-   //
-   // dangerous: accessor for the shapes themselves:
-   const std::map<int,SalaShape>& getAllShapes() const
-   { return m_shapes; }
-   std::map<int,SalaShape>& getAllShapes()
-   { return m_shapes; }
-   // required for PixelBase, have to implement your own version of pixelate
-   PixelRef pixelate( const Point2f& p, bool constrain = true, int = 1) const;
-   //
-public:
-   // file
-   bool read(std::istream &stream, int version, bool drawinglayer = false );
-   bool write( std::ofstream& stream, int version );
-   //
-   bool output(std::ofstream& stream, char delimiter = '\t');
-   //
-   // links and unlinks
-protected:
-   std::vector<OrderedIntPair> m_links;
-   std::vector<OrderedIntPair> m_unlinks;
-   mutable int m_curlinkline;
-   mutable int m_curunlinkpoint;
-public:
-   bool clearLinks();
-   bool linkShapes(const Point2f& p);
-   bool linkShapesFromRefs(int ref1, int ref2, bool refresh = true);
-   bool linkShapes(int index1, int index2, bool refresh = true);
-   bool linkShapes(int id1, int dir1, int id2, int dir2, float weight);
-   bool unlinkShapes(const Point2f& p);
-   bool unlinkShapesFromRefs(int index1, int index2, bool refresh = true);
-   bool unlinkShapes(int index1, int index2, bool refresh = true);
-   bool unlinkShapesByKey(int key1, int key2, bool refresh = true);
-   bool unlinkShapeSet(std::istream& idset, int refcol);
-public:
-   // generic for all types of graphs
-   bool findNextLinkLine() const;
-   Line getNextLinkLine() const;
-   std::vector<SimpleLine> getAllLinkLines();
-   // specific to axial line graphs 
-   bool findNextUnlinkPoint() const;
-   Point2f getNextUnlinkPoint() const;
-   std::vector<Point2f> getAllUnlinkPoints();
-   void outputUnlinkPoints( std::ofstream& stream, char delim );
-public:
-   std::vector<SimpleLine> getAllShapesAsLines() const;
-   std::vector<std::pair<SimpleLine, PafColor>> getAllLinesWithColour();
-   std::map<std::vector<Point2f>, PafColor> getAllPolygonsWithColour();
-   bool importLines(const std::vector<Line> &lines, const depthmapX::Table &data);
-   bool importLinesWithRefs(const std::map<int, Line> &lines, const depthmapX::Table &data);
-   bool importPoints(const std::vector<Point2f> &points, const depthmapX::Table &data);
-   bool importPointsWithRefs(const std::map<int, Point2f> &points, const depthmapX::Table &data);
-   bool importPolylines(const std::vector<depthmapX::Polyline> &lines, const depthmapX::Table &data);
-   bool importPolylinesWithRefs(const std::map<int, depthmapX::Polyline> &lines, const depthmapX::Table &data);
-   void copyMapInfoBaseData(const ShapeMap& sourceMap);
-private:
-   bool importData(const depthmapX::Table &data, std::vector<int> shape_refs);
+    //
+    double getSpacing() {
+        return __max(m_region.width(), m_region.height()) / (10 * log((double)10 + m_shapes.size()));
+    }
+    //
+    // dangerous: accessor for the shapes themselves:
+    const std::map<int, SalaShape> &getAllShapes() const { return m_shapes; }
+    std::map<int, SalaShape> &getAllShapes() { return m_shapes; }
+    // required for PixelBase, have to implement your own version of pixelate
+    PixelRef pixelate(const Point2f &p, bool constrain = true, int = 1) const;
+    //
+  public:
+    // file
+    bool read(std::istream &stream, int version, bool drawinglayer = false);
+    bool write(std::ofstream &stream, int version);
+    //
+    bool output(std::ofstream &stream, char delimiter = '\t');
+    //
+    // links and unlinks
+  protected:
+    std::vector<OrderedIntPair> m_links;
+    std::vector<OrderedIntPair> m_unlinks;
+    mutable int m_curlinkline;
+    mutable int m_curunlinkpoint;
+
+  public:
+    bool clearLinks();
+    bool linkShapes(const Point2f &p);
+    bool linkShapesFromRefs(int ref1, int ref2, bool refresh = true);
+    bool linkShapes(int index1, int index2, bool refresh = true);
+    bool linkShapes(int id1, int dir1, int id2, int dir2, float weight);
+    bool unlinkShapes(const Point2f &p);
+    bool unlinkShapesFromRefs(int index1, int index2, bool refresh = true);
+    bool unlinkShapes(int index1, int index2, bool refresh = true);
+    bool unlinkShapesByKey(int key1, int key2, bool refresh = true);
+    bool unlinkShapeSet(std::istream &idset, int refcol);
+
+  public:
+    // generic for all types of graphs
+    bool findNextLinkLine() const;
+    Line getNextLinkLine() const;
+    std::vector<SimpleLine> getAllLinkLines();
+    // specific to axial line graphs
+    bool findNextUnlinkPoint() const;
+    Point2f getNextUnlinkPoint() const;
+    std::vector<Point2f> getAllUnlinkPoints();
+    void outputUnlinkPoints(std::ofstream &stream, char delim);
+
+  public:
+    std::vector<SimpleLine> getAllShapesAsLines() const;
+    std::vector<std::pair<SimpleLine, PafColor>> getAllLinesWithColour();
+    std::map<std::vector<Point2f>, PafColor> getAllPolygonsWithColour();
+    std::vector<std::pair<Point2f, PafColor>> getAllPointsWithColour();
+    bool importLines(const std::vector<Line> &lines, const depthmapX::Table &data);
+    bool importLinesWithRefs(const std::map<int, Line> &lines, const depthmapX::Table &data);
+    bool importPoints(const std::vector<Point2f> &points, const depthmapX::Table &data);
+    bool importPointsWithRefs(const std::map<int, Point2f> &points, const depthmapX::Table &data);
+    bool importPolylines(const std::vector<depthmapX::Polyline> &lines, const depthmapX::Table &data);
+    bool importPolylinesWithRefs(const std::map<int, depthmapX::Polyline> &lines, const depthmapX::Table &data);
+    void copyMapInfoBaseData(const ShapeMap &sourceMap);
+
+  private:
+    bool importData(const depthmapX::Table &data, std::vector<int> shape_refs);
 };
