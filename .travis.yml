@@ -13,6 +13,7 @@ before_install:
 
 install:
   - sudo apt-get -y install qt5113d qt511tools libgl1-mesa-dev libglu1-mesa-dev python3.5 cmake
+  - cmake --version
 
 script:
   - source /opt/qt511/bin/qt511-env.sh
