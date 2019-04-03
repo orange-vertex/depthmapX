@@ -6,18 +6,22 @@ env:
         - CMAKE_PREFIX=$HOME/prebuilt/cmake
         - CMAKE_BIN=$CMAKE_PREFIX/bin/cmake
         - CMAKE_LINUX_URL=https://cmake.org/files/v3.13/cmake-3.13.1-Linux-x86_64.sh ;
-
+addons:
+  apt:
+    sources:
+      - deadsnakes
+      - sourceline: 'ppa:beineri/opt-qt-5.11.3-xenial'
+    packages:
+      - qt5113d 
+      - qt511tools 
+      - libgl1-mesa-dev 
+      - libglu1-mesa-dev 
+      - python3.5
+ 
 notifications:
     slack: depthmapx:B3CKNlNDLrNz1vSOU5yoQQqA
 
-
-before_install:
-  - sudo add-apt-repository --yes ppa:beineri/opt-qt-5.11.3-xenial
-  - sudo add-apt-repository --yes ppa:deadsnakes/ppa
-  - sudo apt-get update -qq
-
 install:
-  - sudo apt-get -y install qt5113d qt511tools libgl1-mesa-dev libglu1-mesa-dev python3.5
   - if [ ! -e "$CMAKE_BIN" ]; then
 
             mkdir -p "$CMAKE_PREFIX";
