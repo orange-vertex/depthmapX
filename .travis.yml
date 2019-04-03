@@ -1,6 +1,7 @@
 sudo: required
 dist: xenial
 language: c++
+service: docker
 env:
     global:
         - CMAKE_PREFIX=$HOME/prebuilt/cmake
@@ -10,38 +11,16 @@ addons:
   apt:
     sources:
       - deadsnakes
-      - sourceline: 'ppa:beineri/opt-qt-5.11.3-xenial'
     packages:
-      - qt5113d 
-      - qt511tools 
-      - libgl1-mesa-dev 
-      - libglu1-mesa-dev 
       - python3.5
  
 notifications:
     slack: depthmapx:B3CKNlNDLrNz1vSOU5yoQQqA
 
-install:
-  - if [ ! -e "$CMAKE_BIN" ]; then
-
-            mkdir -p "$CMAKE_PREFIX";
-
-            curl --insecure -L "$CMAKE_LINUX_URL" -o cmake-linux.sh ;
-
-            bash cmake-linux.sh --skip-license --prefix=$CMAKE_PREFIX ;
-
-    fi
 
 script:
-  - source /opt/qt511/bin/qt511-env.sh
-  - mkdir build && cd build
-  - $CMAKE_BIN -DCMAKE_BUILD_TYPE=Release ..
+  - docker run blackseamonster:depthmapx-buildenv:0.3 ./ci/build.sh
   - make
   - ./cliTest/cliTest && ./GuiUnitTest/GuiUnitTest && ./salaTest/salaTest && ./genlibTest/genlibTest
   - cd ../RegressionTest/test && python3.5 test_main.py && cd .. && python3.5 RegressionTestRunner.py && python3.5 RegressionTestRunner.py regressionconfig_agents.json
 
-
-cache:
-    ccache: true
-    directories:
-    - $CMAKE_PREFIX
