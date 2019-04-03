@@ -1,7 +1,8 @@
 sudo: required
 dist: xenial
 language: c++
-service: docker
+services:
+  - docker
 env:
     global:
         - CMAKE_PREFIX=$HOME/prebuilt/cmake
@@ -19,7 +20,7 @@ notifications:
 
 
 script:
-  - docker run -v .:/mnt/code blackseamonster:depthmapx-buildenv:0.3 bash -c ci/build.sh
+  - docker run -v .:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh
   - make
   - ./cliTest/cliTest && ./GuiUnitTest/GuiUnitTest && ./salaTest/salaTest && ./genlibTest/genlibTest
   - cd ../RegressionTest/test && python3.5 test_main.py && cd .. && python3.5 RegressionTestRunner.py && python3.5 RegressionTestRunner.py regressionconfig_agents.json
