@@ -32,7 +32,6 @@ set(depthmapX_SRCS
 	indexWidget.h
 	mdichild.h
 	treeWindow.h
-	versions.h
 	main.cpp
 	coreapplication.cpp
 	coreapplication.h)
