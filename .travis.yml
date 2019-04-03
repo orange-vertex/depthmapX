@@ -42,7 +42,6 @@ script:
 
 
 cache:
-    apt: true
     ccache: true
     directories:
     - $CMAKE_PREFIX
