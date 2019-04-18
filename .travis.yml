@@ -20,7 +20,4 @@ notifications:
 
 
 script:
-  - docker run --user $UID -v $PWD:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh
-  - ./cliTest/cliTest && ./GuiUnitTest/GuiUnitTest && ./salaTest/salaTest && ./genlibTest/genlibTest
-  - cd ../RegressionTest/test && python3.5 test_main.py && cd .. && python3.5 RegressionTestRunner.py && python3.5 RegressionTestRunner.py regressionconfig_agents.json
-
+  - docker run --security-opt seccomp:unconfined --user $UID -v $PWD:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh
