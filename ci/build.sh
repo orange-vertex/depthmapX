@@ -13,8 +13,8 @@ echo Running unit tests
 ./cliTest/cliTest && ./GuiUnitTest/GuiUnitTest && ./salaTest/salaTest && ./genlibTest/genlibTest || exit 1
 # if that succeeds, run regression tests
 echo testing regression test framework
-cd ../RegressionTest/test && python3.5 test_main.py || exit 1
+cd ../RegressionTest/test && echo pwd && python3.5 test_main.py || exit 1
 echo running standard regression tests
-cd .. && python3.5 RegressionTestRunner.py || exit 1
+cd .. && pwd && python3.5 RegressionTestRunner.py || exit 1
 echo running agent test
 python3.5 RegressionTestRunner.py regressionconfig_agents.json || exit 1
