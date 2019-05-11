@@ -4,14 +4,15 @@
 
 To build depthmapX on your machine, you need the following dependencies:
 - A C++ compiler that supports C++-11 or later. Tested compilers are 
--- MSVC 2015 or later (on Windows)
--- Clang (on MaxOS and Linux)
--- g++ (on Linux)
+  - MSVC 2015 or later (on Windows)
+  - Clang (on MaxOS and Linux)
+  - g++ (on Linux)
 - Qt 5.7 or later
 - cmake 3.13 or later - this is a fairly recent version
 
 If these dependencies are available, then building depthmapX should be
-```mkdir build
+```
+mkdir build
 cd build
 cmake ..
 make
@@ -29,18 +30,26 @@ in use - please refer to the docker documentation at www.docker.com.
 ### Windows
 
 To run the docker build on windows, use this command line:
-`docker run -v <path to your code location>\depthmapX:/mnt/code/ -it blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh`
+```
+docker run -v <path to your code location>\depthmapX:/mnt/code/ -it blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh
+```
 
 To run the build environment interactively, use
-`docker run -v <path to your code location>\depthmapX:/mnt/code/ -it blackseamonster/depthmapx-buildenv:0.3 bash`
+```
+docker run -v <path to your code location>\depthmapX:/mnt/code/ -it blackseamonster/depthmapx-buildenv:0.3 bash
+```
 
 ### Mac/Linux
 
 To run the docker build on a Unix based system, use this command line:
-`docker run --security-opt seccomp:unconfined --user $UID -v $PWD:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh`
+```
+docker run --security-opt seccomp:unconfined --user $UID -v $PWD:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh
+```
 
 To run the build environment interactively, use:
-`docker run --security-opt seccomp:unconfined --user $UID -v $PWD:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash`
+```
+docker run --security-opt seccomp:unconfined --user $UID -v $PWD:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash
+```
 
 ## Using an IDE
 
