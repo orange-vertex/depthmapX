@@ -18,6 +18,8 @@ target_sources(depthmapX
         tableview/tableview.cpp
         depthmapview/depthmapview.cpp
         3dview/3dview.cpp
+        glview/glregularpolygons.cpp
+        glview/gltriangles.cpp
     PUBLIC
         mapview.h
         viewhelpers.h
@@ -36,5 +38,7 @@ target_sources(depthmapX
         plotview/plotview.h
         tableview/tableview.h
         depthmapview/depthmapview.h
+        glview/glregularpolygons.h
+        glview/gltriangles.h
         3dview/3dview.h)
 

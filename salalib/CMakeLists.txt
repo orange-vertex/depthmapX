@@ -1,12 +1,10 @@
 set(salalib salalib)
 
 set(salalib_SRCS
-    attributes.cpp
     axialmap.cpp
     connector.cpp
     isovist.cpp
     mgraph.cpp
-    nagent.cpp
     ngraph.cpp
     pointdata.cpp
     salaprogram.cpp
@@ -39,6 +37,7 @@ add_subdirectory(vgamodules)
 add_subdirectory(axialmodules)
 add_subdirectory(segmmodules)
 add_subdirectory(parsers)
+add_subdirectory(agents)
 
 
 

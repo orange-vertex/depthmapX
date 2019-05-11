@@ -1,6 +1,5 @@
 set(genlibtest genlibTest)
 set(genlibTest_SRCS
-    convertertest.cpp
     testreadwritehelpers.cpp
     main.cpp
     testsimplematrix.cpp
