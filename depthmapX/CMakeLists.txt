@@ -73,13 +73,17 @@ qt5_wrap_cpp(UI_SRCS
 qt5_add_resources(DM_RSRC resource.qrc dialogs/settings/settingsdialog.qrc)
 
 if (MSVC)
-	add_executable(${depthmapX} ${depthmapX_SRCS} ${UI_HDRS} ${UI_SRCS} ${DM_RSRC} icons.rc)
-	target_link_libraries(${depthmapX} salalib genlib mgraph440 Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL opengl32 glu32 gdi32)
+        add_executable(${depthmapX} ${depthmapX_SRCS} ${UI_HDRS} ${UI_SRCS} ${DM_RSRC} icons.rc)
 endif(MSVC)
 if(UNIX)
-	add_executable(${depthmapX} ${depthmapX_SRCS} ${UI_HDRS} ${UI_SRCS} ${DM_RSRC})
-	target_link_libraries(${depthmapX} salalib genlib mgraph440 Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL GL GLU)
+        add_executable(${depthmapX} ${depthmapX_SRCS} ${UI_HDRS} ${UI_SRCS} ${DM_RSRC})
 endif(UNIX)
+
+find_package(OpenGL)
+find_package(GLUT)
+
+target_link_libraries(${depthmapX} salalib genlib mgraph440 Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
+    ${OPENGL_gl_LIBRARY} ${GLUT_LIBRARIES})
 
 add_subdirectory(dialogs)
 add_subdirectory(views)

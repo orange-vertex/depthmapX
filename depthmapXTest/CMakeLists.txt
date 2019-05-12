@@ -33,10 +33,9 @@ include_directories("../ThirdParty/Catch")
 set(LINK_LIBS salalib genlib mgraph440)
 
 add_executable(${depthmapXTest} ${depthmapXTest_SRCS})
-if (MSVC)
-	target_link_libraries(${depthmapXTest} Qt5::OpenGL salalib genlib opengl32 glu32 gdi32)
-endif(MSVC)
-if(UNIX)
-	target_link_libraries(${depthmapXTest} salalib genlib Qt5::OpenGL GL GLU)
-endif(UNIX)
+
+find_package(OpenGL)
+find_package(GLUT)
+
+target_link_libraries(${depthmapXTest} Qt5::OpenGL salalib genlib ${OPENGL_gl_LIBRARY} ${GLUT_LIBRARIES})
 
