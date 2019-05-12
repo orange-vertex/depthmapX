@@ -5,7 +5,7 @@
 To build depthmapX on your machine, you need the following dependencies:
 - A C++ compiler that supports C++-11 or later. Tested compilers are 
   - MSVC 2015 or later (on Windows)
-  - Clang (on MaxOS and Linux)
+  - Clang (on MacOS and Linux)
   - g++ (on Linux)
 - Qt 5.7 or later
 - cmake 3.13 or later - this is a fairly recent version
