@@ -30,7 +30,6 @@
 #include <sstream>
 #include <math.h>
 #include <float.h>
-#include <genlib/paftl.h>
 #include <genlib/comm.h>
 #include <genlib/exceptions.h>
 // Sala
@@ -128,7 +127,7 @@ public:
 
 
 protected:
-   pvecint m_options;
+   std::vector<int> m_options;
    int m_function;
    Point2f m_seed_point;
    double m_seed_angle;
@@ -233,7 +232,7 @@ public:
    Point2f m_position;  // Last known mouse position, in DXF units
    // Paths for the March 05 evolved agents
    // (loaded from file using the test button)
-   prefvec<pqvector<Point2f>> m_evolved_paths;
+   std::vector<std::vector<Point2f>> m_evolved_paths;
    RenderThread m_thread;
 
    QProgressDialog* m_waitdlg;
@@ -273,11 +272,13 @@ public:
     void OnVGALinksFileImport();
     void OnFileImport();
 	void OnFileExport();
+    void OnFileExportMapGeometry();
     void OnFileExportLinks();
     void OnAxialConnectionsExportAsDot();
     void OnAxialConnectionsExportAsPairCSV();
     void OnSegmentConnectionsExportAsPairCSV();
 	void OnToolsMakeGraph();
+    void OnToolsUnmakeGraph();
     void OnEditClear();
 	void OnToolsRun();
     void OnEditUndo();
