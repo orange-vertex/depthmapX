@@ -35,7 +35,9 @@ set(cliTest_SRCS
     ../depthmapXcli/segmentparser.cpp
     testsegmentparser.cpp
     ../depthmapXcli/mapconvertparser.cpp
-    testmapconvertparser.cpp)
+    testmapconvertparser.cpp
+    ../depthmapXcli/shortestpathparser.cpp
+    testshortestpathparser.cpp)
 
 
 include_directories("../ThirdParty/Catch" "../ThirdParty/FakeIt")

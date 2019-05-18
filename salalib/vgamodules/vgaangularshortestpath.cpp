@@ -25,17 +25,18 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
     auto &attributes = map.getAttributeTable();
     auto &selection_set = map.getSelSet();
 
-    int path_col = attributes.insertColumn("Angular Shortest Path");
-    int linked_col = attributes.insertColumn("Angular Shortest Path Linked");
-    int order_col = attributes.insertColumn("Angular Shortest Path Order");
-    int zone_col = attributes.insertColumn("Angular Shortest Path Zone");
-    int zone_3m_col = attributes.insertColumn("Angular Shortest Path Zone 3m");
+    int path_col = attributes.insertOrResetColumn("Angular Shortest Path");
+    int linked_col = attributes.insertOrResetColumn("Angular Shortest Path Linked");
+    int order_col = attributes.insertOrResetColumn("Angular Shortest Path Order");
+    int zone_col = attributes.insertOrResetColumn("Angular Shortest Path Zone");
+    int zone_3m_col = attributes.insertOrResetColumn("Angular Shortest Path Zone 3m");
 
-    for (int i = 0; i < attributes.getRowCount(); i++) {
-        PixelRef pix = attributes.getRowKey(i);
-        map.getPoint(pix).m_misc = 0;
-        map.getPoint(pix).m_dist = 0.0f;
-        map.getPoint(pix).m_cumangle = -1.0f;
+    for (auto& row: attributes) {
+        PixelRef pix = PixelRef(row.getKey().value);
+        Point &p = map.getPoint(pix);
+        p.m_misc = 0;
+        p.m_dist = 0.0f;
+        p.m_cumangle = -1.0f;
     }
 
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
@@ -94,51 +95,52 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
     auto pixelToParent = parents.find(pixelTo);
     if (pixelToParent != parents.end()) {
 
-        for (int i = 0; i < attributes.getRowCount(); i++) {
-            PixelRef pix = attributes.getRowKey(i);
-            map.getPoint(pix).m_misc = 0;
-            map.getPoint(pix).m_dist = 0.0f;
-            map.getPoint(pix).m_cumangle = -1.0f;
+        for (auto& row: attributes) {
+            PixelRef pix = PixelRef(row.getKey().value);
+            Point &p = map.getPoint(pix);
+            p.m_misc = 0;
+            p.m_dist = 0.0f;
+            p.m_cumangle = -1.0f;
         }
 
         int counter = 0;
-        int row = attributes.getRowid(pixelTo);
-        attributes.setValue(row, order_col, counter);
+
+        AttributeRow& lastPixelRow = attributes.getRow(AttributeKey(pixelTo));
+        lastPixelRow.setValue(order_col, counter);
         counter++;
-        int lastPixelRow = row;
         auto currParent = pixelToParent;
         counter++;
         while (currParent != parents.end()) {
             Point &p = map.getPoint(currParent->second);
-            int row = attributes.getRowid(currParent->second);
-            attributes.setValue(row, order_col, counter);
+            AttributeRow& row = attributes.getRow(AttributeKey(currParent->second));
+            row.setValue(order_col, counter);
 
             if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
-                attributes.setValue(row, linked_col, 1);
-                attributes.setValue(lastPixelRow, linked_col, 1);
+                row.setValue(linked_col, 1);
+                lastPixelRow.setValue(linked_col, 1);
             } else {
                 // apparently we can't just have 1 number in the whole column
-                attributes.setValue(row, linked_col, 0);
+                row.setValue(linked_col, 0);
                 auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
                 for (auto &linePixel : pixelated) {
-                    int linePixelRow = attributes.getRowid(linePixel);
-                    if (linePixelRow != -1) {
-                        attributes.setValue(linePixelRow, path_col, linePixelCounter++);
-                        attributes.setValue(linePixelRow, zone_col, 1);
+                    auto* linePixelRow = attributes.getRowPtr(AttributeKey(linePixel));
+                    if (linePixelRow != 0) {
+                        linePixelRow->setValue(path_col, linePixelCounter++);
+                        linePixelRow->setValue(zone_col, 1);
 
                         std::set<AngularTriple> newPixels;
                         Point &p = map.getPoint(linePixel);
                         p.getNode().extractAngular(newPixels, &map, AngularTriple(0.0f, linePixel, NoPixel));
                         for (auto &zonePixel: newPixels) {
-                            int zonePixelRow = attributes.getRowid(zonePixel.pixel);
-                            if (zonePixelRow != -1) {
+                            auto* zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel.pixel));
+                            if (zonePixelRow != 0) {
                                 double zoneLineDist = dist(linePixel, zonePixel.pixel);
-                                float currZonePixelVal = attributes.getValue(zonePixelRow, zone_col);
+                                float currZonePixelVal = zonePixelRow->getValue(zone_col);
                                 if(currZonePixelVal == -1 ||  1.0f/(zoneLineDist+1) > currZonePixelVal) {
-                                    attributes.setValue(zonePixelRow, zone_col, 1.0f/(zoneLineDist+1));
+                                    zonePixelRow->setValue(zone_col, 1.0f/(zoneLineDist+1));
                                 }
                                 if(zoneLineDist*map.getSpacing() < 3000) {
-                                    attributes.setValue(zonePixelRow, zone_3m_col, linePixelCounter);
+                                    zonePixelRow->setValue(zone_3m_col, linePixelCounter);
                                 } else {
                                     map.getPoint(zonePixel.pixel).m_misc = 0;
                                     map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
