@@ -9,6 +9,10 @@ target_sources(salalib
        vgaangulardepth.cpp
        vgametricdepth.cpp
        vgavisualglobaldepth.cpp
+       extractlinkdata.cpp
+       vgaangularshortestpath.cpp
+       vgametricshortestpath.cpp
+       vgavisualshortestpath.cpp
     PUBLIC
        vgaangular.h
        vgametric.h
@@ -18,4 +22,8 @@ target_sources(salalib
        vgavisualglobaldepth.h
        vgaisovist.h
        vgathroughvision.h
-       vgavisuallocal.h)
+       vgavisuallocal.h
+       extractlinkdata.h
+       vgaangularshortestpath.h
+       vgametricshortestpath.h
+       vgavisualshortestpath.h)

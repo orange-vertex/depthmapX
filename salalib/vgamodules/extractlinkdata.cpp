@@ -24,20 +24,20 @@ bool ExtractLinkData::run(Communicator *, const Options &, PointMap &map, bool) 
 
     auto &attributes = map.getAttributeTable();
 
-    int angular_cost_col = attributes.insertColumn("Link Angular Cost");
-    int metric_cost_col = attributes.insertColumn("Link Metric Cost");
-    int link_to_col = attributes.insertColumn("Link To");
-    int visual_cost_col = attributes.insertColumn("Link Visual Cost");
+    int angular_cost_col = attributes.insertOrResetColumn("Link Angular Cost");
+    int metric_cost_col = attributes.insertOrResetColumn("Link Metric Cost");
+    int link_to_col = attributes.insertOrResetColumn("Link To");
+    int visual_cost_col = attributes.insertOrResetColumn("Link Visual Cost");
 
-    for (int i = 0; i < attributes.getRowCount(); i++) {
-        PixelRef pix = attributes.getRowKey(i);
+    for (auto& row: attributes) {
+        PixelRef pix = PixelRef(row.getKey().value);
         Point &p = map.getPoint(pix);
         PixelRef mergePixel = p.getMergePixel();
         if (!mergePixel.empty()) {
-            attributes.setValue(i, link_to_col, static_cast<int>(mergePixel));
-            attributes.setValue(i, visual_cost_col, 1);
-            attributes.setValue(i, metric_cost_col, dist(pix, mergePixel) * map.getSpacing());
-            attributes.setValue(i, angular_cost_col, 1);
+            row.getRow().setValue(link_to_col, static_cast<int>(mergePixel));
+            row.getRow().setValue(visual_cost_col, 1);
+            row.getRow().setValue(metric_cost_col, dist(pix, mergePixel) * map.getSpacing());
+            row.getRow().setValue(angular_cost_col, 1);
         }
     }
 
