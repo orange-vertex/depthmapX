@@ -25,14 +25,14 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     auto &attributes = map.getAttributeTable();
     auto &selection_set = map.getSelSet();
 
+    // custom linking costs from the attribute table
+    int link_metric_cost_col = attributes.getOrInsertColumn("Link Metric Cost");
+
     int path_col = attributes.insertOrResetColumn("Metric Shortest Path");
     int linked_col = attributes.insertOrResetColumn("Metric Shortest Path Linked");
     int order_col = attributes.insertOrResetColumn("Metric Shortest Path Order");
     int zone_col = attributes.insertOrResetColumn("Metric Shortest Path Zone");
     int zone_3m_col = attributes.insertOrResetColumn("Metric Shortest Path Zone 3m");
-
-    // custom linking costs from the attribute table
-    int link_metric_cost_col = attributes.insertOrResetColumn("Link Metric Cost");
 
     depthmapX::ColumnMatrix<MetricPoint> metricPoints(map.getRows(), map.getCols());
 
