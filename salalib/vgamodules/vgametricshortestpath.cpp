@@ -34,12 +34,11 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     // custom linking costs from the attribute table
     int link_metric_cost_col = attributes.insertOrResetColumn("Link Metric Cost");
 
+    depthmapX::ColumnMatrix<MetricPoint> metricPoints(map.getRows(), map.getCols());
+
     for (auto& row: attributes) {
         PixelRef pix = PixelRef(row.getKey().value);
-        Point &p = map.getPoint(pix);
-        p.m_misc = 0;
-        p.m_dist = -1.0f;
-        p.m_cumangle = 0.0f;
+        getMetricPoint(metricPoints, pix).m_point = &(map.getPoint(pix));
     }
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<MetricTriple> search_list; // contains root point
@@ -60,29 +59,29 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
         std::set<MetricTriple>::iterator it = search_list.begin();
         MetricTriple here = *it;
         search_list.erase(it);
-        Point &p = map.getPoint(here.pixel);
+        MetricPoint& mp = getMetricPoint(metricPoints, here.pixel);
         std::set<MetricTriple> newPixels;
         std::set<MetricTriple> mergePixels;
         // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-        if (p.filled() && p.m_misc != ~0) {
-            extractMetric(p.getNode(), newPixels, &map, here, 0, map.getSpacing());
-            p.m_misc = ~0;
-            if (!p.getMergePixel().empty()) {
-                Point &p2 = map.getPoint(p.getMergePixel());
-                if (p2.m_misc != ~0) {
-                    auto newTripleIter = newPixels.insert(MetricTriple(here.dist, p.getMergePixel(), NoPixel));
-                    p2.m_cumangle = p.m_cumangle;
+        if (mp.m_point->filled() && mp.m_misc != ~0) {
+            extractMetric(metricPoints, mp.m_point->getNode(), newPixels, &map, here, 0, map.getSpacing());
+            mp.m_misc = ~0;
+            if (!mp.m_point->getMergePixel().empty()) {
+                MetricPoint& mp2 = getMetricPoint(metricPoints, mp.m_point->getMergePixel());
+                if (mp2.m_misc != ~0) {
+                    auto newTripleIter = newPixels.insert(MetricTriple(here.dist, mp.m_point->getMergePixel(), NoPixel));
+                    mp2.m_cumangle = mp.m_cumangle;
                     float extraMetricCost = 0;
                     if(link_metric_cost_col != -1) {
-                        AttributeRow& mergeRow = attributes.getRow(AttributeKey(p.getMergePixel()));
+                        AttributeRow& mergeRow = attributes.getRow(AttributeKey(mp.m_point->getMergePixel()));
                         extraMetricCost = mergeRow.getValue(link_metric_cost_col);
                     }
-                    p2.m_dist = here.dist + extraMetricCost;
-                    extractMetric(p2.getNode(), mergePixels, &map, *newTripleIter.first, extraMetricCost, map.getSpacing());
+                    mp2.m_dist = here.dist + extraMetricCost;
+                    extractMetric(metricPoints, mp2.m_point->getNode(), mergePixels, &map, *newTripleIter.first, extraMetricCost, map.getSpacing());
                     for (auto &pixel : mergePixels) {
-                        parents[pixel.pixel] = p.getMergePixel();
+                        parents[pixel.pixel] = mp.m_point->getMergePixel();
                     }
-                    p2.m_misc = ~0;
+                    mp2.m_misc = ~0;
                 }
             }
         }
@@ -105,10 +104,10 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
 
         for (auto& row: attributes) {
             PixelRef pix = PixelRef(row.getKey().value);
-            Point &p = map.getPoint(pix);
-            p.m_misc = 0;
-            p.m_dist = -1.0f;
-            p.m_cumangle = 0.0f;
+            MetricPoint &mp = getMetricPoint(metricPoints, pix);
+            mp.m_misc = 0;
+            mp.m_dist = -1.0f;
+            mp.m_cumangle = 0.0f;
         }
 
 
@@ -119,11 +118,11 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
         auto currParent = pixelToParent;
         counter++;
         while (currParent != parents.end()) {
-            Point &p = map.getPoint(currParent->second);
+            MetricPoint &mp = getMetricPoint(metricPoints, currParent->second);
             AttributeRow& row = attributes.getRow(AttributeKey(currParent->second));
             row.setValue(order_col, counter);
 
-            if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
+            if (!mp.m_point->getMergePixel().empty() && mp.m_point->getMergePixel() == currParent->first) {
                 row.setValue(linked_col, 1);
                 lastPixelRow.setValue(linked_col, 1);
             } else {
@@ -137,8 +136,9 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                         linePixelRow->setValue(zone_col, 1);
 
                         std::set<MetricTriple> newPixels;
-                        Point &p = map.getPoint(linePixel);
-                        extractMetric(p.getNode(), newPixels, &map, MetricTriple(0.0f, linePixel, NoPixel), 0, map.getSpacing());
+                        MetricPoint &lp = getMetricPoint(metricPoints, linePixel);
+                        extractMetric(metricPoints, lp.m_point->getNode(), newPixels, &map,
+                                      MetricTriple(0.0f, linePixel, NoPixel), 0, map.getSpacing());
                         for (auto &zonePixel : newPixels) {
                             auto* zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel.pixel));
                             if (zonePixelRow != 0) {
@@ -173,23 +173,26 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     return false;
 }
 
-void VGAMetricShortestPath::extractMetric(Node n, std::set<MetricTriple> &pixels, PointMap *pointdata,
+void VGAMetricShortestPath::extractMetric(depthmapX::ColumnMatrix<MetricPoint> &metricPoints,
+                                          Node n, std::set<MetricTriple> &pixels, PointMap* pointdata,
                                           const MetricTriple &curs, float extraMetricCost, float spacing) {
-    if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
+    MetricPoint & cursMP = getMetricPoint(metricPoints, curs.pixel);
+    if (curs.dist == 0.0f || cursMP.m_point->blocked() ||
+            pointdata->blockedAdjacent(curs.pixel)) {
         for (int i = 0; i < 32; i++) {
             Bin &bin = n.bin(i);
             for (auto pixVec : bin.m_pixel_vecs) {
                 for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
-                    Point &pt = pointdata->getPoint(pix);
-                    if (pt.m_misc == 0 &&
-                            (pt.m_dist == -1.0 ||(extraMetricCost + curs.dist + spacing*dist(pix, curs.pixel) < pt.m_dist))) {
-                        pt.m_dist = extraMetricCost + curs.dist + spacing*(float)dist(pix, curs.pixel);
+                    MetricPoint &mpt = getMetricPoint(metricPoints, pix);
+                    if (mpt.m_misc == 0 &&
+                            (mpt.m_dist == -1.0 ||(extraMetricCost + curs.dist + spacing*dist(pix, curs.pixel) < mpt.m_dist))) {
+                        mpt.m_dist = extraMetricCost + curs.dist + spacing*(float)dist(pix, curs.pixel);
                         // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
-                        pt.m_cumangle = pointdata->getPoint(curs.pixel).m_cumangle +
+                        mpt.m_cumangle = cursMP.m_cumangle +
                                         (curs.lastpixel == NoPixel
                                              ? 0.0f
                                              : (float)(angle(pix, curs.pixel, curs.lastpixel) / (M_PI * 0.5)));
-                        pixels.insert(MetricTriple(pt.m_dist, pix, curs.pixel));
+                        pixels.insert(MetricTriple(mpt.m_dist, pix, curs.pixel));
                     }
                     pix.move(bin.m_dir);
                 }
