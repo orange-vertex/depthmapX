@@ -77,6 +77,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                         AttributeRow& mergeRow = attributes.getRow(AttributeKey(p.getMergePixel()));
                         extraMetricCost = mergeRow.getValue(link_metric_cost_col);
                     }
+                    p2.m_dist = here.dist + extraMetricCost;
                     extractMetric(p2.getNode(), mergePixels, &map, *newTripleIter.first, extraMetricCost, map.getSpacing());
                     for (auto &pixel : mergePixels) {
                         parents[pixel.pixel] = p.getMergePixel();
