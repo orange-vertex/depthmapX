@@ -374,12 +374,14 @@ void RenderThread::run()
 
       case CMSCommunicator::VISUALSHORTESTPATHS:
          {
-            // Set up for options step depth selection
-            Options options;
-            options.global = 0;
-            options.point_depth_selection = 1;
+            PointMap & map = pDoc->m_meta_graph->getDisplayedPointMap();
+            if (map.getSelSet().size() != 2) {
+                throw depthmapX::RuntimeException("Two nodes must be selected");
+            }
+            PixelRef pixelFrom = *map.getSelSet().begin();
+            PixelRef pixelTo = *std::next(map.getSelSet().begin());
 
-            ok = pDoc->m_meta_graph->visualShortestPath( comm );
+            ok = pDoc->m_meta_graph->visualShortestPath(comm, map, pixelFrom, pixelTo);
             if (ok) {
                pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
             }
@@ -389,12 +391,14 @@ void RenderThread::run()
 
       case CMSCommunicator::METRICSHORTESTPATHS:
          {
-            // Set up for options step depth selection
-            Options options;
-            options.global = 0;
-            options.point_depth_selection = 1;
+            PointMap & map = pDoc->m_meta_graph->getDisplayedPointMap();
+            if (map.getSelSet().size() != 2) {
+                throw depthmapX::RuntimeException("Two nodes must be selected");
+            }
+            PixelRef pixelFrom = *map.getSelSet().begin();
+            PixelRef pixelTo = *std::next(map.getSelSet().begin());
 
-            ok = pDoc->m_meta_graph->metricShortestPath( comm );
+            ok = pDoc->m_meta_graph->metricShortestPath(comm, map, pixelFrom, pixelTo);
             if (ok) {
                pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
             }
@@ -404,12 +408,14 @@ void RenderThread::run()
 
       case CMSCommunicator::ANGULARSHORTESTPATHS:
          {
-            // Set up for options step depth selection
-            Options options;
-            options.global = 0;
-            options.point_depth_selection = 1;
+            PointMap & map = pDoc->m_meta_graph->getDisplayedPointMap();
+            if (map.getSelSet().size() != 2) {
+                throw depthmapX::RuntimeException("Two nodes must be selected");
+            }
+            PixelRef pixelFrom = *map.getSelSet().begin();
+            PixelRef pixelTo = *std::next(map.getSelSet().begin());
 
-            ok = pDoc->m_meta_graph->angularShortestPath( comm );
+            ok = pDoc->m_meta_graph->angularShortestPath(comm, map, pixelFrom, pixelTo);
             if (ok) {
                pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
             }

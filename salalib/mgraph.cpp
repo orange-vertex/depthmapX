@@ -287,32 +287,14 @@ bool MetaGraph::makeGraph( Communicator *communicator, int algorithm, double max
    return retvar;
 }
 
-bool MetaGraph::visualShortestPath(Communicator *communicator) {
-    PointMap & map = getDisplayedPointMap();
-    if (map.getSelSet().size() != 2) {
-        throw depthmapX::RuntimeException("Two nodes must be selected");
-    }
-    PixelRef pixelFrom = *map.getSelSet().begin();
-    PixelRef pixelTo = *std::next(map.getSelSet().begin());
+bool MetaGraph::visualShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom, PixelRef &pixelTo) {
     return VGAVisualShortestPath(pixelFrom, pixelTo).run(communicator, Options(), map, false);
 }
-bool MetaGraph::metricShortestPath(Communicator *communicator) {
-    PointMap & map = getDisplayedPointMap();
-    if (map.getSelSet().size() != 2) {
-        throw depthmapX::RuntimeException("Two nodes must be selected");
-    }
-    PixelRef pixelFrom = *map.getSelSet().begin();
-    PixelRef pixelTo = *std::next(map.getSelSet().begin());
-
+bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom, PixelRef &pixelTo) {
     return VGAMetricShortestPath(pixelFrom, pixelTo).run(communicator, Options(), map, false);
 }
-bool MetaGraph::angularShortestPath(Communicator *communicator) {
-    PointMap & map = getDisplayedPointMap();
-    if (map.getSelSet().size() != 2) {
-        throw depthmapX::RuntimeException("Two nodes must be selected");
-    }
-    PixelRef pixelFrom = *map.getSelSet().begin();
-    PixelRef pixelTo = *std::next(map.getSelSet().begin());
+bool MetaGraph::angularShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom,
+                                    PixelRef &pixelTo) {
     return VGAAngularShortestPath(pixelFrom, pixelTo).run(communicator, Options(), map, false);
 }
 
