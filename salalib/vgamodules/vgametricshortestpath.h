@@ -30,6 +30,7 @@ private:
         int m_misc = 0;
         float m_dist = -1.0f;
         float m_cumangle = 0.0f;
+        float m_cumdist = 0.0f;
     };
     MetricPoint& getMetricPoint(depthmapX::ColumnMatrix<MetricPoint> &metricPoints, PixelRef ref) {
         return(metricPoints(static_cast<size_t>(ref.y), static_cast<size_t>(ref.x)));

@@ -29,6 +29,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     int link_metric_cost_col = attributes.getOrInsertColumn("Link Metric Cost");
 
     int path_col = attributes.insertOrResetColumn("Metric Shortest Path");
+    int dist_col = attributes.insertOrResetColumn("Metric Shortest Path Distance");
     int linked_col = attributes.insertOrResetColumn("Metric Shortest Path Linked");
     int order_col = attributes.insertOrResetColumn("Metric Shortest Path Order");
     int zone_col = attributes.insertOrResetColumn("Metric Shortest Path Zone");
@@ -77,7 +78,8 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
                         extraMetricCost = mergeRow.getValue(link_metric_cost_col);
                     }
                     mp2.m_dist = here.dist + extraMetricCost;
-                    extractMetric(metricPoints, mp2.m_point->getNode(), mergePixels, &map, *newTripleIter.first, extraMetricCost, map.getSpacing());
+                    extractMetric(metricPoints, mp2.m_point->getNode(), mergePixels, &map,
+                                  *newTripleIter.first, extraMetricCost, map.getSpacing());
                     for (auto &pixel : mergePixels) {
                         parents[pixel.pixel] = mp.m_point->getMergePixel();
                     }
@@ -106,6 +108,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
             PixelRef pix = PixelRef(row.getKey().value);
             MetricPoint &mp = getMetricPoint(metricPoints, pix);
             mp.m_misc = 0;
+            mp.m_cumdist = mp.m_dist;
             mp.m_dist = -1.0f;
             mp.m_cumangle = 0.0f;
         }
@@ -114,6 +117,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
         int counter = 0;
         AttributeRow& lastPixelRow = attributes.getRow(AttributeKey(pixelTo));
         lastPixelRow.setValue(order_col, counter);
+        lastPixelRow.setValue(dist_col, 0);
         counter++;
         auto currParent = pixelToParent;
         counter++;
@@ -121,6 +125,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
             MetricPoint &mp = getMetricPoint(metricPoints, currParent->second);
             AttributeRow& row = attributes.getRow(AttributeKey(currParent->second));
             row.setValue(order_col, counter);
+            row.setValue(dist_col, mp.m_cumdist);
 
             if (!mp.m_point->getMergePixel().empty() && mp.m_point->getMergePixel() == currParent->first) {
                 row.setValue(linked_col, 1);
@@ -192,6 +197,7 @@ void VGAMetricShortestPath::extractMetric(depthmapX::ColumnMatrix<MetricPoint> &
                                         (curs.lastpixel == NoPixel
                                              ? 0.0f
                                              : (float)(angle(pix, curs.pixel, curs.lastpixel) / (M_PI * 0.5)));
+                        mpt.m_cumdist = cursMP.m_cumdist + mpt.m_dist;
                         pixels.insert(MetricTriple(mpt.m_dist, pix, curs.pixel));
                     }
                     pix.move(bin.m_dir);
