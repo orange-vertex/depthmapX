@@ -732,37 +732,39 @@ namespace dm_runmethods
 
         std::cout << "ok\nSelecting cells... " << std::flush;
 
-        auto graphRegion = mGraph->getRegion();
+        auto& graphRegion = mGraph->getRegion();
+        PointMap &map = mGraph->getDisplayedPointMap();
 
-        if (!graphRegion.contains(origin)) {
+        if (!graphRegion.contains(origin) || !map.getRegion().contains(origin)) {
             throw depthmapX::RuntimeException("Origin point outside of target region");
         }
-        if (!graphRegion.contains(destination)) {
+        if (!graphRegion.contains(destination) || !map.getRegion().contains(destination)) {
             throw depthmapX::RuntimeException("Destination point outside of target region");
         }
-        QtRegion r(origin, origin);
-        mGraph->setCurSel(r, false);
-        r.bottom_left = destination;
-        r.top_right = destination;
-        mGraph->setCurSel(r, true);
+
+        PixelRef pixelFrom = map.pixelate(origin);
+        PixelRef pixelTo = map.pixelate(destination);
+
+        if (map.getPoint(pixelFrom).filled()) {
+            throw depthmapX::RuntimeException("Origin point not filled in target pointmap");
+        }
+        if (map.getPoint(pixelTo).filled()) {
+            throw depthmapX::RuntimeException("Destination point not filled in target pointmap");
+        }
 
         std::cout << "ok\nCalculating shortest path... " << std::flush;
-
-        Options options;
-        options.global = 0;
-        options.point_depth_selection = 1;
 
         std::unique_ptr<Communicator> comm(new ICommunicator());
 
         DO_TIMED("Calculating shortest path", switch (shortestPathType) {
             case ShortestPathParser::ShortestPathType::ANGULAR:
-                mGraph->angularShortestPath(comm.get());
+                mGraph->angularShortestPath(comm.get(), map, pixelFrom, pixelTo);
                 break;
             case ShortestPathParser::ShortestPathType::METRIC:
-                mGraph->metricShortestPath(comm.get());
+                mGraph->metricShortestPath(comm.get(), map, pixelFrom, pixelTo);
                 break;
             case ShortestPathParser::ShortestPathType::VISUAL:
-                mGraph->visualShortestPath(comm.get());
+                mGraph->visualShortestPath(comm.get(), map, pixelFrom, pixelTo);
                 break;
             default: { throw depthmapX::SetupCheckException("Error, unsupported shortest path mode"); }
         });

@@ -155,9 +155,9 @@ public:
    bool setGrid( double spacing, const Point2f& offset = Point2f() );                 // override of PointMap
    bool makePoints( const Point2f& p, int semifilled, Communicator *communicator = NULL);  // override of PointMap
    bool makeGraph( Communicator *communicator, int algorithm, double maxdist );
-   bool visualShortestPath( Communicator *communicator );
-   bool metricShortestPath( Communicator *communicator );
-   bool angularShortestPath( Communicator *communicator );
+   bool visualShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom, PixelRef &pixelTo);
+   bool metricShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom, PixelRef &pixelTo);
+   bool angularShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom, PixelRef &pixelTo);
    bool extractLinkData( Communicator *communicator );
    bool unmakeGraph(bool removeLinks);
    bool analyseGraph(Communicator *communicator, Options options , bool simple_version); // <- options copied to keep thread safe
