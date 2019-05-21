@@ -745,10 +745,10 @@ namespace dm_runmethods
         PixelRef pixelFrom = map.pixelate(origin);
         PixelRef pixelTo = map.pixelate(destination);
 
-        if (map.getPoint(pixelFrom).filled()) {
+        if (!map.getPoint(pixelFrom).filled()) {
             throw depthmapX::RuntimeException("Origin point not filled in target pointmap");
         }
-        if (map.getPoint(pixelTo).filled()) {
+        if (!map.getPoint(pixelTo).filled()) {
             throw depthmapX::RuntimeException("Destination point not filled in target pointmap");
         }
 
