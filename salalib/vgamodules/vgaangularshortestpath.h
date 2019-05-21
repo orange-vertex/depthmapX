@@ -24,7 +24,9 @@
 #include "salalib/pointdata.h"
 
 class VGAAngularShortestPath : IVGA {
+    PixelRef m_pixelFrom, m_pixelTo;
   public:
     std::string getAnalysisName() const override { return "Angular Shortest Path"; }
     bool run(Communicator *comm, const Options &options, PointMap &map, bool) override;
+    VGAAngularShortestPath(PixelRef pixelFrom, PixelRef pixelTo) : m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };

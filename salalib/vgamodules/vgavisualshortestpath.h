@@ -26,9 +26,11 @@
 #include "genlib/simplematrix.h"
 
 class VGAVisualShortestPath : IVGA {
+    PixelRef m_pixelFrom, m_pixelTo;
   public:
     std::string getAnalysisName() const override { return "Visibility Shortest Path"; }
     bool run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) override;
     void extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,
                        depthmapX::RowMatrix<PixelRef> &extents);
+    VGAVisualShortestPath(PixelRef pixelFrom, PixelRef pixelTo) : m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };

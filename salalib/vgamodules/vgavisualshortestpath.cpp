@@ -23,7 +23,6 @@
 bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) {
 
     auto &attributes = map.getAttributeTable();
-    auto &selection_set = map.getSelSet();
 
     int path_col = attributes.insertOrResetColumn("Visual Shortest Path");
     int linked_col = attributes.insertOrResetColumn("Visual Shortest Path Linked");
@@ -40,13 +39,8 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
 
     std::vector<PixelRefVector> search_tree;
     search_tree.push_back(PixelRefVector());
-    if (selection_set.size() != 2) {
-        throw depthmapX::RuntimeException("Two nodes must be selected");
-    }
-    PixelRef pixelFrom = *selection_set.begin();
-    PixelRef pixelTo = *std::next(selection_set.begin());
 
-    search_tree.back().push_back(pixelFrom);
+    search_tree.back().push_back(m_pixelFrom);
 
     size_t level = 0;
     std::map<PixelRef, PixelRef> parents;
@@ -86,7 +80,7 @@ bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, Poin
         }
         int linePixelCounter = 0;
         for (auto iter = nextLevelPix.rbegin(); iter != nextLevelPix.rend(); ++iter) {
-            if (*iter == pixelTo) {
+            if (*iter == m_pixelTo) {
 
                 for (auto& row: attributes) {
                     PixelRef pix = PixelRef(row.getKey().value);
