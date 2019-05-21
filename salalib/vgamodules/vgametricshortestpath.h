@@ -24,21 +24,24 @@
 #include "salalib/pointdata.h"
 
 class VGAMetricShortestPath : IVGA {
-private:
+  private:
+    PixelRef m_pixelFrom, m_pixelTo;
+
     struct MetricPoint {
-        Point* m_point;
+        Point *m_point;
         int m_misc = 0;
         float m_dist = -1.0f;
         float m_cumangle = 0.0f;
         float m_cumdist = 0.0f;
     };
-    MetricPoint& getMetricPoint(depthmapX::ColumnMatrix<MetricPoint> &metricPoints, PixelRef ref) {
-        return(metricPoints(static_cast<size_t>(ref.y), static_cast<size_t>(ref.x)));
+    MetricPoint &getMetricPoint(depthmapX::ColumnMatrix<MetricPoint> &metricPoints, PixelRef ref) {
+        return (metricPoints(static_cast<size_t>(ref.y), static_cast<size_t>(ref.x)));
     }
+
   public:
     std::string getAnalysisName() const override { return "Metric Shortest Path"; }
     bool run(Communicator *comm, const Options &options, PointMap &map, bool) override;
-    void extractMetric(depthmapX::ColumnMatrix<MetricPoint> &metricPoints,
-                       Node n, std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple &curs,
-                       float extraMetricCost, float spacing);
+    void extractMetric(depthmapX::ColumnMatrix<MetricPoint> &metricPoints, Node n, std::set<MetricTriple> &pixels,
+                       PointMap *pointdata, const MetricTriple &curs, float extraMetricCost, float spacing);
+    VGAMetricShortestPath(PixelRef pixelFrom, PixelRef pixelTo) : m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };

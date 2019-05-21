@@ -23,7 +23,6 @@
 bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, PointMap &map, bool) {
 
     auto &attributes = map.getAttributeTable();
-    auto &selection_set = map.getSelSet();
 
     // custom linking costs from the attribute table
     int link_metric_cost_col = attributes.getOrInsertColumn("Link Metric Cost");
@@ -44,13 +43,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<MetricTriple> search_list; // contains root point
 
-    if (selection_set.size() != 2) {
-        throw depthmapX::RuntimeException("Two nodes must be selected");
-    }
-    PixelRef pixelFrom = *selection_set.begin();
-    PixelRef pixelTo = *std::next(selection_set.begin());
-
-    search_list.insert(MetricTriple(0.0f, pixelFrom, NoPixel));
+    search_list.insert(MetricTriple(0.0f, m_pixelFrom, NoPixel));
 
     // note that m_misc is used in a different manner to analyseGraph / PointDepth
     // here it marks the node as used in calculation only
@@ -92,7 +85,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
         }
         newPixels.insert(mergePixels.begin(), mergePixels.end());
         for (auto &pixel : newPixels) {
-            if (pixel.pixel == pixelTo) {
+            if (pixel.pixel == m_pixelTo) {
                 pixelFound = true;
             }
         }
@@ -101,7 +94,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
     }
 
     int linePixelCounter = 0;
-    auto pixelToParent = parents.find(pixelTo);
+    auto pixelToParent = parents.find(m_pixelTo);
     if (pixelToParent != parents.end()) {
 
         for (auto& row: attributes) {
@@ -115,7 +108,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, const Options &options, Poin
 
 
         int counter = 0;
-        AttributeRow& lastPixelRow = attributes.getRow(AttributeKey(pixelTo));
+        AttributeRow& lastPixelRow = attributes.getRow(AttributeKey(m_pixelTo));
         lastPixelRow.setValue(order_col, counter);
         lastPixelRow.setValue(dist_col, 0);
         counter++;

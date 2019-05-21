@@ -23,7 +23,6 @@
 bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map, bool) {
 
     auto &attributes = map.getAttributeTable();
-    auto &selection_set = map.getSelSet();
 
     int path_col = attributes.insertOrResetColumn("Angular Shortest Path");
     int linked_col = attributes.insertOrResetColumn("Angular Shortest Path Linked");
@@ -42,14 +41,8 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<AngularTriple> search_list; // contains root point
 
-    if (selection_set.size() != 2) {
-        throw depthmapX::RuntimeException("Two nodes must be selected");
-    }
-    PixelRef pixelFrom = *selection_set.begin();
-    PixelRef pixelTo = *std::next(selection_set.begin());
-
-    search_list.insert(AngularTriple(0.0f, pixelFrom, NoPixel));
-    map.getPoint(pixelFrom).m_cumangle = 0.0f;
+    search_list.insert(AngularTriple(0.0f, m_pixelFrom, NoPixel));
+    map.getPoint(m_pixelFrom).m_cumangle = 0.0f;
 
     // note that m_misc is used in a different manner to analyseGraph / PointDepth
     // here it marks the node as used in calculation only
@@ -84,7 +77,7 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
         }
         newPixels.insert(mergePixels.begin(), mergePixels.end());
         for (auto &pixel : newPixels) {
-            if (pixel.pixel == pixelTo) {
+            if (pixel.pixel == m_pixelTo) {
                 pixelFound = true;
             }
         }
@@ -92,7 +85,7 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
     }
 
     int linePixelCounter = 0;
-    auto pixelToParent = parents.find(pixelTo);
+    auto pixelToParent = parents.find(m_pixelTo);
     if (pixelToParent != parents.end()) {
 
         for (auto& row: attributes) {
@@ -105,7 +98,7 @@ bool VGAAngularShortestPath::run(Communicator *, const Options &, PointMap &map,
 
         int counter = 0;
 
-        AttributeRow& lastPixelRow = attributes.getRow(AttributeKey(pixelTo));
+        AttributeRow& lastPixelRow = attributes.getRow(AttributeKey(m_pixelTo));
         lastPixelRow.setValue(order_col, counter);
         counter++;
         auto currParent = pixelToParent;
