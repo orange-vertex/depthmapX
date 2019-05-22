@@ -38,7 +38,7 @@ class VGAMetricShortestPath : IVGA {
         return (metricPoints(static_cast<size_t>(ref.y), static_cast<size_t>(ref.x)));
     }
     void extractMetric(depthmapX::ColumnMatrix<MetricPoint> &metricPoints, Node n, std::set<MetricTriple> &pixels,
-                       PointMap *pointdata, const MetricTriple &curs, float extraMetricCost, float spacing);
+                       PointMap *pointdata, const MetricTriple &curs);
 
   public:
     std::string getAnalysisName() const override { return "Metric Shortest Path"; }
