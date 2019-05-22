@@ -43,6 +43,7 @@
 #include "salalib/vgamodules/vgavisuallocal.h"
 #include "salalib/vgamodules/vgametric.h"
 #include "salalib/vgamodules/vgametricdepth.h"
+#include "salalib/vgamodules/vgametricdepthlinkcost.h"
 #include "salalib/vgamodules/vgaangular.h"
 #include "salalib/vgamodules/vgaangulardepth.h"
 #include "salalib/vgamodules/vgathroughvision.h"
@@ -345,7 +346,8 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
       }
       else if (options.point_depth_selection == 2) {
          if (m_view_class & VIEWVGA) {
-             retvar = VGAMetricDepth().run(communicator, Options(), getDisplayedPointMap(), false);
+//             retvar = VGAMetricDepth().run(communicator, Options(), getDisplayedPointMap(), false);
+             retvar = VGAMetricDepthLinkCost(PixelRef(0,0)).run(communicator, Options(), getDisplayedPointMap(), false);
          }
          else if (m_view_class & VIEWAXIAL && getDisplayedShapeGraph().isSegmentMap()) {
              retvar = SegmentMetricPD().run(communicator, options, getDisplayedShapeGraph(), false);
