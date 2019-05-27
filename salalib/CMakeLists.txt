@@ -33,11 +33,12 @@ add_compile_definitions(_DEPTHMAP SALALIB_LIBRARY)
 
 add_library(${salalib} STATIC ${salalib_SRCS} ${vgamodules_SRCS} ${axialmodules_SRCS} ${segmmodules_SRCS} ${parsers_SRCS})
 
+find_package(OpenMP REQUIRED)
+
+target_link_libraries(${salalib} OpenMP::OpenMP_CXX)
+
 add_subdirectory(vgamodules)
 add_subdirectory(axialmodules)
 add_subdirectory(segmmodules)
 add_subdirectory(parsers)
 add_subdirectory(agents)
-
-
-
