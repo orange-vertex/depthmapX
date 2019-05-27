@@ -18,13 +18,12 @@
 
 #pragma once
 
-#include "salalib/attributes.h"
-
 #include "genlib/stringutils.h"
+#include "salalib/options.h"
 
 #include <vector>
 
-typedef std::vector<IntPair> IntPairVector;
+typedef std::vector<std::pair<int, int>> IntPairVector;
 
 
 // Axial map helper: convert a radius for angular analysis
