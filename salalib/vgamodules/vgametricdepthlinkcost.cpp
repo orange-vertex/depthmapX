@@ -20,7 +20,7 @@
 
 #include "genlib/stringutils.h"
 
-bool VGAMetricDepthLinkCost::run(Communicator *comm, const Options &options, PointMap &map, bool) {
+bool VGAMetricDepthLinkCost::run(Communicator *comm, PointMap &map, bool) {
 
     AttributeTable &attributes = map.getAttributeTable();
 
@@ -45,7 +45,7 @@ bool VGAMetricDepthLinkCost::run(Communicator *comm, const Options &options, Poi
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<MetricTriple> search_list; // contains root point
 
-    for (auto &sel : map.getSelSet()) {
+    for (auto &sel : m_pixelsFrom) {
         search_list.insert(MetricTriple(0.0f, sel, NoPixel));
     }
 

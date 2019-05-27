@@ -20,7 +20,7 @@
 
 #include "genlib/stringutils.h"
 
-bool ExtractLinkData::run(Communicator *, const Options &, PointMap &map, bool) {
+bool ExtractLinkData::run(Communicator *, PointMap &map, bool) {
 
     auto &attributes = map.getAttributeTable();
 

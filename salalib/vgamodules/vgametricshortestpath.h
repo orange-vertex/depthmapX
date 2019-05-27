@@ -42,6 +42,6 @@ class VGAMetricShortestPath : IVGA {
 
   public:
     std::string getAnalysisName() const override { return "Metric Shortest Path"; }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool) override;
+    bool run(Communicator *comm, PointMap &map, bool) override;
     VGAMetricShortestPath(PixelRef pixelFrom, PixelRef pixelTo) : m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };

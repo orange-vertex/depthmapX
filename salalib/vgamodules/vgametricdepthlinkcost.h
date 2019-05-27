@@ -25,7 +25,7 @@
 
 class VGAMetricDepthLinkCost : IVGA {
   private:
-    PixelRef m_pixelFrom;
+    std::set<int> m_pixelsFrom;
 
     struct MetricPoint {
         Point *m_point;
@@ -40,6 +40,6 @@ class VGAMetricDepthLinkCost : IVGA {
 
   public:
     std::string getAnalysisName() const override { return "Metric Depth"; }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool) override;
-    VGAMetricDepthLinkCost(PixelRef pixelFrom) : m_pixelFrom(pixelFrom) {}
+    bool run(Communicator *comm, PointMap &map, bool) override;
+    VGAMetricDepthLinkCost(std::set<int> pixelsFrom) : m_pixelsFrom(pixelsFrom) {}
 };

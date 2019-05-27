@@ -20,7 +20,7 @@
 
 #include "genlib/stringutils.h"
 
-bool VGAVisualShortestPath::run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) {
+bool VGAVisualShortestPath::run(Communicator *comm, PointMap &map, bool simple_version) {
 
     auto &attributes = map.getAttributeTable();
 

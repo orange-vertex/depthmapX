@@ -29,6 +29,6 @@ class VGAAngularShortestPath : IVGA {
 
   public:
     std::string getAnalysisName() const override { return "Angular Shortest Path"; }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool) override;
+    bool run(Communicator *comm, PointMap &map, bool) override;
     VGAAngularShortestPath(PixelRef pixelFrom, PixelRef pixelTo) : m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };
