@@ -33,6 +33,6 @@ class VGAVisualShortestPath : IVGA {
 
   public:
     std::string getAnalysisName() const override { return "Visibility Shortest Path"; }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) override;
+    bool run(Communicator *comm, PointMap &map, bool simple_version) override;
     VGAVisualShortestPath(PixelRef pixelFrom, PixelRef pixelTo) : m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };

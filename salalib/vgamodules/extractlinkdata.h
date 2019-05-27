@@ -26,5 +26,5 @@
 class ExtractLinkData : IVGA {
   public:
     std::string getAnalysisName() const override { return "Extract Link Data"; }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool) override;
+    bool run(Communicator *comm, PointMap &map, bool) override;
 };
