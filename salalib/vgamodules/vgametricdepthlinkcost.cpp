@@ -55,15 +55,15 @@ bool VGAMetricDepthLinkCost::run(Communicator *comm, PointMap &map, bool) {
         search_list.erase(it);
         MetricPoint &mp = getMetricPoint(metricPoints, here.pixel);
         // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-        if (mp.m_point->filled() && (mp.m_dist == -1.0 || (here.dist < mp.m_dist))) {
+        if (mp.m_point->filled() && (mp.m_unseen || (here.dist < mp.m_dist))) {
             extractMetric(mp.m_point->getNode(), metricPoints, search_list, &map, here);
             mp.m_dist = here.dist;
+            mp.m_unseen = false;
             if (!mp.m_point->getMergePixel().empty()) {
                 MetricPoint &mp2 = getMetricPoint(metricPoints, mp.m_point->getMergePixel());
-                if ((mp2.m_dist == -1.0 || (here.dist + mp2.m_linkCost < mp2.m_dist))) {
-
+                if (mp2.m_unseen || (here.dist + mp2.m_linkCost < mp2.m_dist)) {
                     mp2.m_dist = here.dist + mp2.m_linkCost;
-
+                    mp2.m_unseen = false;
                     extractMetric(mp2.m_point->getNode(), metricPoints, search_list, &map,
                                   MetricTriple(mp2.m_dist, mp.m_point->getMergePixel(), NoPixel));
                 }
@@ -82,7 +82,7 @@ bool VGAMetricDepthLinkCost::run(Communicator *comm, PointMap &map, bool) {
     return true;
 }
 
-void VGAMetricDepthLinkCost::extractMetric(Node n, depthmapX::ColumnMatrix<MetricPoint> metricPoints,
+void VGAMetricDepthLinkCost::extractMetric(Node n, depthmapX::ColumnMatrix<MetricPoint> &metricPoints,
                                            std::set<MetricTriple> &pixels, PointMap *pointdata,
                                            const MetricTriple &curs) {
     MetricPoint &cursMP = getMetricPoint(metricPoints, curs.pixel);
@@ -92,8 +92,8 @@ void VGAMetricDepthLinkCost::extractMetric(Node n, depthmapX::ColumnMatrix<Metri
             for (auto pixVec : bin.m_pixel_vecs) {
                 for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
                     MetricPoint &mpt = getMetricPoint(metricPoints, pix);
-                    if ((mpt.m_dist == -1.0 ||
-                         (curs.dist + pointdata->getSpacing() * dist(pix, curs.pixel) < mpt.m_dist))) {
+                    if ((mpt.m_unseen && (mpt.m_dist == -1 ||
+                         (curs.dist + pointdata->getSpacing() * dist(pix, curs.pixel) < mpt.m_dist)))) {
                         mpt.m_dist = curs.dist + pointdata->getSpacing() * (float)dist(pix, curs.pixel);
                         pixels.insert(MetricTriple(mpt.m_dist, pix, curs.pixel));
                     }
