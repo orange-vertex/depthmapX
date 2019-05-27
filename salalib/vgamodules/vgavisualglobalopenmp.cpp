@@ -20,6 +20,8 @@
 
 #include "genlib/stringutils.h"
 
+#include <omp.h>
+
 bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_version) {
     time_t atime = 0;
 

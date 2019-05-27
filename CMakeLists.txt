@@ -1,4 +1,4 @@
-project(depthmapX)
+project(depthmapX CXX)
 cmake_minimum_required(VERSION 3.13.0)
 set(CMAKE_CXX_STANDARD 11)
 
@@ -36,6 +36,8 @@ include_directories(${CMAKE_BINARY_DIR})
 configure_file("${CMAKE_SOURCE_DIR}/version_defs.h.in" "${CMAKE_BINARY_DIR}/version_defs.h" @ONLY)
 
 string(TIMESTAMP APP_DATE %Y-%m-%d)
+
+include(CMakeOpenMP.txt)
 
 add_subdirectory(genlib)
 add_subdirectory(genlibTest)
