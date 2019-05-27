@@ -20,7 +20,7 @@
 
 #include "genlib/stringutils.h"
 
-bool VGAVisualGlobalOpenMP::run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) {
+bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_version) {
     time_t atime = 0;
 
     if (comm) {
@@ -31,205 +31,224 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, const Options &options, Poin
     AttributeTable &attributes = map.getAttributeTable();
 
     std::vector<PixelRef> filled;
-    std::vector<int> rows;
+    std::vector<AttributeRow *> rows;
 
     for (int i = 0; i < map.getCols(); i++) {
         for (int j = 0; j < map.getRows(); j++) {
             PixelRef curs = PixelRef(i, j);
             if (map.getPoint(curs).filled()) {
                 filled.push_back(curs);
-                rows.push_back(attributes.getRowid(curs));
+                rows.push_back(attributes.getRowPtr(AttributeKey(curs)));
             }
         }
     }
 
     int count = 0;
 
-    if (options.global) {
-        if (comm) {
-            qtimer(atime, 0);
-            comm->CommPostMessage(Communicator::NUM_STEPS, 1);
-            comm->CommPostMessage(Communicator::CURRENT_STEP, 1);
-            comm->CommPostMessage(Communicator::NUM_RECORDS, filled.size());
-        }
-        std::vector<float> count_col_data(filled.size());
-        std::vector<float> depth_col_data(filled.size());
-        std::vector<float> integ_dv_col_data(filled.size());
-        std::vector<float> integ_pv_col_data(filled.size());
-        std::vector<float> integ_tk_col_data(filled.size());
-        std::vector<float> entropy_col_data(filled.size());
-        std::vector<float> rel_entropy_col_data(filled.size());
+    if (comm) {
+        qtimer(atime, 0);
+        comm->CommPostMessage(Communicator::NUM_STEPS, 1);
+        comm->CommPostMessage(Communicator::CURRENT_STEP, 1);
+        comm->CommPostMessage(Communicator::NUM_RECORDS, filled.size());
+    }
+    std::vector<DataPoint> col_data(filled.size());
 
 #pragma omp parallel for
-        for (int i = 0; i < filled.size(); i++) {
+    for (int i = 0; i < filled.size(); i++) {
 
-            if ((map.getPoint(filled[i]).contextfilled() && !filled[i].iseven()) || (options.gates_only)) {
-                count++;
-                continue;
+        if ((map.getPoint(filled[i]).contextfilled() && !filled[i].iseven()) || (m_gates_only)) {
+            count++;
+            continue;
+        }
+        DataPoint &dp = col_data[i];
+
+        depthmapX::RowMatrix<int> miscs(map.getRows(), map.getCols());
+        depthmapX::RowMatrix<PixelRef> extents(map.getRows(), map.getCols());
+
+        for (int ii = 0; ii < map.getCols(); ii++) {
+            for (int jj = 0; jj < map.getRows(); jj++) {
+                miscs(jj, ii) = 0;
+                extents(jj, ii) = PixelRef(ii, jj);
             }
+        }
 
-            depthmapX::RowMatrix<int> miscs(map.getRows(), map.getCols());
-            depthmapX::RowMatrix<PixelRef> extents(map.getRows(), map.getCols());
+        int total_depth = 0;
+        int total_nodes = 0;
 
-            for (int ii = 0; ii < map.getCols(); ii++) {
-                for (int jj = 0; jj < map.getRows(); jj++) {
-                    miscs(jj, ii) = 0;
-                    extents(jj, ii) = PixelRef(ii, jj);
-                }
-            }
+        std::vector<int> distribution;
+        std::vector<PixelRefVector> search_tree;
+        search_tree.push_back(PixelRefVector());
+        search_tree.back().push_back(filled[i]);
 
-            int total_depth = 0;
-            int total_nodes = 0;
-
-            std::vector<int> distribution;
-            std::vector<PixelRefVector> search_tree;
+        int level = 0;
+        while (search_tree[level].size()) {
             search_tree.push_back(PixelRefVector());
-            search_tree.back().push_back(filled[i]);
-
-            int level = 0;
-            while (search_tree[level].size()) {
-                search_tree.push_back(PixelRefVector());
-                distribution.push_back(0);
-                for (size_t n = search_tree[level].size() - 1; n != paftl::npos; n--) {
-                    PixelRef curr = search_tree[level][n];
-                    Point &p = map.getPoint(curr);
-                    int &p1misc = miscs(curr.y, curr.x);
-                    if (p.filled() && p1misc != ~0) {
-                        total_depth += level;
-                        total_nodes += 1;
-                        distribution.back() += 1;
-                        if ((int)options.radius == -1 ||
-                            level < (int)options.radius && (!p.contextfilled() || search_tree[level][n].iseven())) {
-                            extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
-                            p1misc = ~0;
-                            if (!p.getMergePixel().empty()) {
-                                Point &p2 = map.getPoint(p.getMergePixel());
-                                int &p2misc = miscs(p.getMergePixel().y, p.getMergePixel().x);
-                                if (p2misc != ~0) {
-                                    extractUnseen(p2.getNode(), search_tree[level + 1], miscs, extents);
-                                    p2misc = ~0;
-                                }
+            distribution.push_back(0);
+            for (size_t n = search_tree[level].size() - 1; n != -1; n--) {
+                PixelRef curr = search_tree[level][n];
+                Point &p = map.getPoint(curr);
+                int &p1misc = miscs(curr.y, curr.x);
+                if (p.filled() && p1misc != ~0) {
+                    total_depth += level;
+                    total_nodes += 1;
+                    distribution.back() += 1;
+                    if ((int)m_radius == -1 ||
+                        level < (int)m_radius && (!p.contextfilled() || search_tree[level][n].iseven())) {
+                        extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
+                        p1misc = ~0;
+                        if (!p.getMergePixel().empty()) {
+                            Point &p2 = map.getPoint(p.getMergePixel());
+                            int &p2misc = miscs(p.getMergePixel().y, p.getMergePixel().x);
+                            if (p2misc != ~0) {
+                                extractUnseen(p2.getNode(), search_tree[level + 1], miscs, extents);
+                                p2misc = ~0;
                             }
-                        } else {
-                            p1misc = ~0;
                         }
-                    }
-                    search_tree[level].pop_back();
-                }
-                level++;
-            }
-
-            // only set to single float precision after divide
-            // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
-
-            count_col_data[i] = float(total_nodes); // note: total nodes includes this one;
-
-            // ERROR !!!!!!
-            if (total_nodes > 1) {
-                double mean_depth = double(total_depth) / double(total_nodes - 1);
-                depth_col_data[i] = float(mean_depth);
-                // total nodes > 2 to avoid divide by 0 (was > 3)
-                if (total_nodes > 2 && mean_depth > 1.0) {
-                    double ra = 2.0 * (mean_depth - 1.0) / double(total_nodes - 2);
-                    // d-value / p-values from Depthmap 4 manual, note: node_count includes this one
-                    double rra_d = ra / dvalue(total_nodes);
-                    double rra_p = ra / pvalue(total_nodes);
-                    double integ_tk = teklinteg(total_nodes, total_depth);
-                    integ_dv_col_data[i] = float(1.0 / rra_d);
-                    integ_pv_col_data[i] = float(1.0 / rra_p);
-
-                    if (total_depth - total_nodes + 1 > 1) {
-                        integ_tk_col_data[i] = float(integ_tk);
                     } else {
-                        integ_tk_col_data[i] = -1.0f;
+                        p1misc = ~0;
                     }
+                }
+                search_tree[level].pop_back();
+            }
+            level++;
+        }
+
+        // only set to single float precision after divide
+        // note -- total_nodes includes this one -- mean depth as per p.108 Social Logic of Space
+
+        dp.count = float(total_nodes); // note: total nodes includes this one;
+
+        // ERROR !!!!!!
+        if (total_nodes > 1) {
+            double mean_depth = double(total_depth) / double(total_nodes - 1);
+            dp.depth = float(mean_depth);
+            // total nodes > 2 to avoid divide by 0 (was > 3)
+            if (total_nodes > 2 && mean_depth > 1.0) {
+                double ra = 2.0 * (mean_depth - 1.0) / double(total_nodes - 2);
+                // d-value / p-values from Depthmap 4 manual, note: node_count includes this one
+                double rra_d = ra / dvalue(total_nodes);
+                double rra_p = ra / pvalue(total_nodes);
+                double integ_tk = teklinteg(total_nodes, total_depth);
+                dp.depth = float(1.0 / rra_d);
+                dp.integ_pv = float(1.0 / rra_p);
+
+                if (total_depth - total_nodes + 1 > 1) {
+                    dp.integ_tk = float(integ_tk);
                 } else {
-                    integ_dv_col_data[i] = -1.0f;
-                    integ_pv_col_data[i] = -1.0f;
-                    integ_tk_col_data[i] = -1.0f;
+                    dp.integ_tk = -1.0f;
                 }
-                double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
-                // n.b., this distribution contains the root node itself in distribution[0]
-                // -> chopped from entropy to avoid divide by zero if only one node
-                for (size_t k = 1; k < distribution.size(); k++) {
-                    if (distribution[k] > 0) {
-                        double prob = double(distribution[k]) / double(total_nodes - 1);
-                        entropy -= prob * log2(prob);
-                        // Formula from Turner 2001, "Depthmap"
-                        factorial *= double(k + 1);
-                        double q = (pow(mean_depth, double(k)) / double(factorial)) * exp(-mean_depth);
-                        rel_entropy += (float)prob * log2(prob / q);
-                    }
-                }
-                entropy_col_data[i] = float(entropy);
-                rel_entropy_col_data[i] = float(rel_entropy);
             } else {
-                depth_col_data[i] = -1.0f;
-                entropy_col_data[i] = -1.0f;
-                rel_entropy_col_data[i] = -1.0f;
+                dp.integ_dv = -1.0f;
+                dp.integ_pv = -1.0f;
+                dp.integ_tk = -1.0f;
             }
-            count++; // <- increment count
-
-            if (comm) {
-                if (qtimer(atime, 500)) {
-                    if (comm->IsCancelled()) {
-                        throw Communicator::CancelledException();
-                    }
-                    comm->CommPostMessage(Communicator::CURRENT_RECORD, count);
+            double entropy = 0.0, rel_entropy = 0.0, factorial = 1.0;
+            // n.b., this distribution contains the root node itself in distribution[0]
+            // -> chopped from entropy to avoid divide by zero if only one node
+            for (size_t k = 1; k < distribution.size(); k++) {
+                if (distribution[k] > 0) {
+                    double prob = double(distribution[k]) / double(total_nodes - 1);
+                    entropy -= prob * log2(prob);
+                    // Formula from Turner 2001, "Depthmap"
+                    factorial *= double(k + 1);
+                    double q = (pow(mean_depth, double(k)) / double(factorial)) * exp(-mean_depth);
+                    rel_entropy += (float)prob * log2(prob / q);
                 }
             }
-
-            // kept to achieve parity in binary comparison with old versions
-            // TODO: Remove at next version of .graph file
-            size_t filledIdx = size_t(filled[i].y * map.getCols() + filled[i].x);
-            map.getPoint(filled[i]).m_misc = miscs(filled[i].y, filled[i].x);
-            map.getPoint(filled[i]).m_extent = extents(filled[i].y, filled[i].x);
+            dp.entropy = float(entropy);
+            dp.rel_entropy = float(rel_entropy);
+        } else {
+            dp.depth = -1.0f;
+            dp.entropy = -1.0f;
+            dp.rel_entropy = -1.0f;
         }
+        count++; // <- increment count
 
-        int entropy_col, rel_entropy_col, integ_dv_col, integ_pv_col, integ_tk_col, depth_col, count_col;
-
-        std::string radius_text;
-        if (options.radius != -1) {
-            radius_text = std::string(" R") + dXstring::formatString(int(options.radius), "%d");
-        }
-
-        // n.b. these must be entered in alphabetical order to preserve col indexing:
-        // dX simple version test // TV
-        if (!simple_version) {
-            std::string entropy_col_text = std::string("Visual Entropy") + radius_text;
-            entropy_col = attributes.insertColumn(entropy_col_text.c_str());
-        }
-
-        std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
-        integ_dv_col = attributes.insertColumn(integ_dv_col_text.c_str());
-
-        if (!simple_version) {
-            std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
-            integ_pv_col = attributes.insertColumn(integ_pv_col_text.c_str());
-            std::string integ_tk_col_text = std::string("Visual Integration [Tekl]") + radius_text;
-            integ_tk_col = attributes.insertColumn(integ_tk_col_text.c_str());
-            std::string depth_col_text = std::string("Visual Mean Depth") + radius_text;
-            depth_col = attributes.insertColumn(depth_col_text.c_str());
-            std::string count_col_text = std::string("Visual Node Count") + radius_text;
-            count_col = attributes.insertColumn(count_col_text.c_str());
-            std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
-            rel_entropy_col = attributes.insertColumn(rel_entropy_col_text.c_str());
-        }
-
-        for (size_t i = 0; i < rows.size(); i++) {
-            attributes.setValue(rows[i], integ_dv_col, integ_dv_col_data[i]);
-            attributes.setValue(rows[i], integ_pv_col, integ_pv_col_data[i]);
-            attributes.setValue(rows[i], integ_tk_col, integ_tk_col_data[i]);
-            if (!simple_version) {
-                attributes.setValue(rows[i], count_col, count_col_data[i]);
-                attributes.setValue(rows[i], depth_col, depth_col_data[i]);
-                attributes.setValue(rows[i], entropy_col, entropy_col_data[i]);
-                attributes.setValue(rows[i], rel_entropy_col, rel_entropy_col_data[i]);
+        if (comm) {
+            if (qtimer(atime, 500)) {
+                if (comm->IsCancelled()) {
+                    throw Communicator::CancelledException();
+                }
+                comm->CommPostMessage(Communicator::CURRENT_RECORD, count);
             }
         }
 
-        map.setDisplayedAttribute(integ_dv_col);
+        // kept to achieve parity in binary comparison with old versions
+        // TODO: Remove at next version of .graph file
+        size_t filledIdx = size_t(filled[i].y * map.getCols() + filled[i].x);
+        map.getPoint(filled[i]).m_misc = miscs(filled[i].y, filled[i].x);
+        map.getPoint(filled[i]).m_extent = extents(filled[i].y, filled[i].x);
     }
 
+    int entropy_col, rel_entropy_col, integ_dv_col, integ_pv_col, integ_tk_col, depth_col, count_col;
+
+    std::string radius_text;
+    if (m_radius != -1) {
+        radius_text = std::string(" R") + dXstring::formatString(int(m_radius), "%d");
+    }
+
+    // n.b. these must be entered in alphabetical order to preserve col indexing:
+    // dX simple version test // TV
+    if (!simple_version) {
+        std::string entropy_col_text = std::string("Visual Entropy") + radius_text;
+        entropy_col = attributes.insertOrResetColumn(entropy_col_text.c_str());
+    }
+
+    std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
+    integ_dv_col = attributes.insertOrResetColumn(integ_dv_col_text.c_str());
+
+    if (!simple_version) {
+        std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
+        integ_pv_col = attributes.insertOrResetColumn(integ_pv_col_text.c_str());
+        std::string integ_tk_col_text = std::string("Visual Integration [Tekl]") + radius_text;
+        integ_tk_col = attributes.insertOrResetColumn(integ_tk_col_text.c_str());
+        std::string depth_col_text = std::string("Visual Mean Depth") + radius_text;
+        depth_col = attributes.insertOrResetColumn(depth_col_text.c_str());
+        std::string count_col_text = std::string("Visual Node Count") + radius_text;
+        count_col = attributes.insertOrResetColumn(count_col_text.c_str());
+        std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
+        rel_entropy_col = attributes.insertOrResetColumn(rel_entropy_col_text.c_str());
+    }
+
+    auto dataIter = col_data.begin();
+    for (auto row : rows) {
+        row->setValue(integ_dv_col, dataIter->integ_dv);
+        row->setValue(integ_pv_col, dataIter->integ_pv);
+        row->setValue(integ_tk_col, dataIter->integ_tk);
+        if (!simple_version) {
+            row->setValue(count_col, dataIter->count);
+            row->setValue(depth_col, dataIter->depth);
+            row->setValue(entropy_col, dataIter->entropy);
+            row->setValue(rel_entropy_col, dataIter->rel_entropy);
+        }
+        dataIter++;
+    }
+
+    map.setDisplayedAttribute(integ_dv_col);
+
     return true;
+}
+
+void VGAVisualGlobalOpenMP::extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,
+                                          depthmapX::RowMatrix<PixelRef> &extents) {
+    for (int i = 0; i < 32; i++) {
+        Bin &bin = node.bin(i);
+        for (auto pixVec : bin.m_pixel_vecs) {
+            for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
+                int &misc = miscs(pix.y, pix.x);
+                PixelRef &extent = extents(pix.y, pix.x);
+                if (misc == 0) {
+                    pixels.push_back(pix);
+                    misc |= (1 << i);
+                }
+                // 10.2.02 revised --- diagonal was breaking this as it was extent in diagonal or horizontal
+                if (!(bin.m_dir & PixelRef::DIAGONAL)) {
+                    if (extent.col(bin.m_dir) >= pixVec.end().col(bin.m_dir))
+                        break;
+                    extent.col(bin.m_dir) = pixVec.end().col(bin.m_dir);
+                }
+                pix.move(bin.m_dir);
+            }
+        }
+    }
 }

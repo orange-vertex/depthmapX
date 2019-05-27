@@ -26,32 +26,21 @@
 #include "genlib/simplematrix.h"
 
 class VGAAngularOpenMP : IVGA {
+  private:
+    double m_radius;
+    bool m_gates_only;
+
+  private:
+    struct DataPoint {
+        float total_depth, mean_depth, count;
+    };
+
+  private:
+    void extractAngular(Node &node, std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple &curs,
+                        depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &cumangles);
+
   public:
     std::string getAnalysisName() const override { return "Angular Analysis (OpenMP)"; }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) override;
-    void extractAngular(Node &node, std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple &curs,
-                        depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &cumangles) {
-        if (curs.angle == 0.0f || pointdata->getPoint(curs.pixel).blocked() ||
-            pointdata->blockedAdjacent(curs.pixel)) {
-            for (int i = 0; i < 32; i++) {
-                Bin &bin = node.bin(i);
-                for (auto pixVec : bin.m_pixel_vecs) {
-                    for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
-                        if (miscs(pix.y, pix.x) == 0) {
-                            // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
-                            float ang = (curs.lastpixel == NoPixel)
-                                            ? 0.0f
-                                            : (float)(angle(pix, curs.pixel, curs.lastpixel) / (M_PI * 0.5));
-                            float &cumangle = cumangles(pix.y, pix.x);
-                            if (cumangle == -1.0 || curs.angle + ang < cumangle) {
-                                cumangle = cumangles(curs.pixel.y, curs.pixel.x) + ang;
-                                pixels.insert(AngularTriple(cumangle, pix, curs.pixel));
-                            }
-                        }
-                        pix.move(bin.m_dir);
-                    }
-                }
-            }
-        }
-    }
+    bool run(Communicator *comm, PointMap &map, bool simple_version) override;
+    VGAAngularOpenMP(double radius, bool gates_only) : m_radius(radius), m_gates_only(gates_only) {}
 };

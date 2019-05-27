@@ -20,7 +20,7 @@
 
 #include "genlib/stringutils.h"
 
-bool VGAMetricOpenMP::run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) {
+bool VGAMetricOpenMP::run(Communicator *comm, PointMap &map, bool simple_version) {
     time_t atime = 0;
 
     if (comm) {
@@ -31,32 +31,31 @@ bool VGAMetricOpenMP::run(Communicator *comm, const Options &options, PointMap &
     AttributeTable &attributes = map.getAttributeTable();
 
     std::vector<PixelRef> filled;
-    std::vector<int> rows;
+    std::vector<AttributeRow *> rows;
 
-    for (short i = 0; i < map.getCols(); i++) {
-        for (short j = 0; j < map.getRows(); j++) {
-            PixelRef curs = PixelRef(i, j);
+    for (int i = 0; i < map.getCols(); i++) {
+        for (int j = 0; j < map.getRows(); j++) {
+            PixelRef curs = PixelRef(static_cast<short>(i), static_cast<short>(j));
             if (map.getPoint(curs).filled()) {
                 filled.push_back(curs);
-                rows.push_back(attributes.getRowid(curs));
+                rows.push_back(attributes.getRowPtr(AttributeKey(curs)));
             }
         }
     }
 
     int count = 0;
 
-    std::vector<float> mspa_col_data(filled.size());
-    std::vector<float> mspl_col_data(filled.size());
-    std::vector<float> dist_col_data(filled.size());
-    std::vector<float> count_col_data(filled.size());
+    std::vector<DataPoint> col_data(filled.size());
 
     int i, N = int(filled.size());
 #pragma omp parallel for default(shared) private(i) schedule(dynamic)
     for (i = 0; i < N; i++) {
-        if (options.gates_only) {
+        if (m_gates_only) {
             count++;
             continue;
         }
+
+        DataPoint& dp = col_data[i];
 
         depthmapX::RowMatrix<int> miscs(map.getRows(), map.getCols());
         depthmapX::RowMatrix<float> dists(map.getRows(), map.getCols());
@@ -80,7 +79,7 @@ bool VGAMetricOpenMP::run(Communicator *comm, const Options &options, PointMap &
             std::set<MetricTriple>::iterator it = search_list.begin();
             MetricTriple here = *it;
             search_list.erase(it);
-            if (int(options.radius) != -1 && double(here.dist) * map.getSpacing() > options.radius) {
+            if (int(m_radius) != -1 && double(here.dist) * map.getSpacing() > m_radius) {
                 break;
             }
             Point &p = map.getPoint(here.pixel);
@@ -114,10 +113,10 @@ bool VGAMetricOpenMP::run(Communicator *comm, const Options &options, PointMap &
         map.getPoint(filled[size_t(i)]).m_dist = dists(filled[size_t(i)].y, filled[size_t(i)].x);
         map.getPoint(filled[size_t(i)]).m_cumangle = cumangles(filled[size_t(i)].y, filled[size_t(i)].x);
 
-        mspa_col_data[size_t(i)] = float(double(total_angle) / double(total_nodes));
-        mspl_col_data[size_t(i)] = float(double(total_depth) / double(total_nodes));
-        dist_col_data[size_t(i)] = float(double(euclid_depth) / double(total_nodes));
-        count_col_data[size_t(i)] = float(total_nodes);
+        dp.mspa = float(double(total_angle) / double(total_nodes));
+        dp.mspl = float(double(total_depth) / double(total_nodes));
+        dp.dist = float(double(euclid_depth) / double(total_nodes));
+        dp.count = float(total_nodes);
 
         count++; // <- increment count
 
@@ -132,34 +131,61 @@ bool VGAMetricOpenMP::run(Communicator *comm, const Options &options, PointMap &
     }
 
     std::string radius_text;
-    if (int(options.radius) != -1) {
-        if (options.radius > 100.0) {
-            radius_text = std::string(" R") + dXstring::formatString(options.radius, "%.f");
+    if (int(m_radius) != -1) {
+        if (m_radius > 100.0) {
+            radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.f");
         } else if (map.getRegion().width() < 1.0) {
-            radius_text = std::string(" R") + dXstring::formatString(options.radius, "%.4f");
+            radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.4f");
         } else {
-            radius_text = std::string(" R") + dXstring::formatString(options.radius, "%.2f");
+            radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.2f");
         }
     }
     // n.b. these must be entered in alphabetical order to preserve col indexing:
     std::string mspa_col_text = std::string("Metric Mean Shortest-Path Angle") + radius_text;
-    int mspa_col = attributes.insertColumn(mspa_col_text.c_str());
+    int mspa_col = attributes.insertOrResetColumn(mspa_col_text.c_str());
     std::string mspl_col_text = std::string("Metric Mean Shortest-Path Distance") + radius_text;
-    int mspl_col = attributes.insertColumn(mspl_col_text.c_str());
+    int mspl_col = attributes.insertOrResetColumn(mspl_col_text.c_str());
     std::string dist_col_text = std::string("Metric Mean Straight-Line Distance") + radius_text;
-    int dist_col = attributes.insertColumn(dist_col_text.c_str());
+    int dist_col = attributes.insertOrResetColumn(dist_col_text.c_str());
     std::string count_col_text = std::string("Metric Node Count") + radius_text;
-    int count_col = attributes.insertColumn(count_col_text.c_str());
+    int count_col = attributes.insertOrResetColumn(count_col_text.c_str());
 
-    for (size_t i = 0; i < rows.size(); i++) {
-        attributes.setValue(rows[i], mspa_col, mspa_col_data[i]);
-        attributes.setValue(rows[i], mspl_col, mspl_col_data[i]);
-        attributes.setValue(rows[i], dist_col, dist_col_data[i]);
-        attributes.setValue(rows[i], count_col, count_col_data[i]);
+    auto dataIter = col_data.begin();
+    for (auto row: rows) {
+        row->setValue(mspa_col, dataIter->mspa);
+        row->setValue(mspl_col, dataIter->mspl);
+        row->setValue(dist_col, dataIter->dist);
+        row->setValue(count_col, dataIter->count);
+        dataIter++;
     }
 
     map.overrideDisplayedAttribute(-2);
     map.setDisplayedAttribute(mspl_col);
 
     return true;
+}
+
+void VGAMetricOpenMP::extractMetric(Node &node, std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple &curs, depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &dists, depthmapX::RowMatrix<float> &cumangles) {
+    if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
+        for (int i = 0; i < 32; i++) {
+            Bin &bin = node.bin(i);
+            for (auto pixVec : bin.m_pixel_vecs) {
+                for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
+                    float &pixdist = dists(pix.y, pix.x);
+                    if (miscs(pix.y, pix.x) == 0 &&
+                            (pixdist == -1.0 || (curs.dist + dist(pix, curs.pixel) < pixdist))) {
+                        pixdist = curs.dist + (float)dist(pix, curs.pixel);
+                        // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
+                        cumangles(pix.y, pix.x) =
+                                cumangles(curs.pixel.y, curs.pixel.x) +
+                                (curs.lastpixel == NoPixel
+                                 ? 0.0f
+                                 : (float)(angle(pix, curs.pixel, curs.lastpixel) / (M_PI * 0.5)));
+                        pixels.insert(MetricTriple(pixdist, pix, curs.pixel));
+                    }
+                    pix.move(bin.m_dir);
+                }
+            }
+        }
+    }
 }

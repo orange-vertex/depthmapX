@@ -235,11 +235,6 @@ void MainWindow::OnFilePrintSetup()
 
 }
 
-void MainWindow::OnFileExit()
-{
-
-}
-
 void MainWindow::OnEditUndo()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -363,6 +358,17 @@ void MainWindow::OnFileExport()
         m_p->OnFileExport();
     }
 }
+
+
+void MainWindow::OnFileExportMapGeometry()
+{
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnFileExportMapGeometry();
+    }
+}
+
 void MainWindow::OnFileExportLinks()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -477,6 +483,15 @@ void MainWindow::OnToolsMakeGraph()
     if(m_p)
     {
         m_p->OnToolsMakeGraph();
+    }
+}
+
+void MainWindow::OnToolsUnmakeGraph()
+{
+    QGraphDoc* m_p = activeMapDoc();
+    if(m_p)
+    {
+        m_p->OnToolsUnmakeGraph();
     }
 }
 
@@ -1190,7 +1205,6 @@ int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
         m_indexWidget->clear();
         ClearGraphTree();
         MakeTree();
-        MakeGraphTree();
     }
     else if (lParam == QGraphDoc::CONTROLS_LOADDRAWING && pDoc == m_treeDoc) {     // Force update if match current window
         m_backgraph = NULL;
@@ -1591,10 +1605,10 @@ void MainWindow::MakeGraphTree()
             m_indexWidget->setItemEditability(hItem, Qt::Unchecked);
             ItemTreeEntry entry(1,(short)i,-1);
             m_treegraphmap.insert(std::make_pair(hItem,entry));
-            AttributeTable& table = m_treeDoc->m_meta_graph->getShapeGraphs()[i]->getAttributeTable();
-            if(table.getLayerCount() > 1) {
-                for (int j = 0; j < table.getLayerCount(); j++) {
-                    QString name = QString(table.getLayerName(j).c_str());
+            LayerManagerImpl& layers = m_treeDoc->m_meta_graph->getShapeGraphs()[i]->getLayers();
+            if(layers.getNumLayers() > 1) {
+                for (int j = 0; j < layers.getNumLayers(); j++) {
+                    QString name = QString(layers.getLayerName(j).c_str());
                     QTreeWidgetItem* hNewItem = m_indexWidget->addNewItem(name, hItem);
                     ItemTreeEntry entry(1,(short)i,j);
                     m_treegraphmap[hNewItem] = entry;
@@ -1627,10 +1641,10 @@ void MainWindow::MakeGraphTree()
             ItemTreeEntry entry(2,(short)i,-1);
             m_treegraphmap[hItem] = entry;
 
-            AttributeTable& table = m_treeDoc->m_meta_graph->getDataMaps()[i].getAttributeTable();
-            if(table.getLayerCount() > 1) {
-                for (int j = 0; j < table.getLayerCount(); j++) {
-                    QString name = QString(table.getLayerName(j).c_str());
+            LayerManagerImpl layers = m_treeDoc->m_meta_graph->getDataMaps()[i].getLayers();
+            if(layers.getNumLayers() > 1) {
+                for (int j = 0; j < layers.getNumLayers(); j++) {
+                    QString name = QString(layers.getLayerName(j).c_str());
                     QTreeWidgetItem* hNewItem = m_indexWidget->addNewItem(name, hItem);
                     m_indexWidget->setItemVisibility(hNewItem, Qt::Unchecked);
                     ItemTreeEntry entry(2,(short)i,j);
@@ -1712,10 +1726,10 @@ void MainWindow::MakeAttributeList()
             m_attrWindow->addItem(tr("Ref Number"));
             m_attribute_locked.push_back(true);
 
-            for (int i = 0; i < table.getColumnCount(); i++) {
+            for (int i = 0; i < table.getNumColumns(); i++) {
                 name = QString(table.getColumnName(i).c_str());
                     m_attrWindow->addItem(name);
-                    m_attribute_locked.push_back(table.isColumnLocked(i));
+                    m_attribute_locked.push_back(table.getColumn(i).isLocked());
                 //}
             }
         }
@@ -2176,11 +2190,10 @@ void MainWindow::RedoPlotViewMenu(QGraphDoc* pDoc)
           m_view_map_entries.clear();
           if (view_class == MetaGraph::VIEWVGA) {
              PointMap& map = pDoc->m_meta_graph->getDisplayedPointMap();
-             int displayed_ref = map.getDisplayedAttribute();
 
              const AttributeTable& table = map.getAttributeTable();
              m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
-             for (int i = 0; i < table.getColumnCount(); i++) {
+             for (int i = 0; i < table.getNumColumns(); i++) {
                 m_view_map_entries.insert(std::make_pair(i+1, table.getColumnName(i)));
                 if (map.getDisplayedAttribute() == i) {
                    curr_j = i + 1;
@@ -2193,7 +2206,7 @@ void MainWindow::RedoPlotViewMenu(QGraphDoc* pDoc)
              const AttributeTable& table = map.getAttributeTable();
              m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
              curr_j = 0;
-             for (int i = 0; i < table.getColumnCount(); i++) {
+             for (int i = 0; i < table.getNumColumns(); i++) {
                 m_view_map_entries.insert(std::make_pair(i+1, table.getColumnName(i)));
                 if (map.getDisplayedAttribute() == i) {
                    curr_j = i + 1;
@@ -2206,7 +2219,7 @@ void MainWindow::RedoPlotViewMenu(QGraphDoc* pDoc)
              const AttributeTable& table = map.getAttributeTable();
              m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
              curr_j = 0;
-             for (int i = 0; i < table.getColumnCount(); i++) {
+             for (int i = 0; i < table.getNumColumns(); i++) {
                 m_view_map_entries.insert(std::make_pair(i+1, table.getColumnName(i)));
                 if (map.getDisplayedAttribute() == i) {
                    curr_j = i + 1;
@@ -2300,6 +2313,7 @@ void MainWindow::updateVisibilitySubMenu()
     {
         SetGridAct->setEnabled(0);
         makeVisibilityGraphAct->setEnabled(0);
+        unmakeVisibilityGraphAct->setEnabled(0);
         importVGALinksAct->setEnabled(0);
         makeIsovistPathAct->setEnabled(0);
         runVisibilityGraphAnalysisAct->setEnabled(0);
@@ -2310,9 +2324,13 @@ void MainWindow::updateVisibilitySubMenu()
         SetGridAct->setEnabled(true);
     else SetGridAct->setEnabled(0);
 
-    if(m_p->m_meta_graph->viewingUnprocessedPoints())
+    if (m_p->m_meta_graph->viewingUnprocessedPoints()) {
         makeVisibilityGraphAct->setEnabled(true);
-    else makeVisibilityGraphAct->setEnabled(0);
+        unmakeVisibilityGraphAct->setEnabled(false);
+    } else {
+        makeVisibilityGraphAct->setEnabled(false);
+        unmakeVisibilityGraphAct->setEnabled(true);
+    }
 
     int state = m_p->m_meta_graph->getState();
     if (state & MetaGraph::LINEDATA)
@@ -2515,6 +2533,7 @@ void MainWindow::updateMapMenu()
         convertMapShapesAct->setEnabled(0);
         importAct->setEnabled(0);
         exportAct->setEnabled(0);
+        exportGeometryAct->setEnabled(false);
         exportLinksAct->setEnabled(0);
         exportAxialConnectionsDotAct->setEnabled(0);
         exportAxialConnectionsPairAct->setEnabled(0);
@@ -2542,6 +2561,7 @@ void MainWindow::updateMapMenu()
     if (!m_p->m_meta_graph->viewingNone() && !m_p->m_communicator)
     {
         exportAct->setEnabled(true);
+        exportGeometryAct->setEnabled(true);
         exportLinksAct->setEnabled(true);
         exportAxialConnectionsDotAct->setEnabled(true);
         exportAxialConnectionsPairAct->setEnabled(true);
@@ -2550,6 +2570,7 @@ void MainWindow::updateMapMenu()
     else
     {
         exportAct->setEnabled(0);
+        exportGeometryAct->setEnabled(false);
         exportLinksAct->setEnabled(0);
         exportAxialConnectionsDotAct->setEnabled(0);
         exportAxialConnectionsPairAct->setEnabled(0);
@@ -2811,7 +2832,7 @@ void MainWindow::updateToolbar()
         }
 
         if (( ( (m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWVGA) &&
-               (m_p->m_meta_graph->getDisplayedPointMap().isProcessed())) ||
+               (m_p->m_meta_graph->getDisplayedPointMap().getFilledPointCount() > 1)) ||
              ( (m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWAXIAL) &&
                (m_p->m_meta_graph->getState() & MetaGraph::SHAPEGRAPHS)) &&
                (!m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap()) ) )
@@ -2914,7 +2935,7 @@ void MainWindow::createActions()
 
     exitAct = new QAction(tr("E&xit"), this);
     exitAct->setStatusTip(tr("Quit the application; prompts to save documents\nExit"));
-    connect(exitAct, SIGNAL(triggered()), this, SLOT(OnFileExit()));
+    connect(exitAct, SIGNAL(triggered()), this, SLOT(close()));
 
     //Edit Menu Actions
     undoAct = new QAction(tr("&Undo"), this);
@@ -2983,6 +3004,10 @@ void MainWindow::createActions()
     exportAct->setStatusTip(tr("Export the active map"));
     connect(exportAct, SIGNAL(triggered()), this, SLOT(OnFileExport()));
 
+    exportGeometryAct = new QAction(tr("&Export map geometry..."), this);
+    exportGeometryAct->setStatusTip(tr("Export the geometry of the active map"));
+    connect(exportGeometryAct, SIGNAL(triggered()), this, SLOT(OnFileExportMapGeometry()));
+
     exportLinksAct = new QAction(tr("&Export links..."), this);
     exportLinksAct->setStatusTip(tr("Export the links of the active map"));
     connect(exportLinksAct, SIGNAL(triggered()), this, SLOT(OnFileExportLinks()));
@@ -3015,6 +3040,9 @@ void MainWindow::createActions()
     //Tools Menu Actions
     makeVisibilityGraphAct = new QAction(tr("Make &Visibility Graph..."), this);
     connect(makeVisibilityGraphAct, SIGNAL(triggered()), this, SLOT(OnToolsMakeGraph()));
+
+    unmakeVisibilityGraphAct = new QAction(tr("Unmake &Visibility Graph..."), this);
+    connect(unmakeVisibilityGraphAct, SIGNAL(triggered()), this, SLOT(OnToolsUnmakeGraph()));
 
     importVGALinksAct = new QAction(tr("Import VGA links from file..."), this);
     connect(importVGALinksAct, SIGNAL(triggered()), this, SLOT(OnToolsImportVGALinks()));
@@ -3506,6 +3534,7 @@ void MainWindow::createMenus()
     mapMenu->addAction(importAct);
     exportSubMenu = mapMenu->addMenu(tr("&Export"));
     exportSubMenu->addAction(exportAct);
+    exportSubMenu->addAction(exportGeometryAct);
     exportSubMenu->addAction(exportLinksAct);
     exportSubMenu->addAction(exportAxialConnectionsDotAct);
     exportSubMenu->addAction(exportAxialConnectionsPairAct);
@@ -3526,6 +3555,7 @@ void MainWindow::createMenus()
     visibilitySubMenu = toolsMenu->addMenu(tr("&Visibility"));
     visibilitySubMenu->addAction(SetGridAct);
     visibilitySubMenu->addAction(makeVisibilityGraphAct);
+    visibilitySubMenu->addAction(unmakeVisibilityGraphAct);
     visibilitySubMenu->addAction(importVGALinksAct);
     visibilitySubMenu->addAction(makeIsovistPathAct);
     visibilitySubMenu->addSeparator();
