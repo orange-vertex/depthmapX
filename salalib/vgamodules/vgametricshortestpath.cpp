@@ -64,8 +64,7 @@ bool VGAMetricShortestPath::run(Communicator *comm, PointMap &map, bool) {
         MetricPoint &mp = getMetricPoint(metricPoints, here.pixel);
         std::set<MetricTriple> newPixels;
         std::set<MetricTriple> mergePixels;
-        // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
-        if (mp.m_point->filled() && (mp.m_unseen || (here.dist < mp.m_dist))) {
+        if (mp.m_unseen || (here.dist < mp.m_dist)) {
             extractMetric(mp.m_point->getNode(), metricPoints, newPixels, &map, here);
             mp.m_dist = here.dist;
             mp.m_unseen = false;
@@ -184,7 +183,9 @@ void VGAMetricShortestPath::extractMetric(Node n, depthmapX::ColumnMatrix<Metric
             for (auto pixVec : bin.m_pixel_vecs) {
                 for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
                     MetricPoint &mpt = getMetricPoint(metricPoints, pix);
-                    if ((mpt.m_unseen && (mpt.m_dist == -1 ||
+                    // the nullptr check is unfortunately required because somehow depthmap stores
+                    // neighbour pixels that are not really filled..
+                    if ((mpt.m_point != nullptr && mpt.m_unseen && (mpt.m_dist == -1 ||
                          (curs.dist + pointdata->getSpacing() * dist(pix, curs.pixel) < mpt.m_dist)))) {
                         mpt.m_dist = curs.dist + pointdata->getSpacing() * (float)dist(pix, curs.pixel);
                         pixels.insert(MetricTriple(mpt.m_dist, pix, curs.pixel));

@@ -28,7 +28,7 @@ class VGAMetricDepthLinkCost : IVGA {
     std::set<int> m_pixelsFrom;
 
     struct MetricPoint {
-        Point *m_point;
+        Point *m_point = nullptr;
         float m_linkCost = 0;
         float m_dist = -1.0f;
         bool m_unseen = true;
