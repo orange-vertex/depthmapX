@@ -49,6 +49,7 @@
 #include "salalib/vgamodules/vgathroughvision.h"
 #include "salalib/vgamodules/vgavisualshortestpath.h"
 #include "salalib/vgamodules/vgametricshortestpath.h"
+#include "salalib/vgamodules/vgametricshortestpathtomany.h"
 #include "salalib/vgamodules/vgaangularshortestpath.h"
 #include "salalib/vgamodules/extractlinkdata.h"
 #include "salalib/agents/agenthelpers.h"
@@ -288,14 +289,20 @@ bool MetaGraph::makeGraph( Communicator *communicator, int algorithm, double max
    return retvar;
 }
 
-bool MetaGraph::visualShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom, PixelRef &pixelTo) {
+bool MetaGraph::visualShortestPath(Communicator *communicator, PointMap &map,
+                                   const PixelRef &pixelFrom, const PixelRef &pixelTo) {
     return VGAVisualShortestPath(pixelFrom, pixelTo).run(communicator, map, false);
 }
-bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom, PixelRef &pixelTo) {
+bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map,
+                                   const PixelRef &pixelFrom, const PixelRef &pixelTo) {
     return VGAMetricShortestPath(pixelFrom, pixelTo).run(communicator, map, false);
 }
-bool MetaGraph::angularShortestPath(Communicator *communicator, PointMap &map, PixelRef &pixelFrom,
-                                    PixelRef &pixelTo) {
+bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map,
+                                   const PixelRef &pixelFrom, const std::set<PixelRef> &pixelsTo) {
+    return VGAMetricShortestPathToMany(pixelFrom, pixelsTo).run(communicator, map, false);
+}
+bool MetaGraph::angularShortestPath(Communicator *communicator, PointMap &map,
+                                    const PixelRef &pixelFrom, const PixelRef &pixelTo) {
     return VGAAngularShortestPath(pixelFrom, pixelTo).run(communicator, map, false);
 }
 

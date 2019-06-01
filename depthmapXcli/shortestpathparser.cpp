@@ -27,7 +27,7 @@ void ShortestPathParser::parse(int argc, char ** argv)
 {
 
     std::string origin;
-    std::string destination;
+    std::vector<std::string> destinations;
     for ( int i = 1; i < argc; ++i )
     {
         if ( std::strcmp ("-spo", argv[i]) == 0)
@@ -56,7 +56,7 @@ void ShortestPathParser::parse(int argc, char ** argv)
                         << std::flush;
                 throw CommandLineException(message.str().c_str());
             }
-            destination = argv[i];
+            destinations.push_back(argv[i]);
         }
         else if ( std::strcmp ("-spt", argv[i]) == 0)
         {
@@ -88,21 +88,27 @@ void ShortestPathParser::parse(int argc, char ** argv)
     {
         m_origin = EntityParsing::parsePoint(origin);
     }
-    if (destination.empty())
+    if (destinations.empty())
     {
-        throw CommandLineException("Destination point (-spd) must be provided");
+        throw CommandLineException("At least one destination point (-spd) must be provided");
     }
     else
     {
-        m_destination = EntityParsing::parsePoint(destination);
+        for(const auto& destination: destinations) {
+            m_destinations.push_back(EntityParsing::parsePoint(destination));
+        }
     }
     if (m_shortestPathType == ShortestPathType::NONE)
     {
         throw CommandLineException("Shortest path type (-spt) must be provided");
     }
+    if (m_shortestPathType != ShortestPathType::METRIC && m_destinations.size() > 1)
+    {
+        throw CommandLineException("Multple shortest paths may only be calculated with metric depth currently");
+    }
 }
 
 void ShortestPathParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const
 {
-    dm_runmethods::runShortestPath(clp, m_shortestPathType, m_origin, m_destination, perfWriter);
+    dm_runmethods::runShortestPath(clp, m_shortestPathType, m_origin, m_destinations, perfWriter);
 }
