@@ -48,6 +48,6 @@ namespace dm_runmethods{
     void runStepDepth(const CommandLineParser &clp, const StepDepthParser::StepType &stepType,
                       const std::vector<Point2f> &stepDepthPoints, IPerformanceSink &perfWriter);
     void runShortestPath(const CommandLineParser &clp, const ShortestPathParser::ShortestPathType &shortestPathType,
-                         const Point2f &origin, const Point2f &destination, IPerformanceSink &perfWriter);
+                         const Point2f &origin, const std::vector<Point2f> &destinations, IPerformanceSink &perfWriter);
     void runMapConversion(const CommandLineParser& clp, const MapConvertParser &mcp, IPerformanceSink &perfWriter);
 }

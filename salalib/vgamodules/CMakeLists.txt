@@ -14,6 +14,7 @@ target_sources(salalib
        vgametricshortestpath.cpp
        vgavisualshortestpath.cpp
        vgametricdepthlinkcost.cpp
+       vgametricshortestpathtomany.cpp
     PUBLIC
        vgaangular.h
        vgametric.h
@@ -28,4 +29,5 @@ target_sources(salalib
        vgaangularshortestpath.h
        vgametricshortestpath.h
        vgavisualshortestpath.h
-       vgametricdepthlinkcost.h)
+       vgametricdepthlinkcost.h
+       vgametricshortestpathtomany.h)

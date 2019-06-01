@@ -34,7 +34,7 @@ public:
     {
         return "Mode options for pointmap SHORTESTPATH are:\n" \
                "  -spo <point> Origin point\n" \
-               "  -spd <point> Destination point\n" \
+               "  -spd <point> Destination point (can be given multiple times)\n" \
                "  -spt <type> Shortest Path type. One of metric, angular or visual\n";
     }
 
@@ -50,12 +50,12 @@ public:
     virtual void run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const;
 
     Point2f getOrigin() const { return m_origin; }
-    Point2f getDestination() const { return m_destination; }
+    std::vector<Point2f> getDestinations() const { return m_destinations; }
     ShortestPathType getShortestPathType() const { return m_shortestPathType; }
 
 private:
     Point2f m_origin;
-    Point2f m_destination;
+    std::vector<Point2f> m_destinations;
     ShortestPathType m_shortestPathType;
 };
 
