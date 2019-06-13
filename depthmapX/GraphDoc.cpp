@@ -313,7 +313,7 @@ void QGraphDoc::timerEvent(QTimerEvent *event)
 		double percent = (100.0 * double(m_record)) / double(m_num_records);
 		QString str;
 		int timeleft = 1 + int((100.0 / percent - 1.0) * double(m_timer.elapsed()/1000));
-        if (percent > 0.5) {
+        if (percent > 0.01) {
 			if (timeleft >= 3600) {
 				str = QString(" : Estimated %1 hours %2 minutes remaining").arg(timeleft / 3600).arg((timeleft / 60) % 60 );
             }
