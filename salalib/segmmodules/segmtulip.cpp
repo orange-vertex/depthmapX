@@ -330,9 +330,9 @@ bool SegmentTulip::run(Communicator *comm, ShapeGraph &map, bool simple_version)
     int length_col = attributes.getColumnIndex("Segment Length");
     std::vector<float> lengths;
     if (length_col != -1) {
-        for (size_t i = 0; i < map.getConnections().size(); i++) {
-            AttributeRow& row = map.getAttributeRowFromShapeIndex(i);
-            lengths.push_back(row.getValue(length_col));
+        auto rowIter = map.getAttributeTable().begin();
+        for (; rowIter != map.getAttributeTable().end(); rowIter++) {
+            lengths.push_back(rowIter->getRow().getValue(length_col));
         }
     }
 
@@ -342,9 +342,11 @@ bool SegmentTulip::run(Communicator *comm, ShapeGraph &map, bool simple_version)
         radiusmask |= (1 << i);
     }
 
-    for (size_t cursor = 0; cursor < map.getConnections().size(); cursor++) {
-        AttributeRow &row =
-            map.getAttributeRowFromShapeIndex(cursor);
+    size_t cursor = -1;
+    auto rowIter = map.getAttributeTable().begin();
+    for (; rowIter != map.getAttributeTable().end(); rowIter++) {
+        cursor++;
+        AttributeRow &row = rowIter->getRow();
 
         if (m_sel_only) {
             // could use m_selection_set.searchindex(rowid) to find
