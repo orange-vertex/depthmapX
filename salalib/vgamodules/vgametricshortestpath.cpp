@@ -51,7 +51,9 @@ bool VGAMetricShortestPath::run(Communicator *comm, PointMap &map, bool) {
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<MetricTriple> search_list; // contains root point
 
-    search_list.insert(MetricTriple(0.0f, m_pixelFrom, NoPixel));
+    for(const PixelRef &pixelFrom: m_pixelsFrom) {
+        search_list.insert(MetricTriple(0.0f, pixelFrom, NoPixel));
+    }
 
     // note that m_misc is used in a different manner to analyseGraph / PointDepth
     // here it marks the node as used in calculation only
@@ -109,7 +111,9 @@ bool VGAMetricShortestPath::run(Communicator *comm, PointMap &map, bool) {
         }
 
         int counter = 0;
-        getMetricPoint(metricPoints, m_pixelFrom).m_cumdist = 0;
+        for(const PixelRef &pixelFrom: m_pixelsFrom) {
+            getMetricPoint(metricPoints, pixelFrom).m_cumdist = 0;
+        }
         AttributeRow &lastPixelRow = attributes.getRow(AttributeKey(m_pixelTo));
         MetricPoint &mp = getMetricPoint(metricPoints, m_pixelTo);
         lastPixelRow.setValue(order_col, counter);

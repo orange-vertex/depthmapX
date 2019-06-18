@@ -156,8 +156,10 @@ public:
    bool makePoints( const Point2f& p, int semifilled, Communicator *communicator = NULL);  // override of PointMap
    bool makeGraph( Communicator *communicator, int algorithm, double maxdist );
    bool visualShortestPath(Communicator *communicator, PointMap &map, const PixelRef &pixelFrom, const PixelRef &pixelTo);
-   bool metricShortestPath(Communicator *communicator, PointMap &map, const PixelRef &pixelFrom, const PixelRef &pixelTo);
-   bool metricShortestPath(Communicator *communicator, PointMap &map, const PixelRef &pixelFrom, const std::set<PixelRef> &pixelsTo);
+   bool metricShortestPath(Communicator *communicator, PointMap &map, const std::set<PixelRef> &pixelsFrom,
+                           const PixelRef &pixelTo);
+   bool metricShortestPath(Communicator *communicator, PointMap &map, const std::set<PixelRef> &pixelsFrom,
+                           const std::set<PixelRef> &pixelsTo);
    bool angularShortestPath(Communicator *communicator, PointMap &map, const PixelRef &pixelFrom, const PixelRef &pixelTo);
    bool extractLinkData( Communicator *communicator );
    bool unmakeGraph(bool removeLinks);

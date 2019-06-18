@@ -78,7 +78,7 @@ TEST_CASE("ShortestPathParser Success", "Read successfully")
     ArgumentHolder ah{"prog", "-spo", p1.str(), "-spd", p2.str(), "-spt", type};
     parser.parse(ah.argc(), ah.argv());
 
-    Point2f origin = parser.getOrigin();
+    Point2f origin = *parser.getOrigins().begin();
     Point2f destination = *parser.getDestinations().begin();
     ShortestPathParser::ShortestPathType shortestPathType = parser.getShortestPathType();
     REQUIRE(origin.x == Approx(x1));

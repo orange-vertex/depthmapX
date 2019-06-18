@@ -16,99 +16,72 @@
 #include "shortestpathparser.h"
 #include "exceptions.h"
 #include "parsingutils.h"
-#include "salalib/entityparsing.h"
 #include "runmethods.h"
-#include <sstream>
+#include "salalib/entityparsing.h"
 #include <cstring>
+#include <sstream>
 
 using namespace depthmapX;
 
-void ShortestPathParser::parse(int argc, char ** argv)
-{
+void ShortestPathParser::parse(int argc, char **argv) {
 
-    std::string origin;
+    std::vector<std::string> origins;
     std::vector<std::string> destinations;
-    for ( int i = 1; i < argc; ++i )
-    {
-        if ( std::strcmp ("-spo", argv[i]) == 0)
-        {
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp("-spo", argv[i]) == 0) {
             ENFORCE_ARGUMENT("-spo", i)
-            if (!has_only_digits_dots_commas(argv[i]))
-            {
+            if (!has_only_digits_dots_commas(argv[i])) {
                 std::stringstream message;
-                message << "Invalid origin point provided ("
-                        << argv[i]
-                        << "). Should only contain digits dots and commas"
-                        << std::flush;
+                message << "Invalid origin point provided (" << argv[i]
+                        << "). Should only contain digits dots and commas" << std::flush;
                 throw CommandLineException(message.str().c_str());
             }
-            origin = argv[i];
-        }
-        else if ( std::strcmp ("-spd", argv[i]) == 0)
-        {
+            origins.push_back(argv[i]);
+        } else if (std::strcmp("-spd", argv[i]) == 0) {
             ENFORCE_ARGUMENT("-spd", i)
-            if (!has_only_digits_dots_commas(argv[i]))
-            {
+            if (!has_only_digits_dots_commas(argv[i])) {
                 std::stringstream message;
-                message << "Invalid destination point provided ("
-                        << argv[i]
-                        << "). Should only contain digits dots and commas"
-                        << std::flush;
+                message << "Invalid destination point provided (" << argv[i]
+                        << "). Should only contain digits dots and commas" << std::flush;
                 throw CommandLineException(message.str().c_str());
             }
             destinations.push_back(argv[i]);
-        }
-        else if ( std::strcmp ("-spt", argv[i]) == 0)
-        {
+        } else if (std::strcmp("-spt", argv[i]) == 0) {
             ENFORCE_ARGUMENT("-spt", i)
-            if ( std::strcmp(argv[i], "angular") == 0 )
-            {
+            if (std::strcmp(argv[i], "angular") == 0) {
                 m_shortestPathType = ShortestPathType::ANGULAR;
-            }
-            else if ( std::strcmp(argv[i], "metric") == 0 )
-            {
+            } else if (std::strcmp(argv[i], "metric") == 0) {
                 m_shortestPathType = ShortestPathType::METRIC;
-            }
-            else if ( std::strcmp(argv[i], "visual") == 0 )
-            {
+            } else if (std::strcmp(argv[i], "visual") == 0) {
                 m_shortestPathType = ShortestPathType::VISUAL;
-            }
-            else
-            {
+            } else {
                 throw CommandLineException(std::string("Invalid Shortest Path type: ") + argv[i]);
             }
         }
     }
 
-    if (origin.empty())
-    {
-        throw CommandLineException("Origin point (-spo) must be provided");
+    if (origins.empty()) {
+        throw CommandLineException("At least one origin point (-spo) must be provided");
+    } else {
+        for (const auto &origin : origins) {
+            m_origins.push_back(EntityParsing::parsePoint(origin));
+        }
     }
-    else
-    {
-        m_origin = EntityParsing::parsePoint(origin);
-    }
-    if (destinations.empty())
-    {
+    if (destinations.empty()) {
         throw CommandLineException("At least one destination point (-spd) must be provided");
-    }
-    else
-    {
-        for(const auto& destination: destinations) {
+    } else {
+        for (const auto &destination : destinations) {
             m_destinations.push_back(EntityParsing::parsePoint(destination));
         }
     }
-    if (m_shortestPathType == ShortestPathType::NONE)
-    {
+    if (m_shortestPathType == ShortestPathType::NONE) {
         throw CommandLineException("Shortest path type (-spt) must be provided");
     }
-    if (m_shortestPathType != ShortestPathType::METRIC && m_destinations.size() > 1)
-    {
+    if (m_shortestPathType != ShortestPathType::METRIC && m_destinations.size() > 1) {
         throw CommandLineException("Multple shortest paths may only be calculated with metric depth currently");
     }
 }
 
-void ShortestPathParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const
-{
-    dm_runmethods::runShortestPath(clp, m_shortestPathType, m_origin, m_destinations, perfWriter);
+void ShortestPathParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
+    dm_runmethods::runShortestPath(clp, m_shortestPathType, m_origins, m_destinations, perfWriter);
 }

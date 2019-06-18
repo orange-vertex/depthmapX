@@ -395,10 +395,11 @@ void RenderThread::run()
             if (map.getSelSet().size() != 2) {
                 throw depthmapX::RuntimeException("Two nodes must be selected");
             }
-            PixelRef pixelFrom = *map.getSelSet().begin();
+            std::set<PixelRef> pixelsFrom;
+            pixelsFrom.insert(*map.getSelSet().begin());
             PixelRef pixelTo = *std::next(map.getSelSet().begin());
 
-            ok = pDoc->m_meta_graph->metricShortestPath(comm, map, pixelFrom, pixelTo);
+            ok = pDoc->m_meta_graph->metricShortestPath(comm, map, pixelsFrom, pixelTo);
             if (ok) {
                pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
             }
