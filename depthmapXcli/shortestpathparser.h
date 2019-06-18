@@ -49,12 +49,12 @@ public:
 
     virtual void run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const;
 
-    Point2f getOrigin() const { return m_origin; }
+    std::vector<Point2f> getOrigins() const { return m_origins; }
     std::vector<Point2f> getDestinations() const { return m_destinations; }
     ShortestPathType getShortestPathType() const { return m_shortestPathType; }
 
 private:
-    Point2f m_origin;
+    std::vector<Point2f> m_origins;
     std::vector<Point2f> m_destinations;
     ShortestPathType m_shortestPathType;
 };

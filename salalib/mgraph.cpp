@@ -294,12 +294,12 @@ bool MetaGraph::visualShortestPath(Communicator *communicator, PointMap &map,
     return VGAVisualShortestPath(pixelFrom, pixelTo).run(communicator, map, false);
 }
 bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map,
-                                   const PixelRef &pixelFrom, const PixelRef &pixelTo) {
-    return VGAMetricShortestPath(pixelFrom, pixelTo).run(communicator, map, false);
+                                   const std::set<PixelRef> &pixelsFrom, const PixelRef &pixelTo) {
+    return VGAMetricShortestPath(pixelsFrom, pixelTo).run(communicator, map, false);
 }
 bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map,
-                                   const PixelRef &pixelFrom, const std::set<PixelRef> &pixelsTo) {
-    return VGAMetricShortestPathToMany(pixelFrom, pixelsTo).run(communicator, map, false);
+                                   const std::set<PixelRef> &pixelsFrom, const std::set<PixelRef> &pixelsTo) {
+    return VGAMetricShortestPathToMany(pixelsFrom, pixelsTo).run(communicator, map, false);
 }
 bool MetaGraph::angularShortestPath(Communicator *communicator, PointMap &map,
                                     const PixelRef &pixelFrom, const PixelRef &pixelTo) {

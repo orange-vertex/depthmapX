@@ -727,7 +727,8 @@ namespace dm_runmethods
     }
 
     void runShortestPath(const CommandLineParser &clp, const ShortestPathParser::ShortestPathType &shortestPathType,
-                         const Point2f &origin, const std::vector<Point2f> &destinations, IPerformanceSink &perfWriter) {
+                         const std::vector<Point2f> &origins, const std::vector<Point2f> &destinations,
+                         IPerformanceSink &perfWriter) {
         auto mGraph = loadGraph(clp.getFileName().c_str(), perfWriter);
 
         std::cout << "ok\nSelecting cells... " << std::flush;
@@ -735,29 +736,32 @@ namespace dm_runmethods
         auto& graphRegion = mGraph->getRegion();
         PointMap &map = mGraph->getDisplayedPointMap();
 
-        if (!graphRegion.contains(origin) || !map.getRegion().contains(origin)) {
-            throw depthmapX::RuntimeException("Origin point outside of target region");
+        std::set<PixelRef> pixelsFrom;
+        for(const Point2f &origin: origins) {
+            if (!graphRegion.contains(origin) || !map.getRegion().contains(origin)) {
+                throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                                  std::to_string(origin.y) + " outside of target region");
+            }
+            PixelRef pixelFrom = map.pixelate(origin);
+            if (!map.getPoint(pixelFrom).filled()) {
+                throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                                  std::to_string(origin.y) + " not filled in target pointmap");
+            }
+            pixelsFrom.insert(pixelFrom);
         }
-        for(auto &destination: destinations) {
+        std::set<PixelRef> pixelsTo;
+        for(const Point2f &destination: destinations) {
+
             if (!graphRegion.contains(destination) || !map.getRegion().contains(destination)) {
-                throw depthmapX::RuntimeException("Destination point " + std::to_string(destination.x) + " " +
+                throw depthmapX::RuntimeException("Destination point " + std::to_string(destination.x) + ", " +
                                                   std::to_string(destination.y) + " outside of target region");
             }
-        }
-
-        PixelRef pixelFrom = map.pixelate(origin);
-        std::set<PixelRef> pixelsTo;
-        for(auto &destination: destinations) {
-            pixelsTo.insert(map.pixelate(destination));
-        }
-
-        if (!map.getPoint(pixelFrom).filled()) {
-            throw depthmapX::RuntimeException("Origin point not filled in target pointmap");
-        }
-        for(auto &pixelTo: pixelsTo) {
+            PixelRef pixelTo = map.pixelate(destination);
             if (!map.getPoint(pixelTo).filled()) {
-                throw depthmapX::RuntimeException("Destination point not filled in target pointmap");
+                throw depthmapX::RuntimeException("Destination point " + std::to_string(destination.x) + ", " +
+                                                  std::to_string(destination.y) + " not filled in target pointmap");
             }
+            pixelsTo.insert(pixelTo);
         }
 
         std::cout << "ok\nCalculating shortest path... " << std::flush;
@@ -766,17 +770,17 @@ namespace dm_runmethods
 
         DO_TIMED("Calculating shortest path", switch (shortestPathType) {
             case ShortestPathParser::ShortestPathType::ANGULAR:
-                mGraph->angularShortestPath(comm.get(), map, pixelFrom, *pixelsTo.begin());
+                mGraph->angularShortestPath(comm.get(), map, *pixelsFrom.begin(), *pixelsTo.begin());
                 break;
             case ShortestPathParser::ShortestPathType::METRIC:
                  if(pixelsTo.size() == 1) {
-                     mGraph->metricShortestPath(comm.get(), map, pixelFrom, *pixelsTo.begin());
+                     mGraph->metricShortestPath(comm.get(), map, pixelsFrom, *pixelsTo.begin());
                  } else {
-                     mGraph->metricShortestPath(comm.get(), map, pixelFrom, pixelsTo);
+                     mGraph->metricShortestPath(comm.get(), map, pixelsFrom, pixelsTo);
                  }
                 break;
             case ShortestPathParser::ShortestPathType::VISUAL:
-                mGraph->visualShortestPath(comm.get(), map, pixelFrom, *pixelsTo.begin());
+                mGraph->visualShortestPath(comm.get(), map, *pixelsFrom.begin(), *pixelsTo.begin());
                 break;
             default: { throw depthmapX::SetupCheckException("Error, unsupported shortest path mode"); }
         });

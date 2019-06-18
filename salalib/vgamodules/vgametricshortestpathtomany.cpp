@@ -43,7 +43,9 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<MetricTriple> search_list; // contains root point
 
-    search_list.insert(MetricTriple(0.0f, m_pixelFrom, NoPixel));
+    for(const PixelRef &pixelFrom: m_pixelsFrom) {
+        search_list.insert(MetricTriple(0.0f, pixelFrom, NoPixel));
+    }
 
     // note that m_misc is used in a different manner to analyseGraph / PointDepth
     // here it marks the node as used in calculation only
@@ -89,9 +91,14 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
         }
     }
 
-    getMetricPoint(metricPoints, m_pixelFrom).m_dist = 0;
+    for(const PixelRef &pixelFrom: m_pixelsFrom) {
+        getMetricPoint(metricPoints, pixelFrom).m_dist = 0;
+    }
 
     std::map<PixelRef, std::vector<int>> columns;
+    for(PixelRef ref: m_pixelsTo) {
+        columns[ref].push_back(attributes.insertOrResetColumn("Metric Shortest Path " + std::to_string(ref)));
+    }
     for(PixelRef ref: m_pixelsTo) {
         columns[ref].push_back(attributes.insertOrResetColumn("Metric Shortest Path Distance " + std::to_string(ref)));
     }
@@ -104,13 +111,15 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
 
     for(PixelRef pixelTo: m_pixelsTo) {
         const std::vector<int>& pixelToCols = columns[pixelTo];
-        int dist_col   = pixelToCols[0];
-        int linked_col = pixelToCols[1];
-        int order_col  = pixelToCols[2];
+        int path_col   = pixelToCols[0];
+        int dist_col   = pixelToCols[1];
+        int linked_col = pixelToCols[2];
+        int order_col  = pixelToCols[3];
         auto pixelToParent = parents.find(pixelTo);
         if (pixelToParent != parents.end()) {
 
             int counter = 0;
+            int linePixelCounter = 0;
             AttributeRow &lastPixelRow = attributes.getRow(AttributeKey(pixelTo));
             MetricPoint &mp = getMetricPoint(metricPoints, pixelTo);
             lastPixelRow.setValue(order_col, counter);
@@ -129,6 +138,14 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
                 } else {
                     // apparently we can't just have 1 number in the whole column
                     row.setValue(linked_col, 0);
+
+                    auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                    for (auto &linePixel : pixelated) {
+                        auto *linePixelRow = attributes.getRowPtr(AttributeKey(linePixel));
+                        if (linePixelRow != 0) {
+                            linePixelRow->setValue(path_col, linePixelCounter++);
+                        }
+                    }
                 }
 
                 lastPixelRow = row;

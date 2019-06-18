@@ -25,7 +25,7 @@
 
 class VGAMetricShortestPathToMany : IVGA {
   private:
-    const PixelRef m_pixelFrom;
+    const std::set<PixelRef> m_pixelsFrom;
     const std::set<PixelRef> m_pixelsTo;
 
     struct MetricPoint {
@@ -44,6 +44,6 @@ class VGAMetricShortestPathToMany : IVGA {
   public:
     std::string getAnalysisName() const override { return "Metric Shortest Path"; }
     bool run(Communicator *comm, PointMap &map, bool) override;
-    VGAMetricShortestPathToMany(PixelRef pixelFrom, std::set<PixelRef> pixelsTo)
-        : m_pixelFrom(pixelFrom), m_pixelsTo(pixelsTo) {}
+    VGAMetricShortestPathToMany(std::set<PixelRef> pixelsFrom, std::set<PixelRef> pixelsTo)
+        : m_pixelsFrom(pixelsFrom), m_pixelsTo(pixelsTo) {}
 };
