@@ -400,6 +400,13 @@ void RenderThread::run()
             PixelRef pixelTo = *std::next(map.getSelSet().begin());
 
             ok = pDoc->m_meta_graph->metricShortestPath(comm, map, pixelsFrom, pixelTo);
+            std::set<PixelRef> pathPixels;
+            for(auto &row : map.getAttributeTable()) {
+                if(row.getRow().getValue("Metric Shortest Path") != -1)
+                pathPixels.insert(PixelRef(row.getKey().value));
+            }
+            ok = pDoc->m_meta_graph->isovistZone(comm, map, pathPixels, 0);
+            ok = pDoc->m_meta_graph->isovistZone(comm, map, pathPixels, 5 * map.getSpacing());
             if (ok) {
                pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
             }
