@@ -162,6 +162,7 @@ public:
                            const std::set<PixelRef> &pixelsTo);
    bool angularShortestPath(Communicator *communicator, PointMap &map, const PixelRef &pixelFrom, const PixelRef &pixelTo);
    bool extractLinkData( Communicator *communicator );
+   bool isovistZone(Communicator *communicator, PointMap &map, std::set<PixelRef> originPoints, float restrictDistance);
    bool unmakeGraph(bool removeLinks);
    bool analyseGraph(Communicator *communicator, Options options , bool simple_version); // <- options copied to keep thread safe
    //

@@ -52,6 +52,7 @@
 #include "salalib/vgamodules/vgametricshortestpathtomany.h"
 #include "salalib/vgamodules/vgaangularshortestpath.h"
 #include "salalib/vgamodules/extractlinkdata.h"
+#include "salalib/vgamodules/vgaisovistzone.h"
 #include "salalib/agents/agenthelpers.h"
 
 #include "mgraph440/mgraph.h"
@@ -308,6 +309,11 @@ bool MetaGraph::angularShortestPath(Communicator *communicator, PointMap &map,
 
 bool MetaGraph::extractLinkData(Communicator *communicator) {
     return ExtractLinkData().run(communicator, getDisplayedPointMap(), false);
+}
+
+bool MetaGraph::isovistZone(Communicator *communicator, PointMap &map, std::set<PixelRef> originPoints,
+                         float restrictDistance = -1) {
+    return VGAIsovistZone(originPoints, restrictDistance).run(communicator, map, false);
 }
 
 bool MetaGraph::unmakeGraph(bool removeLinks)

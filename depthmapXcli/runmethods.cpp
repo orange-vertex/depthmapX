@@ -790,6 +790,40 @@ namespace dm_runmethods
         std::cout << " ok" << std::endl;
     }
 
+    void runIsovistZone(const CommandLineParser &clp, const std::vector<Point2f> &origins, float restrictDistance,
+                        IPerformanceSink &perfWriter) {
+        auto mGraph = loadGraph(clp.getFileName().c_str(), perfWriter);
+
+        std::cout << "ok\nSelecting cells... " << std::flush;
+
+        auto &graphRegion = mGraph->getRegion();
+        PointMap &map = mGraph->getDisplayedPointMap();
+
+        std::set<PixelRef> pixelsFrom;
+        for (const Point2f &origin : origins) {
+            if (!graphRegion.contains(origin) || !map.getRegion().contains(origin)) {
+                throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                                  std::to_string(origin.y) + " outside of target region");
+            }
+            PixelRef pixelFrom = map.pixelate(origin);
+            if (!map.getPoint(pixelFrom).filled()) {
+                throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                                  std::to_string(origin.y) + " not filled in target pointmap");
+            }
+            pixelsFrom.insert(pixelFrom);
+        }
+
+        std::cout << "ok\nCalculating isovist zone... " << std::flush;
+
+        std::unique_ptr<Communicator> comm(new ICommunicator());
+
+        DO_TIMED("Calculating isovist zone", mGraph->isovistZone(comm.get(), map, pixelsFrom, restrictDistance));
+
+        std::cout << " ok\nWriting out result..." << std::flush;
+        DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
+        std::cout << " ok" << std::endl;
+    }
+
     void runMapConversion(const CommandLineParser &clp, const MapConvertParser &mcp, IPerformanceSink &perfWriter)
     {
         auto mGraph = loadGraph(clp.getFileName().c_str(), perfWriter);

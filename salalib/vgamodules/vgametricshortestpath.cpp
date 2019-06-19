@@ -31,8 +31,6 @@ bool VGAMetricShortestPath::run(Communicator *comm, PointMap &map, bool) {
     int dist_col = attributes.insertOrResetColumn("Metric Shortest Path Distance");
     int linked_col = attributes.insertOrResetColumn("Metric Shortest Path Linked");
     int order_col = attributes.insertOrResetColumn("Metric Shortest Path Order");
-    int zone_col = attributes.insertOrResetColumn("Metric Shortest Path Zone");
-    int zone_3m_col = attributes.insertOrResetColumn("Metric Shortest Path Zone 3m");
 
     depthmapX::ColumnMatrix<MetricPoint> metricPoints(map.getRows(), map.getCols());
 
@@ -137,28 +135,6 @@ bool VGAMetricShortestPath::run(Communicator *comm, PointMap &map, bool) {
                     auto *linePixelRow = attributes.getRowPtr(AttributeKey(linePixel));
                     if (linePixelRow != 0) {
                         linePixelRow->setValue(path_col, linePixelCounter++);
-                        linePixelRow->setValue(zone_col, 1);
-
-                        std::set<MetricTriple> newPixels;
-                        MetricPoint &lp = getMetricPoint(metricPoints, linePixel);
-                        extractMetric(lp.m_point->getNode(), metricPoints, newPixels, &map,
-                                      MetricTriple(0.0f, linePixel, NoPixel));
-                        for (auto &zonePixel : newPixels) {
-                            auto *zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel.pixel));
-                            if (zonePixelRow != 0) {
-                                double zoneLineDist = dist(linePixel, zonePixel.pixel);
-                                float currZonePixelVal = zonePixelRow->getValue(zone_col);
-                                if (currZonePixelVal == -1 || 1.0f / (zoneLineDist + 1) > currZonePixelVal) {
-                                    zonePixelRow->setValue(zone_col, 1.0f / (zoneLineDist + 1));
-                                }
-                                if (zoneLineDist * map.getSpacing() < 3000) {
-                                    zonePixelRow->setValue(zone_3m_col, linePixelCounter);
-                                } else {
-                                    map.getPoint(zonePixel.pixel).m_misc = 0;
-                                    map.getPoint(zonePixel.pixel).m_extent = zonePixel.pixel;
-                                }
-                            }
-                        }
                     }
                 }
             }
