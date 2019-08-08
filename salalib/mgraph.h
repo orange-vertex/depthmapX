@@ -287,6 +287,7 @@ public:
 
    //
    int getDisplayedMapType();
+   AttributeTable& getDisplayedMapAttributes();
    bool hasVisibleDrawingLayers();
    QtRegion getBoundingBox() const;
    //
