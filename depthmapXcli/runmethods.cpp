@@ -811,16 +811,15 @@ namespace dm_runmethods
         std::cout << " ok" << std::endl;
     }
 
-    void runIsovistZone(const CommandLineParser &clp, const std::vector<Point2f> &origins, float restrictDistance,
-                        IPerformanceSink &perfWriter) {
+    void runIsovistZone(const CommandLineParser &clp, const std::vector<Point2f> &origins,
+                        std::vector<std::string> originSets, float restrictDistance, IPerformanceSink &perfWriter) {
         auto mGraph = loadGraph(clp.getFileName().c_str(), perfWriter);
-
-        std::cout << "ok\nSelecting cells... " << std::flush;
 
         auto &graphRegion = mGraph->getRegion();
         PointMap &map = mGraph->getDisplayedPointMap();
 
-        std::set<PixelRef> pixelsFrom;
+        std::map<std::string, std::set<PixelRef>> pixelsFrom;
+        auto namesIter = originSets.begin();
         for (const Point2f &origin : origins) {
             if (!graphRegion.contains(origin) || !map.getRegion().contains(origin)) {
                 throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
@@ -831,7 +830,8 @@ namespace dm_runmethods
                 throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
                                                   std::to_string(origin.y) + " not filled in target pointmap");
             }
-            pixelsFrom.insert(pixelFrom);
+            pixelsFrom[*namesIter].insert(pixelFrom);
+            namesIter++;
         }
 
         std::cout << "ok\nCalculating isovist zone... " << std::flush;

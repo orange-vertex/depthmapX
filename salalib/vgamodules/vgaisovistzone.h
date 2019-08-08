@@ -22,7 +22,7 @@
 
 class VGAIsovistZone : IVGA {
   private:
-    std::set<PixelRef> m_originPoints;
+    std::map<std::string, std::set<PixelRef>> m_originPointSets;
     float m_restrictDistance;
 
     struct MetricPoint {
@@ -37,6 +37,6 @@ class VGAIsovistZone : IVGA {
   public:
     std::string getAnalysisName() const override { return "Path Zone"; }
     bool run(Communicator *comm, PointMap &map, bool) override;
-    VGAIsovistZone(std::set<PixelRef> originPoints, float restrictDistance = -1)
-        : m_originPoints(originPoints), m_restrictDistance(restrictDistance) {}
+    VGAIsovistZone(std::map<std::string, std::set<PixelRef>> originPointSets, float restrictDistance = -1)
+        : m_originPointSets(originPointSets), m_restrictDistance(restrictDistance) {}
 };
