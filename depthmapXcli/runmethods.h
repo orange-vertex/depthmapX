@@ -51,7 +51,7 @@ namespace dm_runmethods{
     void runShortestPath(const CommandLineParser &clp, const ShortestPathParser::ShortestPathType &shortestPathType,
                          const std::vector<Point2f> &origins, const std::vector<Point2f> &destinations,
                          IPerformanceSink &perfWriter);
-    void runIsovistZone(const CommandLineParser &clp, const std::vector<Point2f> &origins, float restrictDistance,
-                        IPerformanceSink &perfWriter);
+    void runIsovistZone(const CommandLineParser &clp, const std::vector<Point2f> &origins, std::vector<std::string> originSets,
+                        float restrictDistance, IPerformanceSink &perfWriter);
     void runMapConversion(const CommandLineParser& clp, const MapConvertParser &mcp, IPerformanceSink &perfWriter);
 }

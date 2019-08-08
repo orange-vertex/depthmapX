@@ -28,6 +28,7 @@ class IsovistZoneParser : public IModeParser {
     virtual std::string getHelp() const {
         return "Mode options for pointmap ISOVISTZONE are:\n"
                "  -izo <point> Origin point (can be given multiple times)\n"
+               "  -izn <name> Set of an origin. Either not provided or provided for every origin\n"
                "  -izr <distance> Restrict distance of isovist zone from origins\n";
     }
 
@@ -39,5 +40,6 @@ class IsovistZoneParser : public IModeParser {
 
   private:
     std::vector<Point2f> m_origins;
+    std::vector<std::string> m_originSets;
     float m_restrictDistance = -1;
 };

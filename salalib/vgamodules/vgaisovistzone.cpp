@@ -26,43 +26,53 @@ bool VGAIsovistZone::run(Communicator *comm, PointMap &map, bool) {
 
     auto &attributes = map.getAttributeTable();
 
-    if (m_originPoints.empty()) {
+    if (m_originPointSets.empty()) {
         return false;
     }
+    int zoneColumnIndex = -1;
+    for (auto originPointSet: m_originPointSets) {
+        std::string zoneColumnName = "Isovist Zone Distance";
+        std::string inverseZoneColumnName = "Isovist Zone Inverse Square Distance";
 
-    std::string zoneColumnName = "Isovist Zone Distance";
-    std::string inverseZoneColumnName = "Isovist Zone Inverse Square Distance";
-    if (m_restrictDistance > 0) {
+        std::string originPointSetName = originPointSet.first;
+        auto originPoints = originPointSet.second;
 
-        std::stringstream restrictionText;
-        restrictionText << std::fixed << std::setprecision(2) << " (" << m_restrictDistance << ")" << std::flush;
+        if (m_originPointSets.size() > 1) {
+            zoneColumnName += " [" + originPointSetName + "]";
+            inverseZoneColumnName += " [" + originPointSetName + "]";
+        }
 
-        zoneColumnName += restrictionText.str();
-        inverseZoneColumnName += restrictionText.str();
-    }
-    int zoneColumnIndex = attributes.insertOrResetColumn(zoneColumnName);
+        if (m_restrictDistance > 0) {
 
-    for (PixelRef ref: m_originPoints) {
-        AttributeRow& row = attributes.getRow(AttributeKey(ref));
-        row.setValue(zoneColumnIndex, 0);
-        Point &lp = map.getPoint(ref);
-        std::set<MetricTriple> newPixels;
-        extractMetric(lp.getNode(), newPixels, map, MetricTriple(0.0f, ref, NoPixel));
-        for (auto &zonePixel : newPixels) {
-            auto *zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel.pixel));
-            if (zonePixelRow != 0) {
-                double zoneLineDist = dist(ref, zonePixel.pixel) * map.getSpacing();
-                float currZonePixelVal = zonePixelRow->getValue(zoneColumnIndex);
-                if ((currZonePixelVal == -1 || zoneLineDist < currZonePixelVal) &&
-                    (m_restrictDistance <= 0 || (m_restrictDistance > 0 && zoneLineDist < m_restrictDistance))) {
-                    zonePixelRow->setValue(zoneColumnIndex, zoneLineDist);
+            std::stringstream restrictionText;
+            restrictionText << std::fixed << std::setprecision(2) << " (" << m_restrictDistance << ")" << std::flush;
+
+            zoneColumnName += restrictionText.str();
+            inverseZoneColumnName += restrictionText.str();
+        }
+        zoneColumnIndex = attributes.insertOrResetColumn(zoneColumnName);
+
+        for (PixelRef ref: originPoints) {
+            AttributeRow& row = attributes.getRow(AttributeKey(ref));
+            row.setValue(zoneColumnIndex, 0);
+            Point &lp = map.getPoint(ref);
+            std::set<MetricTriple> newPixels;
+            extractMetric(lp.getNode(), newPixels, map, MetricTriple(0.0f, ref, NoPixel));
+            for (auto &zonePixel : newPixels) {
+                auto *zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel.pixel));
+                if (zonePixelRow != 0) {
+                    double zoneLineDist = dist(ref, zonePixel.pixel) * map.getSpacing();
+                    float currZonePixelVal = zonePixelRow->getValue(zoneColumnIndex);
+                    if ((currZonePixelVal == -1 || zoneLineDist < currZonePixelVal) &&
+                        (m_restrictDistance <= 0 || (m_restrictDistance > 0 && zoneLineDist < m_restrictDistance))) {
+                        zonePixelRow->setValue(zoneColumnIndex, zoneLineDist);
+                    }
                 }
             }
         }
+        int inverseZoneColumnIndex = attributes.insertOrResetColumn(inverseZoneColumnName);
+        setColumnFormulaAndUpdate(map, inverseZoneColumnIndex, "1/((value(\"" + zoneColumnName + "\") + 1) ^ 2)", false);
     }
-    int inverseZoneColumnIndex = attributes.insertOrResetColumn(inverseZoneColumnName);
-    setColumnFormulaAndUpdate(map, inverseZoneColumnIndex, "1/((value(\"" + zoneColumnName + "\") + 1) ^ 2)", false);
-
     map.overrideDisplayedAttribute(-2);
     map.setDisplayedAttribute(zoneColumnIndex);
 

@@ -45,18 +45,28 @@ void IsovistZoneParser::parse(int argc, char **argv) {
                 throw CommandLineException(message.str().c_str());
             }
             m_restrictDistance = std::stof(argv[i]);
+        } else if (std::strcmp("-izn", argv[i]) == 0) {
+            ENFORCE_ARGUMENT("-izn", i)
+            m_originSets.push_back(argv[i]);
         }
     }
 
     if (origins.empty()) {
         throw CommandLineException("At least one origin point (-izo) must be provided");
+    } else if(m_originSets.size() > 0 & origins.size() != m_originSets.size()) {
+        throw CommandLineException("Origin sets must either not be provided or be provided for every origin");
     } else {
         for (const auto &origin : origins) {
             m_origins.push_back(EntityParsing::parsePoint(origin));
+        }
+        if(m_originSets.size() == 0) {
+            for (const auto &origin: origins) {
+                m_originSets.push_back("");
+            }
         }
     }
 }
 
 void IsovistZoneParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
-    dm_runmethods::runIsovistZone(clp, m_origins, m_restrictDistance, perfWriter);
+    dm_runmethods::runIsovistZone(clp, m_origins, m_originSets, m_restrictDistance, perfWriter);
 }
