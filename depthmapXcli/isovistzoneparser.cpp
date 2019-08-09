@@ -26,6 +26,7 @@ using namespace depthmapX;
 void IsovistZoneParser::parse(int argc, char **argv) {
 
     std::vector<std::string> origins;
+    std::string originsFile;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp("-izo", argv[i]) == 0) {
             ENFORCE_ARGUMENT("-izo", i)
@@ -45,14 +46,29 @@ void IsovistZoneParser::parse(int argc, char **argv) {
                 throw CommandLineException(message.str().c_str());
             }
             m_restrictDistance = std::stof(argv[i]);
+        } else if (std::strcmp("-izf", argv[i]) == 0) {
+            ENFORCE_ARGUMENT("-izf", i)
+            originsFile = argv[i];
         } else if (std::strcmp("-izn", argv[i]) == 0) {
             ENFORCE_ARGUMENT("-izn", i)
             m_originSets.push_back(argv[i]);
         }
     }
 
-    if (origins.empty()) {
-        throw CommandLineException("At least one origin point (-izo) must be provided");
+    if (!originsFile.empty())
+    {
+        std::ifstream file(originsFile);
+        if ( !file.good())
+        {
+            std::stringstream message;
+            message << "Failed to find file " << originsFile;
+            throw depthmapX::CommandLineException(message.str());
+        }
+        auto pointSets = EntityParsing::parsePointSets(file, ',');
+        m_originSets = pointSets.first;
+        m_origins = pointSets.second;
+    } else if (origins.empty()) {
+        throw CommandLineException("At least one origin point (-izo) or a file (-izf) must be provided");
     } else if(m_originSets.size() > 0 & origins.size() != m_originSets.size()) {
         throw CommandLineException("Origin sets must either not be provided or be provided for every origin");
     } else {
