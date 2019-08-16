@@ -29,7 +29,7 @@
 
 QT_BEGIN_NAMESPACE
 
-AttribWindow::AttribWindow(QWidget *parent, bool custom)
+AttributeIndex::AttributeIndex(QWidget *parent, bool custom)
     : QListWidget(parent)
 {
     custom = NULL;
@@ -44,12 +44,12 @@ AttribWindow::AttribWindow(QWidget *parent, bool custom)
 	connect(this, SIGNAL(itemSelectionChanged()), parent, SLOT(OnSelchangingList()));
 }
 
-AttribWindow::~AttribWindow()
+AttributeIndex::~AttributeIndex()
 {
     // nothing todo
 }
 
-void AttribWindow::showContextMenu(const QPoint &point)
+void AttributeIndex::showContextMenu(const QPoint &point)
 {
 	QListWidgetItem *item = itemAt(point);
     if (!item) return;

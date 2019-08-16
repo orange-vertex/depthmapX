@@ -12,10 +12,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-#ifndef indexWidget_H
-#define indexWidget_H
+#pragma once
 
 #include <QTreeWidget>
 
@@ -24,14 +21,14 @@ QT_BEGIN_NAMESPACE
 class QEvent;
 class QTreeWidgetItem;
 
-class IndexWidget : public QTreeWidget
+class MapIndex : public QTreeWidget
 {
     Q_OBJECT
 private:
     enum Column {MAP = 0, EDITABLE = 1};
 
 public:
-    IndexWidget(QWidget *parent = 0);
+    MapIndex(QWidget *parent = 0);
 
     QString m_mapColumn = "Map";
     QString m_editableColumn = "Editable";
@@ -72,5 +69,3 @@ private:
 };
 
 QT_END_NAMESPACE
-
-#endif  // BOOKMARK_WIDGET_H

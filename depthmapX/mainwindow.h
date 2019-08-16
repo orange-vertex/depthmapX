@@ -13,12 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#pragma once
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
-
-#include "depthmapX/indexWidget.h"
-#include "depthmapX/treeWindow.h"
+#include "depthmapX/attributeIndex.h"
+#include "depthmapX/mapIndex.h"
 #include "depthmapX/GraphDoc.h"
 #include "depthmapX/compatibilitydefines.h"
 #include "depthmapX/settings.h"
@@ -272,8 +270,8 @@ private:
 
     QMdiArea *mdiArea;
     QSignalMapper *windowMapper;
-    IndexWidget* m_indexWidget;
-    AttribWindow* m_attrWindow;
+    MapIndex* m_indexWidget;
+    AttributeIndex* m_attrWindow;
     CColourScaleDlg m_wndColourScale;
 
     QLabel *g_size;
@@ -474,5 +472,3 @@ private:
        ID_MAPBAR_ITEM_AUGMENT_FILL = 18 // AV test - TV
     };
 };
-
-#endif

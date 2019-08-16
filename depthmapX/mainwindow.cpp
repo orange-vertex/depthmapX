@@ -82,9 +82,9 @@ MainWindow::MainWindow(const QString &fileToLoad, Settings &settings) : mSetting
     connect(windowMapper, SIGNAL(mapped(QWidget *)), this, SLOT(setActiveSubWindow(QWidget *)));
 
 
-    m_indexWidget = new IndexWidget(this);
+    m_indexWidget = new MapIndex(this);
     QDockWidget *indexDock = new QDockWidget(tr("Index"), this);
-    indexDock->setObjectName(QLatin1String("IndexWindow"));
+    indexDock->setObjectName(QLatin1String("MapIndex"));
     indexDock->setWidget(m_indexWidget);
     addDockWidget(Qt::LeftDockWidgetArea, indexDock);
 
@@ -121,7 +121,7 @@ QWidget * MainWindow::setupAttributesListWidget()
     vlayout->setMargin(1);
 
     QLayout *hlayout = new QHBoxLayout();
-    vlayout->addWidget(m_attrWindow = new AttribWindow(this, false));
+    vlayout->addWidget(m_attrWindow = new AttributeIndex(this, false));
     vlayout->addItem(hlayout);
 
     hlayout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));

@@ -12,10 +12,8 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#pragma once
 
-
-#ifndef treeWindow_H
-#define treeWindow_H
 #include <QListWidget>
 
 QT_BEGIN_NAMESPACE
@@ -23,13 +21,13 @@ QT_BEGIN_NAMESPACE
 class QEvent;
 class QListWidgetItem;
 
-class AttribWindow : public QListWidget
+class AttributeIndex : public QListWidget
 {
     Q_OBJECT
 
 public:
-    AttribWindow(QWidget *parent = 0, bool custom = true);
-    ~AttribWindow();
+    AttributeIndex(QWidget *parent = 0, bool custom = true);
+    ~AttributeIndex();
 
 	QWidget* main_frm;
 
@@ -38,5 +36,3 @@ private slots:
 };
 
 QT_END_NAMESPACE
-
-#endif

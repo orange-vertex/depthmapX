@@ -25,11 +25,11 @@
 #include <QtWidgets/QTreeWidgetItem>
 #include <QtGui/QFocusEvent>
 
-#include "treeWindow.h"
+#include "mapIndex.h"
 
 QT_BEGIN_NAMESPACE
 
-IndexWidget::IndexWidget(QWidget *parent)
+MapIndex::MapIndex(QWidget *parent)
     : QTreeWidget(parent)
 {
     setColumnCount(2);
@@ -46,7 +46,7 @@ IndexWidget::IndexWidget(QWidget *parent)
         SLOT(OnSelchangingTree(QTreeWidgetItem*, int)));
 }
 
-void IndexWidget::removeAllItem(QTreeWidgetItem *start)
+void MapIndex::removeAllItem(QTreeWidgetItem *start)
 {
     int index;
     QTreeWidgetItem *currentItem = start;
@@ -63,7 +63,7 @@ void IndexWidget::removeAllItem(QTreeWidgetItem *start)
     }
 }
 
-QTreeWidgetItem * IndexWidget::addNewItem(const QString &title, QTreeWidgetItem* parent)
+QTreeWidgetItem * MapIndex::addNewItem(const QString &title, QTreeWidgetItem* parent)
 {
     QTreeWidgetItem *newItem = 0;
 

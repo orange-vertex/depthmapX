@@ -15,11 +15,11 @@ add_compile_definitions(_DEPTHMAP)
 
 set(depthmapX_SRCS
     GraphDoc.cpp
-    indexWidget.cpp
+    attributeIndex.cpp
     mainwindow.cpp
     mdichild.cpp
     renderthread.cpp
-    treeWindow.cpp
+    mapIndex.cpp
     mainwindowfactory.cpp
     settingsimpl.cpp
 	compatibilitydefines.h
@@ -28,9 +28,9 @@ set(depthmapX_SRCS
 	GraphDoc.h
 	mainwindowfactory.h
 	settingsimpl.h
-	indexWidget.h
+        attributeIndex.h
 	mdichild.h
-	treeWindow.h
+        mapIndex.h
 	main.cpp
 	coreapplication.cpp
 	coreapplication.h)
