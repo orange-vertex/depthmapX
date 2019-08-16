@@ -30,17 +30,6 @@
 #include <QButtonGroup>
 #include <QComboBox>
 
-class ItemTreeEntry
-{
-public:
-   ItemTreeEntry() { m_type = -1; m_cat = -1; m_subcat = -1; }
-   ItemTreeEntry(char t, short c, short sc)
-   { m_type = t; m_cat = c; m_subcat = sc; }
-   char m_type;
-   short m_cat;
-   short m_subcat;
-};
-
 class QDepthmapView;
 class QGraphDoc;
 
@@ -88,6 +77,14 @@ public:
     void updateGLWindows(bool datasetChanged, bool recentreView);
     void loadFile(QString fileName);
 
+    QGraphDoc *activeMapDoc();
+    bool in_FocusGraph;
+    int OnFocusGraph(QGraphDoc* pDoc, int lParam);
+    void MakeAttributeList();
+    void SetAttributeChecks();
+
+    QVector<QIcon> m_tree_icon;
+
 protected:
     QGraphDoc* m_treeDoc;
     void closeEvent(QCloseEvent *event);
@@ -99,7 +96,6 @@ private slots:
     void updateSubWindowTitles(QString newTitle);
     void updateWindowMenu();
     void setActiveSubWindow(QWidget *window);
-    void OnSelchangingTree(QTreeWidgetItem* item, int col);
     void OnSelchangingList();
     void OnFileNew();
     void OnFileImport();
@@ -223,7 +219,6 @@ private slots:
     void OnPlayLoop();
     void On3dFilled();
 private:
-    int OnFocusGraph(QGraphDoc* pDoc, int lParam);
     void setCurrentFile(const QString &fileName);
     void updateRecentFileActions(const QStringList &files);
     QString strippedName(const QString &fullFileName);
@@ -243,28 +238,14 @@ private:
     QWidget * setupAttributesListWidget();
     MapView *createMapView();
     MapView *activeMapView();
-    QGraphDoc *activeMapDoc();
     QMdiSubWindow *findMapView(const QString &fileName);
 //////////////////////////////////////////////////////
 //	treeContorl
-    QVector<QIcon> m_tree_icon;
     std::map<int, std::string> m_view_map_entries;
 
     std::vector<bool> m_attribute_locked;
-    std::map<QTreeWidgetItem*, ItemTreeEntry> m_treegraphmap;
-    std::map<QTreeWidgetItem*, ItemTreeEntry> m_treedrawingmap;
-    QTreeWidgetItem* m_topgraph;
-    QTreeWidgetItem* m_backgraph;
-    QTreeWidgetItem* m_treeroots[5];
 
     void MakeTree();
-    void MakeGraphTree();
-    void MakeDrawingTree();
-    void ClearGraphTree();
-    void MakeAttributeList();
-    void SetAttributeChecks();
-    void SetDrawingTreeChecks();
-    void SetGraphTreeChecks();
 
 ////////////////////////////////////////////////////////////
 
