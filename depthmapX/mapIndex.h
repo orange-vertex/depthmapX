@@ -21,61 +21,53 @@ QT_BEGIN_NAMESPACE
 class QEvent;
 class QTreeWidgetItem;
 
-class MapIndex : public QTreeWidget
-{
+class MapIndex : public QTreeWidget {
     Q_OBJECT
-private:
-
+  private:
     QWidget *m_mainWindow;
 
-    class ItemTreeEntry
-    {
-    public:
-       ItemTreeEntry() { m_type = -1; m_cat = -1; m_subcat = -1; }
-       ItemTreeEntry(char t, short c, short sc)
-       { m_type = t; m_cat = c; m_subcat = sc; }
-       char m_type;
-       short m_cat;
-       short m_subcat;
+    class ItemTreeEntry {
+      public:
+        ItemTreeEntry() {
+            m_type = -1;
+            m_cat = -1;
+            m_subcat = -1;
+        }
+        ItemTreeEntry(char t, short c, short sc) {
+            m_type = t;
+            m_cat = c;
+            m_subcat = sc;
+        }
+        char m_type;
+        short m_cat;
+        short m_subcat;
     };
 
-    enum Column {MAP = 0, EDITABLE = 1};
+    enum Column { MAP = 0, EDITABLE = 1 };
 
-    std::map<QTreeWidgetItem*, ItemTreeEntry> m_treegraphmap;
-    std::map<QTreeWidgetItem*, ItemTreeEntry> m_treedrawingmap;
-    QTreeWidgetItem* m_topgraph;
-    QTreeWidgetItem* m_backgraph;
-    QTreeWidgetItem* m_treeroots[5];
+    std::map<QTreeWidgetItem *, ItemTreeEntry> m_treegraphmap;
+    std::map<QTreeWidgetItem *, ItemTreeEntry> m_treedrawingmap;
+    QTreeWidgetItem *m_topgraph;
+    QTreeWidgetItem *m_backgraph;
+    QTreeWidgetItem *m_treeroots[5];
 
-
-
-public:
+  public:
     MapIndex(QWidget *parent = 0);
 
     QString m_mapColumn = "Map";
     QString m_editableColumn = "Editable";
 
-    void setItemVisibility(QTreeWidgetItem* item, Qt::CheckState checkState) {
+    void setItemVisibility(QTreeWidgetItem *item, Qt::CheckState checkState) {
         item->setCheckState(Column::MAP, checkState);
     }
-    void setItemEditability(QTreeWidgetItem* item, Qt::CheckState checkState) {
+    void setItemEditability(QTreeWidgetItem *item, Qt::CheckState checkState) {
         item->setCheckState(Column::EDITABLE, checkState);
     }
-    void setItemReadOnly(QTreeWidgetItem* item) {
-        item->setData(Column::EDITABLE, Qt::CheckStateRole, QVariant());
-    }
-    bool isItemSetVisible(QTreeWidgetItem* item) {
-        return item->checkState(Column::MAP);
-    }
-    bool isItemSetEditable(QTreeWidgetItem* item) {
-        return item->checkState(Column::EDITABLE);
-    }
-    bool isMapColumn(int col) {
-        return col == Column::MAP;
-    }
-    bool isEditableColumn(int col) {
-        return col == Column::EDITABLE;
-    }
+    void setItemReadOnly(QTreeWidgetItem *item) { item->setData(Column::EDITABLE, Qt::CheckStateRole, QVariant()); }
+    bool isItemSetVisible(QTreeWidgetItem *item) { return item->checkState(Column::MAP); }
+    bool isItemSetEditable(QTreeWidgetItem *item) { return item->checkState(Column::EDITABLE); }
+    bool isMapColumn(int col) { return col == Column::MAP; }
+    bool isEditableColumn(int col) { return col == Column::EDITABLE; }
 
     void makeTree();
     void makeGraphTree();
@@ -83,26 +75,20 @@ public:
     void clearGraphTree();
     void setDrawingTreeChecks();
     void setGraphTreeChecks();
-    void clearTopGraph() {
-        m_topgraph = NULL;
-    }
-    void clearBackGraph() {
-        m_backgraph = NULL;
-    }
+    void clearTopGraph() { m_topgraph = NULL; }
+    void clearBackGraph() { m_backgraph = NULL; }
 
-signals:
-    void requestShowLink(const QUrl& url);
+  signals:
+    void requestShowLink(const QUrl &url);
 
-public slots:
+  public slots:
     void removeAllItem(QTreeWidgetItem *start);
-    QTreeWidgetItem * addNewItem(const QString& title, QTreeWidgetItem *parent = NULL);
+    QTreeWidgetItem *addNewItem(const QString &title, QTreeWidgetItem *parent = NULL);
 
-private:
-    QStringList columnNames = (QStringList()
-                               << m_mapColumn
-                               << m_editableColumn);
-private slots:
-    void onSelchangingTree(QTreeWidgetItem* item, int col);
+  private:
+    QStringList columnNames = (QStringList() << m_mapColumn << m_editableColumn);
+  private slots:
+    void onSelchangingTree(QTreeWidgetItem *item, int col);
 };
 
 QT_END_NAMESPACE
