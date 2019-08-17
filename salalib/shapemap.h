@@ -436,6 +436,7 @@ private:
 
   public:
     const std::string &getName() const { return m_name; }
+    void setName(std::string name) { m_name = name; }
     int addAttribute(const std::string &name) { return m_attributes->insertOrResetColumn(name); }
     void removeAttribute(int col) { m_attributes->removeColumn(col); }
     // I don't want to do this, but every so often you will need to update this table

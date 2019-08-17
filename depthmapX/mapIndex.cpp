@@ -1,4 +1,5 @@
 // Copyright (C) 2011-2012, Tasos Varoudis
+// Copyright (C) 2019, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "mapIndex.h"
+
 #include <QtCore/QDebug>
 #include <QtCore/QEvent>
 
@@ -25,7 +28,8 @@
 #include <QtWidgets/QTreeWidgetItem>
 
 #include "mainwindow.h"
-#include "mapIndex.h"
+
+#include "dialogs/RenameObjectDlg.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -43,6 +47,8 @@ MapIndex::MapIndex(QWidget *parent) : QTreeWidget(parent) {
     setContextMenuPolicy(Qt::CustomContextMenu);
 
     connect(this, SIGNAL(itemChanged(QTreeWidgetItem *, int)), this, SLOT(onSelchangingTree(QTreeWidgetItem *, int)));
+
+    connect(this, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(showContextMenu(const QPoint &)));
 }
 
 void MapIndex::removeAllItem(QTreeWidgetItem *start) {
@@ -191,7 +197,7 @@ void MapIndex::onSelchangingTree(QTreeWidgetItem *hItem, int col) {
         if (iter != m_treedrawingmap.end()) {
             ItemTreeEntry entry = iter->second;
             if (entry.m_subcat != -1) {
-                if (graph->getLineLayer(entry.m_cat, entry.m_subcat).isShown()) {
+                if (hItem->checkState(Column::MAP) == Qt::Unchecked) {
                     graph->getLineLayer(entry.m_cat, entry.m_subcat).setShow(false);
                     graph->redoPointMapBlockLines();
                     graph->resetBSPtree();
@@ -465,7 +471,7 @@ void MapIndex::makeDrawingTree() {
         // we'll do all of these if it works...
         QTreeWidgetItem *root = addNewItem(tr("Drawing Layers"));
         root->setIcon(0, mainWindow->m_tree_icon[4]);
-        ItemTreeEntry entry(4, 0, -1);
+        ItemTreeEntry entry(4, -1, -1);
         m_treedrawingmap.insert(std::make_pair(root, entry));
         m_treeroots[4] = root;
         for (int i = 0; i < graph->getLineFileCount(); i++) {
@@ -488,6 +494,237 @@ void MapIndex::makeDrawingTree() {
             }
         }
     }
+}
+
+void MapIndex::onRenameMap() {
+    QPoint point = ((QAction *)sender())->data().toPoint();
+    QTreeWidgetItem *item = itemAt(point);
+    if (!item)
+        return;
+
+    MainWindow *mainWindow = ((MainWindow *)m_mainWindow);
+    QGraphDoc *graphDoc = mainWindow->activeMapDoc();
+    MetaGraph *graph = graphDoc->m_meta_graph;
+
+    auto iter = m_treegraphmap.find(item);
+
+    if (iter != m_treegraphmap.end()) {
+        // entry is a pointmap, datamap or shapegraph
+        ItemTreeEntry entry = iter->second;
+        bool remenu = false;
+        if (entry.m_cat != -1) {
+            if (entry.m_subcat == -1) {
+                switch (entry.m_type) {
+                case 0: {
+                    // pointmap
+                    std::vector<PointMap> &maps = graph->getPointMaps();
+                    PointMap &map = maps[entry.m_cat];
+                    QString mapName(map.getName().c_str());
+
+                    CRenameObjectDlg dlg("Map", mapName);
+                    bool success = false;
+                    while (dlg.exec() == QDialog::Accepted && !success && dlg.m_object_name != mapName) {
+                        std::string newMapName = dlg.m_object_name.toStdString();
+                        bool nameFound = false;
+                        for (int i = 0; i < maps.size(); i++) {
+                            if (i == entry.m_cat)
+                                continue;
+                            if (maps[i].getName() == newMapName)
+                                nameFound = true;
+                        }
+                        if (nameFound) {
+                            QMessageBox::warning(this, tr("Notice"),
+                                                 tr("Sorry, another map already has this name, "
+                                                    "please choose a unique map name"),
+                                                 QMessageBox::Ok, QMessageBox::Ok);
+                            continue;
+                        }
+                        map.setName(newMapName);
+                        graphDoc->modifiedFlag = true;
+                        auto checkState = item->checkState(Column::MAP);
+                        item->setText(Column::MAP, dlg.m_object_name);
+                        setItemVisibility(item, checkState);
+                        remenu = true;
+                        break;
+                    }
+                    break;
+                }
+                case 1: {
+                    // shapegraph
+                    auto &maps = graph->getShapeGraphs();
+                    ShapeGraph &map = *maps[entry.m_cat];
+                    QString mapName(map.getName().c_str());
+
+                    CRenameObjectDlg dlg("Map", mapName);
+                    bool success = false;
+                    while (dlg.exec() == QDialog::Accepted && !success && dlg.m_object_name != mapName) {
+                        std::string newMapName = dlg.m_object_name.toStdString();
+                        bool nameFound = false;
+                        for (int i = 0; i < maps.size(); i++) {
+                            if (i == entry.m_cat)
+                                continue;
+                            if (maps[i]->getName() == newMapName)
+                                nameFound = true;
+                        }
+                        if (nameFound) {
+                            QMessageBox::warning(this, tr("Notice"),
+                                                 tr("Sorry, another map already has this name, "
+                                                    "please choose a unique map name"),
+                                                 QMessageBox::Ok, QMessageBox::Ok);
+                            continue;
+                        }
+                        map.setName(newMapName);
+                        graphDoc->modifiedFlag = true;
+                        auto checkState = item->checkState(Column::MAP);
+                        item->setText(Column::MAP, dlg.m_object_name);
+                        setItemVisibility(item, checkState);
+                        remenu = true;
+                        break;
+                    }
+                    break;
+                }
+                case 2: {
+                    // datamap
+                    auto &maps = graph->getDataMaps();
+                    ShapeMap &map = maps[entry.m_cat];
+                    QString mapName(map.getName().c_str());
+
+                    CRenameObjectDlg dlg("Map", mapName);
+                    bool success = false;
+                    while (dlg.exec() == QDialog::Accepted && !success && dlg.m_object_name != mapName) {
+                        std::string newMapName = dlg.m_object_name.toStdString();
+                        bool nameFound = false;
+                        for (int i = 0; i < maps.size(); i++) {
+                            if (i == entry.m_cat)
+                                continue;
+                            if (maps[i].getName() == newMapName)
+                                nameFound = true;
+                        }
+                        if (nameFound) {
+                            QMessageBox::warning(this, tr("Notice"),
+                                                 tr("Sorry, another map already has this name, "
+                                                    "please choose a unique map name"),
+                                                 QMessageBox::Ok, QMessageBox::Ok);
+                            continue;
+                        }
+                        map.setName(newMapName);
+                        graphDoc->modifiedFlag = true;
+                        auto checkState = item->checkState(Column::MAP);
+                        item->setText(Column::MAP, dlg.m_object_name);
+                        setItemVisibility(item, checkState);
+                        remenu = true;
+                        break;
+                    }
+                    break;
+                }
+                case 4:
+                    // essentially clicked on a drawing layer...
+                    // handled separately below
+                    break;
+                }
+                if (remenu) {
+                    setGraphTreeChecks();
+                    graphDoc->SetRemenuFlag(QGraphDoc::VIEW_ALL, true);
+                    mainWindow->OnFocusGraph(graphDoc, QGraphDoc::CONTROLS_CHANGEATTRIBUTE);
+                }
+                graphDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_TABLE);
+            }
+        }
+    } else {
+        auto iter = m_treedrawingmap.find(item);
+        if (iter != m_treedrawingmap.end()) {
+            ItemTreeEntry entry = iter->second;
+            if (entry.m_subcat != -1) {
+                auto &maps = graph->m_drawingFiles[entry.m_cat].m_spacePixels;
+                ShapeMap &map = maps[entry.m_subcat];
+                QString mapName(map.getName().c_str());
+
+                CRenameObjectDlg dlg("Map", mapName);
+                bool success = false;
+                while (dlg.exec() == QDialog::Accepted && !success && dlg.m_object_name != mapName) {
+                    std::string newMapName = dlg.m_object_name.toStdString();
+                    bool nameFound = false;
+                    for (int i = 0; i < maps.size(); i++) {
+                        if (i == entry.m_cat)
+                            continue;
+                        if (maps[i].getName() == newMapName)
+                            nameFound = true;
+                    }
+                    if (nameFound) {
+                        QMessageBox::warning(this, tr("Notice"),
+                                             tr("Sorry, another map already has this name, "
+                                                "please choose a unique map name"),
+                                             QMessageBox::Ok, QMessageBox::Ok);
+                        continue;
+                    }
+                    map.setName(newMapName);
+                    graphDoc->modifiedFlag = true;
+                    item->setText(Column::MAP, dlg.m_object_name);
+                    break;
+                }
+            } else if (entry.m_cat != -1) {
+                auto &maps = graph->m_drawingFiles;
+                auto &map = maps[entry.m_cat];
+                QString mapName(map.getName().c_str());
+
+                CRenameObjectDlg dlg("Map", mapName);
+                bool success = false;
+                while (dlg.exec() == QDialog::Accepted && !success && dlg.m_object_name != mapName) {
+                    std::string newMapName = dlg.m_object_name.toStdString();
+                    bool nameFound = false;
+                    for (int i = 0; i < maps.size(); i++) {
+                        if (i == entry.m_cat)
+                            continue;
+                        if (maps[i].getName() == newMapName)
+                            nameFound = true;
+                    }
+                    if (nameFound) {
+                        QMessageBox::warning(this, tr("Notice"),
+                                             tr("Sorry, another map already has this name, "
+                                                "please choose a unique map name"),
+                                             QMessageBox::Ok, QMessageBox::Ok);
+                        continue;
+                    }
+                    map.setName(newMapName);
+                    graphDoc->modifiedFlag = true;
+                    item->setText(Column::MAP, dlg.m_object_name);
+                    break;
+                }
+            }
+            graphDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_LINESET);
+        }
+    }
+}
+
+void MapIndex::showContextMenu(const QPoint &point) {
+    QTreeWidgetItem *item = itemAt(point);
+    if (!item)
+        return;
+    auto iter = m_treegraphmap.find(item);
+    if (iter != m_treegraphmap.end()) {
+        ItemTreeEntry entry = iter->second;
+        if (entry.m_cat == -1)
+            return;
+    } else {
+        iter = m_treedrawingmap.find(item);
+        if (iter != m_treedrawingmap.end()) {
+            ItemTreeEntry entry = iter->second;
+            if (entry.m_cat == -1)
+                return;
+        }
+    }
+
+    QPoint ptt(mapToGlobal(point));
+
+    QMenu menu;
+
+    renameMapAct = new QAction(tr("&Rename Map..."), this);
+    renameMapAct->setStatusTip(tr("Rename this map"));
+    renameMapAct->setData(QVariant(point));
+    connect(renameMapAct, SIGNAL(triggered()), this, SLOT(onRenameMap()));
+    menu.addAction(renameMapAct);
+
+    menu.exec(ptt);
 }
 
 QT_END_NAMESPACE

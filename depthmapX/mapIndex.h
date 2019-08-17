@@ -1,4 +1,5 @@
 // Copyright (C) 2011-2012, Tasos Varoudis
+// Copyright (C) 2019, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,6 +13,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 #pragma once
 
 #include <QTreeWidget>
@@ -51,6 +53,8 @@ class MapIndex : public QTreeWidget {
     QTreeWidgetItem *m_backgraph;
     QTreeWidgetItem *m_treeroots[5];
 
+    QAction *renameMapAct;
+
   public:
     MapIndex(QWidget *parent = 0);
 
@@ -81,14 +85,14 @@ class MapIndex : public QTreeWidget {
   signals:
     void requestShowLink(const QUrl &url);
 
-  public slots:
-    void removeAllItem(QTreeWidgetItem *start);
-    QTreeWidgetItem *addNewItem(const QString &title, QTreeWidgetItem *parent = NULL);
-
   private:
     QStringList columnNames = (QStringList() << m_mapColumn << m_editableColumn);
   private slots:
+    void removeAllItem(QTreeWidgetItem *start);
+    QTreeWidgetItem *addNewItem(const QString &title, QTreeWidgetItem *parent = NULL);
     void onSelchangingTree(QTreeWidgetItem *item, int col);
+    void onRenameMap();
+    void showContextMenu(const QPoint &point);
 };
 
 QT_END_NAMESPACE

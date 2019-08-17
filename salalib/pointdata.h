@@ -111,6 +111,10 @@ public:
    const std::string& getName() const
    { return m_name; }
 
+   void setName(std::string &name) {
+       m_name = name;
+   }
+
    PointMap(PointMap&& other):
               m_parentRegion(std::move(other.m_parentRegion)),
               m_drawingFiles(std::move(other.m_drawingFiles)),
