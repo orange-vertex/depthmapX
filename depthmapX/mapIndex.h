@@ -45,7 +45,7 @@ class MapIndex : public QTreeWidget {
         short m_subcat;
     };
 
-    enum Column { MAP = 0, EDITABLE = 1 };
+    enum Column { MAP = 0, VISIBLE = 1, EDITABLE = 2 };
 
     std::map<QTreeWidgetItem *, ItemTreeEntry> m_treegraphmap;
     std::map<QTreeWidgetItem *, ItemTreeEntry> m_treedrawingmap;
@@ -59,18 +59,19 @@ class MapIndex : public QTreeWidget {
     MapIndex(QWidget *parent = 0);
 
     QString m_mapColumn = "Map";
+    QString m_visibleColumn = "Visible";
     QString m_editableColumn = "Editable";
 
     void setItemVisibility(QTreeWidgetItem *item, Qt::CheckState checkState) {
-        item->setCheckState(Column::MAP, checkState);
+        item->setCheckState(Column::VISIBLE, checkState);
     }
     void setItemEditability(QTreeWidgetItem *item, Qt::CheckState checkState) {
         item->setCheckState(Column::EDITABLE, checkState);
     }
     void setItemReadOnly(QTreeWidgetItem *item) { item->setData(Column::EDITABLE, Qt::CheckStateRole, QVariant()); }
-    bool isItemSetVisible(QTreeWidgetItem *item) { return item->checkState(Column::MAP); }
+    bool isItemSetVisible(QTreeWidgetItem *item) { return item->checkState(Column::VISIBLE); }
     bool isItemSetEditable(QTreeWidgetItem *item) { return item->checkState(Column::EDITABLE); }
-    bool isMapColumn(int col) { return col == Column::MAP; }
+    bool isVisibleColumn(int col) { return col == Column::VISIBLE; }
     bool isEditableColumn(int col) { return col == Column::EDITABLE; }
 
     void makeTree();
@@ -86,7 +87,7 @@ class MapIndex : public QTreeWidget {
     void requestShowLink(const QUrl &url);
 
   private:
-    QStringList columnNames = (QStringList() << m_mapColumn << m_editableColumn);
+    QStringList columnNames = (QStringList() << m_mapColumn << m_visibleColumn << m_editableColumn);
   private slots:
     void removeAllItem(QTreeWidgetItem *start);
     QTreeWidgetItem *addNewItem(const QString &title, QTreeWidgetItem *parent = NULL);

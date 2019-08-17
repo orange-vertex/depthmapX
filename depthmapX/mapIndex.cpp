@@ -36,10 +36,12 @@ QT_BEGIN_NAMESPACE
 MapIndex::MapIndex(QWidget *parent) : QTreeWidget(parent) {
     m_mainWindow = parent;
 
-    setColumnCount(2);
+    setColumnCount(3);
     setHeaderLabels(columnNames);
     header()->setSectionResizeMode(Column::MAP, QHeaderView::Stretch);
+    header()->setSectionResizeMode(Column::VISIBLE, QHeaderView::ResizeToContents);
     header()->setSectionResizeMode(Column::EDITABLE, QHeaderView::ResizeToContents);
+    header()->resizeSection(Column::VISIBLE, 10);
     header()->resizeSection(Column::EDITABLE, 10);
     header()->setStretchLastSection(false);
 
@@ -108,7 +110,7 @@ void MapIndex::onSelchangingTree(QTreeWidgetItem *hItem, int col) {
         ItemTreeEntry entry = iter->second;
         bool remenu = false;
         if (entry.m_cat != -1) {
-            if (entry.m_subcat == -1 && isMapColumn(col)) {
+            if (entry.m_subcat == -1 && isVisibleColumn(col)) {
                 switch (entry.m_type) {
                 case 0:
                     if (graph->getViewClass() & MetaGraph::VIEWVGA) {
@@ -197,7 +199,7 @@ void MapIndex::onSelchangingTree(QTreeWidgetItem *hItem, int col) {
         if (iter != m_treedrawingmap.end()) {
             ItemTreeEntry entry = iter->second;
             if (entry.m_subcat != -1) {
-                if (hItem->checkState(Column::MAP) == Qt::Unchecked) {
+                if (hItem->checkState(Column::VISIBLE) == Qt::Unchecked) {
                     graph->getLineLayer(entry.m_cat, entry.m_subcat).setShow(false);
                     graph->redoPointMapBlockLines();
                     graph->resetBSPtree();
@@ -541,9 +543,7 @@ void MapIndex::onRenameMap() {
                         }
                         map.setName(newMapName);
                         graphDoc->modifiedFlag = true;
-                        auto checkState = item->checkState(Column::MAP);
                         item->setText(Column::MAP, dlg.m_object_name);
-                        setItemVisibility(item, checkState);
                         remenu = true;
                         break;
                     }
@@ -575,9 +575,7 @@ void MapIndex::onRenameMap() {
                         }
                         map.setName(newMapName);
                         graphDoc->modifiedFlag = true;
-                        auto checkState = item->checkState(Column::MAP);
                         item->setText(Column::MAP, dlg.m_object_name);
-                        setItemVisibility(item, checkState);
                         remenu = true;
                         break;
                     }
@@ -609,9 +607,7 @@ void MapIndex::onRenameMap() {
                         }
                         map.setName(newMapName);
                         graphDoc->modifiedFlag = true;
-                        auto checkState = item->checkState(Column::MAP);
                         item->setText(Column::MAP, dlg.m_object_name);
-                        setItemVisibility(item, checkState);
                         remenu = true;
                         break;
                     }
