@@ -251,7 +251,7 @@ private:
 
     QMdiArea *mdiArea;
     QSignalMapper *windowMapper;
-    MapIndex* m_indexWidget;
+    MapIndex* m_mapIndexWidget;
     AttributeIndex* m_attrWindow;
     CColourScaleDlg m_wndColourScale;
 

@@ -82,10 +82,10 @@ MainWindow::MainWindow(const QString &fileToLoad, Settings &settings) : mSetting
     connect(windowMapper, SIGNAL(mapped(QWidget *)), this, SLOT(setActiveSubWindow(QWidget *)));
 
 
-    m_indexWidget = new MapIndex(this);
+    m_mapIndexWidget = new MapIndex(this);
     QDockWidget *indexDock = new QDockWidget(tr("Index"), this);
     indexDock->setObjectName(QLatin1String("MapIndex"));
-    indexDock->setWidget(m_indexWidget);
+    indexDock->setWidget(m_mapIndexWidget);
     addDockWidget(Qt::LeftDockWidgetArea, indexDock);
 
     QDockWidget *AttributesListDock = new QDockWidget(tr("AttributesList"), this);
@@ -1176,45 +1176,45 @@ int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
     if (lParam == QGraphDoc::CONTROLS_DESTROYALL && pDoc == m_treeDoc) {        // Lost graph
         delete pDoc;
         m_treeDoc = NULL;
-        m_indexWidget->clearTopGraph();
-        m_indexWidget->clearBackGraph();
+        m_mapIndexWidget->clearTopGraph();
+        m_mapIndexWidget->clearBackGraph();
         m_attrWindow->clear();
-        m_indexWidget->clear();
+        m_mapIndexWidget->clear();
     }
     else if (lParam == QGraphDoc::CONTROLS_LOADALL && pDoc != m_treeDoc) {     // [Possible] change of window (sent on focus)
         m_treeDoc = pDoc;
-        m_indexWidget->clearTopGraph();
-        m_indexWidget->clearBackGraph();
+        m_mapIndexWidget->clearTopGraph();
+        m_mapIndexWidget->clearBackGraph();
         MakeTree();
     }
     else if (lParam == QGraphDoc::CONTROLS_LOADGRAPH && pDoc == m_treeDoc) {     // Force update if match current window
-        m_indexWidget->clearTopGraph();
-        m_indexWidget->clearBackGraph();
+        m_mapIndexWidget->clearTopGraph();
+        m_mapIndexWidget->clearBackGraph();
         m_attrWindow->clear();
-        m_indexWidget->clear();
+        m_mapIndexWidget->clear();
         m_attribute_locked.clear();
-        m_indexWidget->clearGraphTree();
-        m_indexWidget->makeGraphTree();
+        m_mapIndexWidget->clearGraphTree();
+        m_mapIndexWidget->makeGraphTree();
         // also make drawing tree as this overrides layer visible status sometimes:
-        m_indexWidget->makeDrawingTree();
+        m_mapIndexWidget->makeDrawingTree();
     }
     else if (lParam == QGraphDoc::CONTROLS_RELOADGRAPH && pDoc == m_treeDoc) {     // Force reload of graph tree if match current window
-        m_indexWidget->clearTopGraph();
-        m_indexWidget->clearBackGraph();
+        m_mapIndexWidget->clearTopGraph();
+        m_mapIndexWidget->clearBackGraph();
         m_attrWindow->clear();
-        m_indexWidget->clear();
+        m_mapIndexWidget->clear();
         m_attribute_locked.clear();
-        m_indexWidget->clearGraphTree();
+        m_mapIndexWidget->clearGraphTree();
         MakeTree();
     }
     else if (lParam == QGraphDoc::CONTROLS_LOADDRAWING && pDoc == m_treeDoc) {     // Force update if match current window
-        m_indexWidget->clearBackGraph();
+        m_mapIndexWidget->clearBackGraph();
         m_attrWindow->clear();
-        m_indexWidget->clear();
+        m_mapIndexWidget->clear();
         m_attribute_locked.clear();
-        m_indexWidget->clearGraphTree();
-        m_indexWidget->makeGraphTree();
-        m_indexWidget->makeDrawingTree();
+        m_mapIndexWidget->clearGraphTree();
+        m_mapIndexWidget->makeGraphTree();
+        m_mapIndexWidget->makeDrawingTree();
     }
     else if (lParam == QGraphDoc::CONTROLS_LOADATTRIBUTES && pDoc == m_treeDoc) {     // Force update if match current window
         MakeAttributeList();
@@ -1223,15 +1223,15 @@ int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
         SetAttributeChecks();
     }
     else if (lParam == QGraphDoc::CONTROLS_LOADCONVERT && pDoc == m_treeDoc) {
-        m_indexWidget->clearTopGraph();
-        m_indexWidget->clearBackGraph();
+        m_mapIndexWidget->clearTopGraph();
+        m_mapIndexWidget->clearBackGraph();
         m_attrWindow->clear();
-        m_indexWidget->clear();
+        m_mapIndexWidget->clear();
         m_attribute_locked.clear();
-        m_indexWidget->clearGraphTree();
-        m_indexWidget->makeGraphTree();
+        m_mapIndexWidget->clearGraphTree();
+        m_mapIndexWidget->makeGraphTree();
         // conversions typically turn off drawing layers:
-        m_indexWidget->setDrawingTreeChecks();
+        m_mapIndexWidget->setDrawingTreeChecks();
     }
     if (m_treeDoc == NULL) {
 //		tree.EnableWindow(FALSE);
@@ -1252,12 +1252,12 @@ int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
 
 void MainWindow::MakeTree()
 {
-    m_indexWidget->clear();
+    m_mapIndexWidget->clear();
 
     MetaGraph *graph = m_treeDoc->m_meta_graph;
     if (!graph) return;
 
-    m_indexWidget->makeTree();
+    m_mapIndexWidget->makeTree();
 }
 
 void MainWindow::OnSelchangingList()
