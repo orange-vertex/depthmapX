@@ -29,6 +29,7 @@
 #include "linkparser.h"
 #include "importparser.h"
 #include "stepdepthparser.h"
+#include "maxdepthparser.h"
 #include "salalib/isovistdef.h"
 #include <vector>
 
@@ -47,4 +48,6 @@ namespace dm_runmethods{
     void exportData(const CommandLineParser &cmdP, const ExportParser &exportP, IPerformanceSink &perfWriter );
     void runStepDepth(const CommandLineParser &clp, const StepDepthParser::StepType &stepType, const std::vector<Point2f> &stepDepthPoints, IPerformanceSink &perfWriter);
     void runMapConversion(const CommandLineParser& clp, const MapConvertParser &mcp, IPerformanceSink &perfWriter);
+    void maxDepth(const CommandLineParser &cmdP, const MaxDepthParser &maxDepthParser, const IRadiusConverter &converter,
+                  IPerformanceSink &perfWriter );
 }

@@ -9,6 +9,9 @@ target_sources(salalib
        vgaangulardepth.cpp
        vgametricdepth.cpp
        vgavisualglobaldepth.cpp
+       vgavisualmaxdepth.cpp
+       vgaangularmaxdepth.cpp
+       vgametricmaxdepth.cpp
     PUBLIC
        vgaangular.h
        vgametric.h
@@ -18,4 +21,7 @@ target_sources(salalib
        vgavisualglobaldepth.h
        vgaisovist.h
        vgathroughvision.h
-       vgavisuallocal.h)
+       vgavisuallocal.h
+       vgavisualmaxdepth.h
+       vgaangularmaxdepth.h
+       vgametricmaxdepth.h)

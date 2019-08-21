@@ -26,6 +26,9 @@
 #include "salalib/entityparsing.h"
 #include <salalib/gridproperties.h>
 #include <salalib/importutils.h>
+#include <salalib/vgamodules/vgavisualmaxdepth.h>
+#include <salalib/vgamodules/vgametricmaxdepth.h>
+#include <salalib/vgamodules/vgaangularmaxdepth.h>
 
 namespace dm_runmethods
 {
@@ -250,6 +253,32 @@ namespace dm_runmethods
 
         DO_TIMED("Run VGA", mgraph->analyseGraph(comm.get(), *options, cmdP.simpleMode() ))
         std::cout << " ok\nWriting out result..." << std::flush;
+        DO_TIMED("Writing graph", mgraph->write(cmdP.getOuputFile().c_str(),METAGRAPH_VERSION, false))
+        std::cout << " ok" << std::endl;
+    }
+
+    void maxDepth(const CommandLineParser &cmdP, const MaxDepthParser &maxDepthParser, const IRadiusConverter &converter, IPerformanceSink &perfWriter) {
+        auto mgraph = loadGraph(cmdP.getFileName().c_str(), perfWriter);
+        std::unique_ptr<Communicator> comm(new ICommunicator());
+        switch(maxDepthParser.getStepType()) {
+            case MaxDepthParser::StepType::NONE:
+                throw depthmapX::RuntimeException("No step type given");
+            case MaxDepthParser::StepType::VISUAL: {
+                DO_TIMED("Calculating maximum depth", (new VGAVisualMaxDepth(converter.ConvertForVisibility(maxDepthParser.getRadius())))
+                         ->run(comm.get(), mgraph->getDisplayedPointMap(), false))
+                break;
+            }
+            case MaxDepthParser::StepType::METRIC: {
+                DO_TIMED("Calculating maximum depth", (new VGAMetricMaxDepth(converter.ConvertForMetric(maxDepthParser.getRadius())))
+                         ->run(comm.get(), mgraph->getDisplayedPointMap(), false))
+                break;
+            }
+            case MaxDepthParser::StepType::ANGULAR: {
+                DO_TIMED("Calculating maximum depth", (new VGAAngularMaxDepth(converter.ConvertForMetric(maxDepthParser.getRadius())))
+                         ->run(comm.get(), mgraph->getDisplayedPointMap(), false))
+                break;
+            }
+        }
         DO_TIMED("Writing graph", mgraph->write(cmdP.getOuputFile().c_str(),METAGRAPH_VERSION, false))
         std::cout << " ok" << std::endl;
     }
