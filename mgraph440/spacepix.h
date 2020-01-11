@@ -37,7 +37,7 @@ public:
       { return m_lines; }
    std::string getName()
       { return m_name; }
-   virtual bool read( ifstream& stream, int version );
+   virtual bool read( std::ifstream& stream, int version );
 };
 
 // simply check they are the same name... useful for findindex from the group
@@ -71,7 +71,7 @@ public:
 
    // Quick mod - TV
 #if 0
-#if !defined(_WIN32)
+#if !defined(_MSC_VER)
    size_t size() const
    { return pmemvec<T>::size(); }
 
@@ -85,12 +85,12 @@ public:
 #endif
 
 public:
-   bool read( ifstream& stream, int version, bool drawinglayer = true );
-   bool write(ostream &stream, int version );
+   bool read(std::ifstream& stream, int version, bool = true);
+   bool write(std::ostream &stream, int version );
 };
 
 template <class T>
-bool SpacePixelGroup<T>::read( ifstream& stream, int version, bool drawinglayer )
+bool SpacePixelGroup<T>::read( std::ifstream& stream, int version, bool )
 {
    if (version >= VERSION_SPACEPIXELGROUPS) {
       m_name = dXstring440::readString(stream);
@@ -115,7 +115,7 @@ bool SpacePixelGroup<T>::read( ifstream& stream, int version, bool drawinglayer 
 }
 
 template <class T>
-bool SpacePixelGroup<T>::write( ostream& stream, int version )
+bool SpacePixelGroup<T>::write( std::ostream& stream, int version )
 {
    dXstring440::writeString(stream, m_name);
    stream.write( (char *) &m_region, sizeof(m_region) );

@@ -17,7 +17,7 @@ currentcommit=$(git rev-parse HEAD)
 cd depthmapX
 mkdir build
 cd build
-qmake ../
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 cd ../RegressionTest
 python3 RegressionTestRunner.py  performance_regression.json
@@ -33,7 +33,7 @@ cd $rundir
 params="{\"time\":\"$timestamp\",\"runner\":\"$runner\",\"commit\":\"$currentcommit\",\"tests\":["
 
 counter="0"
-for i in $(find . | grep 'timings_[0-9]\+\.csv')
+for i in $(find . | grep 'timings_[0-9]\+_[0-9]\+\.csv')
 do
     newparams=$(csvtool drop 1 $i | csvtool format ',"%(1)":"%(2)"' - | cut -c2-);
     #newparams="${newparams// /_}"

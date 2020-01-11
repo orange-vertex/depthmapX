@@ -30,7 +30,6 @@
 #include <sstream>
 #include <math.h>
 #include <float.h>
-#include <genlib/paftl.h>
 #include <genlib/comm.h>
 #include <genlib/exceptions.h>
 // Sala
@@ -78,10 +77,9 @@ public:
           POINTDEPTH, METRICPOINTDEPTH, ANGULARPOINTDEPTH, TOPOLOGICALPOINTDEPTH,
           MAKEISOVIST, MAKEISOVISTPATH,
           MAKEALLLINEMAP, MAKEFEWESTLINEMAP, MAKEDRAWING,
-          MAKEUSERMAP, MAKEUSERMAPSHAPE, MAKEUSERSEGMAP, MAKEUSERSEGMAPSHAPE, MAKEGATESMAP, MAKEBOUNDARYMAP, MAKESEGMENTMAP, 
-          MAKECONVEXMAP,
-          AXIALANALYSIS, SEGMENTANALYSIS, TOPOMETANALYSIS, AGENTANALYSIS, BINDISPLAY };
-	
+          MAKEUSERMAP, MAKEUSERMAPSHAPE, MAKEUSERSEGMAP, MAKEUSERSEGMAPSHAPE, MAKEGATESMAP, MAKEBOUNDARYMAP, MAKESEGMENTMAP,
+          MAKECONVEXMAP, 
+          AXIALANALYSIS, SEGMENTANALYSISTULIP, SEGMENTANALYSISANGULAR, TOPOMETANALYSIS, AGENTANALYSIS };
 public:
    CMSCommunicator();
    virtual ~CMSCommunicator();
@@ -127,7 +125,7 @@ public:
 
 
 protected:
-   pvecint m_options;
+   std::vector<int> m_options;
    int m_function;
    Point2f m_seed_point;
    double m_seed_angle;
@@ -232,7 +230,7 @@ public:
    Point2f m_position;  // Last known mouse position, in DXF units
    // Paths for the March 05 evolved agents
    // (loaded from file using the test button)
-   prefvec<pqvector<Point2f>> m_evolved_paths;
+   std::vector<std::vector<Point2f>> m_evolved_paths;
    RenderThread m_thread;
 
    QProgressDialog* m_waitdlg;
@@ -272,36 +270,31 @@ public:
     void OnVGALinksFileImport();
     void OnFileImport();
 	void OnFileExport();
+    void OnFileExportMapGeometry();
     void OnFileExportLinks();
     void OnDrawingExportAsDXF();
     void OnAxialConnectionsExportAsDot();
     void OnAxialConnectionsExportAsPairCSV();
     void OnSegmentConnectionsExportAsPairCSV();
 	void OnToolsMakeGraph();
+    void OnToolsUnmakeGraph();
     void OnEditClear();
 	void OnToolsRun();
 	void OnEditUndo();
-	void OnToolsPD();
-	void OnAddGate();
+    void OnToolsPD();
 	void OnPushToLayer();
-    void OnEditGrid();
+	void OnEditGrid();
     void OnToolsMPD();
-	void OnEvoAgent();
-	void OnBinDisplay();
 	void OnToolsMakeFewestLineMap();
 	void OnToolsRunSeg();
-	void OnAddColumn();
-	void OnMagiMif();
-	void OnRemoveColumn();
-	void OnBinDistances();
-	void OnShowBinDistances();
+    void OnAddColumn();
+    void OnRemoveColumn();
 	void OnFileProperties();
 	void OnToolsAPD();
 	void OnViewShowGrid();
-    void OnViewSummary();
-    void OnToolsRunAxa();
+	void OnToolsRunAxa();
 	void OnSwapColours();
-    void OnRedButton();
+	void OnViewSummary();
 	void OnToolsPointConvShapeMap();
 	void OnToolsAxialConvShapeMap();
     void OnUpdateColumn();

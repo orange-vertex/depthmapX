@@ -39,10 +39,17 @@ public:
    // note the order of these connections is important and used elsewhere:
    enum { CONNECT_E = 0x01, CONNECT_NE = 0x02, CONNECT_N = 0x04, CONNECT_NW = 0x08,
           CONNECT_W = 0x10, CONNECT_SW = 0x20, CONNECT_S = 0x40, CONNECT_SE = 0x80 };
+
+   // TODO: These intermediary variables are only used for storing arbitrary data during the
+   // analysis. They should be made into local variables and removed from this class
+   int m_misc;              // <- undocounter / point seen register / agent reference number, etc
+   float m_dist;            // used to speed up metric analysis
+   float m_cumangle;        // cummulative angle -- used in metric analysis and angular analysis
+   PixelRef m_extent;       // used to speed up graph analysis (not sure whether or not it breaks it!)
+
 protected:
    int m_block;   // not used, unlikely to be used, but kept for time being
    int m_state;
-   int m_misc; // <- undocounter / point seen register / agent reference number, etc
    char m_grid_connections; // this is a standard set of grid connections, with bits set for E,NE,N,NW,W,SW,S,SE
    std::unique_ptr<Node> m_node;            // graph links
    Point2f m_location;      // note: this is large, but it helps allow loading of non-standard grid points,
@@ -50,9 +57,6 @@ protected:
                             // display
    float m_color;           // although display color for the point now introduced
    PixelRef m_merge;        // to merge with another point
-   PixelRef m_extent;       // used to speed up graph analysis (not sure whether or not it breaks it!)
-   float m_dist;            // used to speed up metric analysis
-   float m_cumangle;        // cummulative angle -- used in metric analysis and angular analysis
    // hmm... this is for my 3rd attempt at a quick line intersect algo:
    // every line that goes through the gridsquare -- memory intensive I know, but what can you do:
    // accuracy is imperative here!  Calculated pre-fillpoints / pre-makegraph, and (importantly) it works.
@@ -60,11 +64,42 @@ protected:
    int m_processflag;
 public:
    Point()
-      { m_state = EMPTY; m_block = 0; m_misc = 0; m_grid_connections = 0; m_node = NULL; m_processflag = 0; m_merge = NoPixel; m_user_data = NULL; }
+      { m_state = EMPTY; m_block = 0; m_misc = 0; m_grid_connections = 0; m_node = nullptr; m_processflag = 0; m_merge = NoPixel; m_user_data = NULL; }
    Point& operator = (const Point& p)
-      { throw 1; }
+   {
+       m_block = p.m_block;
+       m_state = p.m_state;
+       m_misc = p.m_misc;
+       m_grid_connections = p.m_grid_connections;
+       m_node = p.m_node ? std::unique_ptr<Node>(new Node(*p.m_node)) : nullptr;
+       m_location = p.m_location;
+       m_color = p.m_color;
+       m_merge = p.m_merge;
+       m_color = p.m_color;
+       m_extent = p.m_extent;
+       m_dist = p.m_dist;
+       m_cumangle = p.m_cumangle;
+       m_lines = p.m_lines;
+       m_processflag = p.m_processflag;
+       return *this;
+   }
    Point(const Point& p)
-      { throw 1; }
+   {
+       m_block = p.m_block;
+       m_state = p.m_state;
+       m_misc = p.m_misc;
+       m_grid_connections = p.m_grid_connections;
+       m_node = p.m_node ? std::unique_ptr<Node>(new Node(*p.m_node)) : nullptr;
+       m_location = p.m_location;
+       m_color = p.m_color;
+       m_merge = p.m_merge;
+       m_color = p.m_color;
+       m_extent = p.m_extent;
+       m_dist = p.m_dist;
+       m_cumangle = p.m_cumangle;
+       m_lines = p.m_lines;
+       m_processflag = p.m_processflag;
+   }
    //
    bool empty() const
       { return (m_state & EMPTY) == EMPTY; }
@@ -126,12 +161,14 @@ public:
    }
    Node& getNode()
       { return *m_node; }
+   bool hasNode()
+      { return m_node != nullptr; }
    char getGridConnections() const
       { return m_grid_connections; }
    float getBinDistance(int i);
 public:
-   std::istream &read(std::istream &stream, int version, int attr_count);
-   std::ofstream& write(std::ofstream& stream, int version);
+   std::istream &read(std::istream &stream);
+   std::ostream& write(std::ostream &stream);
    //
 protected:
    // for user processing, set their own data on the point:

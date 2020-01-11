@@ -11,11 +11,6 @@
 
 namespace mgraph440 {
 
-#if !defined(_WIN32)
-#define     __max(x,y)  ((x<y) ? y: x)
-#define     __min(x,y)	((x<y) ? x: y)
-#endif
-
 class SalaShape : public pqvector<Point2f>
 {
 public:
@@ -79,8 +74,8 @@ public:
 //   //
 //   pqvector<SalaEdgeU> getClippingSet(QtRegion& clipframe) const;
 //   //
-   bool read(ifstream& stream, int version);
-   bool write(ostream& stream);
+   bool read(std::ifstream& stream, int version);
+   bool write(std::ostream& stream);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,16 +88,16 @@ protected:
 public:
    SalaObject() {;}
    //
-   bool read(ifstream& stream, int version);
-   bool write(ostream& stream);
+   bool read(std::ifstream& stream, int version);
+   bool write(std::ostream& stream);
 };
-inline bool SalaObject::read(ifstream& stream, int)
+inline bool SalaObject::read(std::ifstream& stream, int)
 {
    stream.read((char *)&m_centroid,sizeof(m_centroid));
    pvecint::read(stream);
    return true;
 }
-inline bool SalaObject::write(ostream& stream)
+inline bool SalaObject::write(std::ostream& stream)
 {
    stream.write((char *)&m_centroid,sizeof(m_centroid));
    pvecint::write(stream);
@@ -187,8 +182,8 @@ public:
     PixelRef pixelate( const Point2f& p, bool constrain = true, int = 1) const;
     const std::string& getName() const
        { return m_name; }
-    bool read( ifstream& stream, int version, bool drawinglayer = false );
-    bool write( ostream& stream, int version );
+    bool read( std::ifstream& stream, int version, bool drawinglayer = false );
+    bool write( std::ostream& stream, int version );
     void invalidateDisplayedAttribute()
        { m_invalidate = true; }
     void setDisplayedAttribute( int col ) const;
@@ -241,7 +236,7 @@ public:
    T& getMap(size_t index)
    { return prefvec<T>::at(index); }
    size_t getMapRef(const std::string& name) const;
-   bool read( ifstream& stream, int version );
+   bool read( std::ifstream& stream, int version );
    bool write(::std::ostream &stream, int version, bool displayedmaponly = false );
 };
 template <class T>
@@ -259,7 +254,7 @@ size_t ShapeMaps<T>::addMap(const std::string& name, int type)
    return (pmemvec<T*>::size()-1);
 }
 template <class T>
-bool ShapeMaps<T>::read( ifstream& stream, int version )
+bool ShapeMaps<T>::read( std::ifstream& stream, int version )
 {
     prefvec<T>::clear(); // empty existing data
    // n.b. -- do not change to size_t as will cause 32-bit to 64-bit conversion problems

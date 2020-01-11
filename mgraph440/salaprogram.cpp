@@ -40,6 +40,7 @@
 #include <math.h>
 #include <float.h>
 #include <time.h>
+#include <cmath>
 
 namespace mgraph440 {
 
@@ -134,7 +135,7 @@ SalaProgram::~SalaProgram()
 // use istrstream to make an istream from a string:
 // istrstream file(char *);
 
-bool SalaProgram::parse(istream& program)
+bool SalaProgram::parse(std::istream& program)
 {
    m_var_stack.clear();
    m_error_stack.clear();
@@ -263,7 +264,7 @@ SalaObj SalaProgram::evaluate()
       AttributeTable *table = m_thisobj.getTable();
       for (int i = 0; i < table->getRowCount(); i++) {
      // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
          table->setMark(i,SalaObj());
 #else
      SalaObj objTmp = SalaObj();
@@ -293,12 +294,7 @@ bool SalaProgram::runupdate(int col, const std::set<int> &selset)
          try {
             SalaObj val = evaluate();
             float v = (float) val.toDouble();   // note, toDouble will type check and throw if there's a problem
-            // Quick mod - TV
-#if defined(_WIN32)
-            if (!_finite(v)) {
-#else
-            if (!finite(v)) {
-#endif
+            if (!std::isfinite(v)) {
                v = -1.0f;
             }
             table->changeValue(pointmap ? table->getRowid(row) : row,m_col,v);
@@ -316,12 +312,7 @@ bool SalaProgram::runupdate(int col, const std::set<int> &selset)
          try {
             SalaObj val = evaluate();
             float v = (float) val.toDouble();   // note, toDouble will type check and throw if there's a problem
-            // Quick mod - TV
-#if defined(_WIN32)
-            if (!_finite(v)) {
-#else
-            if (!finite(v)) {
-#endif
+            if (!std::isfinite(v)) {
                v = -1.0f;
             }
             table->changeValue(i,m_col,v);
@@ -404,7 +395,7 @@ SalaCommand::SalaCommand(SalaProgram *program, SalaCommand *parent, int indent, 
    m_line = 0;
 }
 
-int SalaCommand::parse(istream& program, int line)
+int SalaCommand::parse(std::istream& program, int line)
 {
    m_func_stack.clear();
    m_eval_stack.clear();
@@ -1139,7 +1130,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
    if (pointer < 0) {
       throw SalaError("Missing argument",m_line);
    }
-   register SalaObj data = m_eval_stack[pointer];
+   SalaObj data = m_eval_stack[pointer];
    pointer--;
    if (data.type == SalaObj::S_FUNCTION) {
       SalaObj::Func func = data.data.func;
@@ -1149,7 +1140,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
             switch (func) {
             case SalaObj::S_ADD:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) + evaluate(pointer,p_obj);
 #else
            {
@@ -1161,7 +1152,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_SUBTRACT:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) - evaluate(pointer,p_obj);
 #else
            {
@@ -1176,7 +1167,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_MINUS:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = -evaluate(pointer,p_obj);
 #else
            {
@@ -1187,7 +1178,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_MULTIPLY:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) * evaluate(pointer,p_obj);
 #else
            {
@@ -1199,7 +1190,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_DIVIDE:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) / evaluate(pointer,p_obj);
 #else
            {
@@ -1213,7 +1204,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                data = evaluate(pointer,p_obj);
 
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) % data;   // reverse order
 #else
            {
@@ -1229,7 +1220,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
             case SalaObj::S_ASSIGN:
                data = evaluate(pointer,p_obj);  // reverse order
                evaluate(pointer,p_obj);
-               if ((unsigned long)p_obj > 1) {
+               if (p_obj != nullptr) {
                   *p_obj = data;
                }
                else {
@@ -1254,6 +1245,8 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                   else
                      throw SalaError("Cannot be applied to " + data.getTypeIndefArt() + data.getTypeStr(),m_line);
                }
+               break;
+            default:
                break;
             }
          }
@@ -1288,7 +1281,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_EQ:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) == evaluate(pointer,p_obj);
 #else
            {
@@ -1300,7 +1293,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_IS:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = op_is(evaluate(pointer,p_obj),evaluate(pointer,p_obj));
 #else
            {
@@ -1312,7 +1305,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_NEQ:
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) != evaluate(pointer,p_obj);
 #else
            {
@@ -1325,7 +1318,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
             case SalaObj::S_GT:
                data = evaluate(pointer,p_obj);
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) > data;   // revese order
 #else
            {
@@ -1337,7 +1330,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
             case SalaObj::S_LT:
                data = evaluate(pointer,p_obj);
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) < data;   // revese order
 #else
            {
@@ -1350,7 +1343,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                data = evaluate(pointer,p_obj);
 
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) >= data;   // revese order
 #else
            {
@@ -1363,7 +1356,7 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                data = evaluate(pointer,p_obj);
 
                // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
                data = evaluate(pointer,p_obj) <= data;   // revese order
 #else
            {
@@ -1371,6 +1364,8 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                 data = (tmp1 <= data);
            }
 #endif
+               break;
+            default:
                break;
             }
          }
@@ -1455,6 +1450,8 @@ SalaObj SalaCommand::evaluate(int& pointer, SalaObj* &p_obj)
                break;
             case SalaObj::S_ATAN:
                data = atan(evaluate(pointer,p_obj).toDouble());
+               break;
+            default:
                break;
             }
          }

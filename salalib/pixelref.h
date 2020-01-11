@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "genlib/p2dpoly.h"
 #include <vector>
 
 class PixelRef
@@ -64,9 +65,9 @@ public:
            case NEGVERTICAL: y--; break;
         }
         return *this; }
-   bool isodd()
+   bool isodd() const
    { return x % 2 == 1 && y % 2 == 1; }
-   bool iseven()
+   bool iseven() const
    { return x % 2 == 0 && y % 2 == 0; }
    friend bool operator == (const PixelRef a, const PixelRef b);
    friend bool operator != (const PixelRef a, const PixelRef b);

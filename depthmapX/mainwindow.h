@@ -17,18 +17,20 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "depthmapX/indexWidget.h"
+#include "depthmapX/treeWindow.h"
+#include "depthmapX/GraphDoc.h"
+#include "depthmapX/compatibilitydefines.h"
+#include "depthmapX/settings.h"
+
+#include "depthmapX/dialogs/ColourScaleDlg.h"
+#include "depthmapX/views/glview/glview.h"
+
+#include "version.h"
+
 #include <QMainWindow>
 #include <QButtonGroup>
 #include <QComboBox>
-#include "indexWidget.h"
-#include "treeWindow.h"
-#include "GraphDoc.h"
-#include "ColourScaleDlg.h"
-#include "compatibilitydefines.h"
-#include "settings.h"
-
-#include "version.h"
-#include "glview.h"
 
 class ItemTreeEntry
 {
@@ -111,7 +113,6 @@ private slots:
     void OnFilePrint();
     void OnFilePrintPreview();
     void OnFilePrintSetup();
-    void OnFileExit();
     void OnEditUndo();
     void OnEditCopyData();
     void OnEditCopy();
@@ -127,6 +128,7 @@ private slots:
     void OnLayerConvertDrawing();
     void OnConvertMapShapes();
     void OnFileExport();
+    void OnFileExportMapGeometry();
     void OnFileExportLinks();
     void OnDrawingExportAsDXF();
     void OnAxialConnectionsExportAsDot();
@@ -140,6 +142,7 @@ private slots:
     void OnColumnProperties();
     void OnPushToLayer();
     void OnToolsMakeGraph();
+    void OnToolsUnmakeGraph();
     void OnToolsImportVGALinks();
     void OnToolsIsovistpath();
     void OnToolsAgentLoadProgram();
@@ -250,7 +253,7 @@ private:
     QVector<QIcon> m_tree_icon;
     std::map<int, std::string> m_view_map_entries;
 
-    pvector<bool> m_attribute_locked;
+    std::vector<bool> m_attribute_locked;
     std::map<QTreeWidgetItem*, ItemTreeEntry> m_treegraphmap;
     std::map<QTreeWidgetItem*, ItemTreeEntry> m_treedrawingmap;
     QTreeWidgetItem* m_topgraph;
@@ -343,6 +346,7 @@ private:
     QAction *convertMapShapesAct;
     QAction *importAct;
     QAction *exportAct;
+    QAction *exportGeometryAct;
     QAction *exportLinksAct;
     QAction *exportAxialConnectionsDotAct;
     QAction *exportDrawingDXFAct;
@@ -356,6 +360,7 @@ private:
 
     //Tools Menu Actions
     QAction *makeVisibilityGraphAct;
+    QAction *unmakeVisibilityGraphAct;
     QAction *importVGALinksAct;
     QAction *makeIsovistPathAct;
     QAction *runVisibilityGraphAnalysisAct;

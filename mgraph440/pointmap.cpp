@@ -3,7 +3,7 @@
 
 namespace mgraph440 {
 
-bool PointMap::read(ifstream& stream, int version )
+bool PointMap::read(std::ifstream& stream, int version )
 {
    if (version >= VERSION_POINT_MAP_NAMES) {
       m_name = dXstring440::readString(stream);
@@ -328,7 +328,7 @@ void PointMap::setDisplayedAttribute(int col)
       m_displayed_attribute = col;
    }
    // make a local copy of the display params for access speed:
-   m_display_params = m_attributes.getDisplayParams(m_displayed_attribute);
+   m_display_params = m_attributes.getDisplayParams();
 
    m_attributes.setDisplayColumn(m_displayed_attribute,true);
 }
@@ -381,7 +381,7 @@ bool PointMap::clearSel()
    return true;
 }
 
-bool PointMaps::write(ostream& stream, int version, bool displayedmaponly)
+bool PointMaps::write(std::ostream& stream, int version, bool displayedmaponly)
 {
    if (!displayedmaponly) {
       stream.write((char *) &m_displayed_map, sizeof(m_displayed_map));
@@ -404,7 +404,7 @@ bool PointMaps::write(ostream& stream, int version, bool displayedmaponly)
    }
    return true;
 }
-bool PointMap::write( ostream& stream, int version )
+bool PointMap::write( std::ostream& stream, int version )
 {
    dXstring440::writeString(stream, m_name);
 
