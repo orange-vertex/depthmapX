@@ -966,7 +966,7 @@ void QGraphDoc::OnDrawingExportAsDXF()
     FILE* fp = fopen(outfile.toLatin1(), "wb");
     fclose(fp);
 
-    ofstream stream(outfile.toLatin1());
+    std::ofstream stream(outfile.toLatin1());
 
     if (stream.fail() || stream.bad()) {
        QMessageBox::warning(this, tr("Notice"), tr("Sorry, unable to open file for export"), QMessageBox::Ok, QMessageBox::Ok);

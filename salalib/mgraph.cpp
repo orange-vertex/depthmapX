@@ -2964,7 +2964,7 @@ void MetaGraph::writeDrawingLayersAsDXF(std::ostream& stream) {
     stream << "0" << std::endl << "SECTION" << std::endl;
     stream << "2" << std::endl << "ENTITIES" << std::endl;
 
-    for (const auto& pixelGroup: m_spacePixels) {
+    for (const auto& pixelGroup: m_drawingFiles) {
         for (const auto& pixel: pixelGroup.m_spacePixels) {
             if (pixel.isShown()) {
                 for (const auto& shape: pixel.getAllShapes()) {
