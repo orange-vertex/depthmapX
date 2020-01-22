@@ -54,10 +54,8 @@ QmyEvent::QmyEvent(Type type, void* wp, int lp)
 void MainWindow::actionEvent ( QActionEvent * event )
 {
     int id;
-    if(id = event->action()->data().toInt())
+    if((id = event->action()->data().toInt()))
     {
-        int k = id;
-
     }
 }
 
@@ -964,7 +962,7 @@ void MainWindow::updateActiveWindows()
         m_p->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS );
         return;
     }
-    else if(p = qobject_cast<Q3DView *>(activeSubWindow->widget()))
+    else if((p = qobject_cast<Q3DView *>(activeSubWindow->widget())))
     {
         editToolBar->hide();
         plotToolBar->hide();
@@ -2841,9 +2839,9 @@ void MainWindow::updateToolbar()
 
         if (( ( (m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWVGA) &&
                (m_p->m_meta_graph->getDisplayedPointMap().getFilledPointCount() > 1)) ||
-             ( (m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWAXIAL) &&
+             (((m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWAXIAL) &&
                (m_p->m_meta_graph->getState() & MetaGraph::SHAPEGRAPHS)) &&
-               (!m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap()) ) )
+               (!m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap()) ) ))
             JoinToolButton->setEnabled(true);
         else
         {
