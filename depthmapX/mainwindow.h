@@ -155,6 +155,9 @@ private slots:
     void OnToolsTopomet();
     void OnToolsTPD();
     void OnToolsMPD();
+    void OnSegmentAngularShortestPath();
+    void OnSegmentMetricShortestPath();
+    void OnSegmentTopologicalShortestPath();
     void OnToolsPointConvShapeMap();
     void OnToolsOptions();
     void OnViewCentreView();
@@ -292,6 +295,7 @@ private:
     QMenu *axialSubMenu;
     QMenu *segmentSubMenu;
     QMenu *segmentStepDepthSubMenu;
+    QMenu *segmentShortestPathSubMenu;
     QMenu *viewMenu;
     QMenu *windowMenu;
     QMenu *helpMenu;
@@ -378,6 +382,9 @@ private:
     QAction *segmentAngularStepAct;
     QAction *topologicalStepAct;
     QAction *segmentMetricStepAct;
+    QAction *segmentAngularShortestPathAct;
+    QAction *segmentTopologicalShortestPathAct;
+    QAction *segmentMetricShortestPathAct;
     QAction *optionsAct;
 
     //View Menu Actions

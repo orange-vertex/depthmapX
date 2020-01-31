@@ -7,6 +7,9 @@ target_sources(salalib
         segmtopologicalpd.cpp
         segmmetricpd.cpp
         segmtulipdepth.cpp
+        segmmetricshortestpath.cpp
+        segmtulipshortestpath.cpp
+        segmtopologicalshortestpath.cpp
     PUBLIC
         segmangular.h
         segmmetric.h
@@ -15,4 +18,7 @@ target_sources(salalib
         segmhelpers.h
         segmmetricpd.h
         segmtopologicalpd.h
-        segmtulipdepth.h)
+        segmtulipdepth.h
+        segmmetricshortestpath.h
+        segmtulipshortestpath.h
+        segmtopologicalshortestpath.h)

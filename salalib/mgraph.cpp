@@ -31,10 +31,13 @@
 #include "salalib/segmmodules/segmangular.h"
 #include "salalib/segmmodules/segmtulip.h"
 #include "salalib/segmmodules/segmtulipdepth.h"
+#include "salalib/segmmodules/segmtulipshortestpath.h"
 #include "salalib/segmmodules/segmmetric.h"
 #include "salalib/segmmodules/segmmetricpd.h"
+#include "salalib/segmmodules/segmmetricshortestpath.h"
 #include "salalib/segmmodules/segmtopological.h"
 #include "salalib/segmmodules/segmtopologicalpd.h"
+#include "salalib/segmmodules/segmtopologicalshortestpath.h"
 #include "salalib/axialmodules/axialintegration.h"
 #include "salalib/axialmodules/axialstepdepth.h"
 #include "salalib/vgamodules/vgaisovist.h"
@@ -292,6 +295,36 @@ bool MetaGraph::unmakeGraph(bool removeLinks)
    }
 
    return graphUnmade;
+}
+
+bool MetaGraph::generateSegmentTulipShortestPath(Communicator *communicator) {
+    bool analysisCompleted = false;
+    try {
+        analysisCompleted = SegmentTulipShortestPath().run(communicator, getDisplayedShapeGraph(), false);
+    } catch (Communicator::CancelledException) {
+        analysisCompleted = false;
+    }
+    return analysisCompleted;
+}
+
+bool MetaGraph::generateSegmentMetricShortestPath(Communicator *communicator) {
+    bool analysisCompleted = false;
+    try {
+        analysisCompleted = SegmentMetricShortestPath().run(communicator, getDisplayedShapeGraph(), false);
+    } catch (Communicator::CancelledException) {
+        analysisCompleted = false;
+    }
+    return analysisCompleted;
+}
+
+bool MetaGraph::generateSegmentTopologicalShortestPath(Communicator *communicator) {
+    bool analysisCompleted = false;
+    try {
+        analysisCompleted = SegmentTopologicalShortestPath().run(communicator, getDisplayedShapeGraph(), false);
+    } catch (Communicator::CancelledException) {
+        analysisCompleted = false;
+    }
+    return analysisCompleted;
 }
 
 bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool simple_version )   // <- options copied to keep thread safe

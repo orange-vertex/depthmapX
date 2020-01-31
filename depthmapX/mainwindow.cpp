@@ -620,6 +620,27 @@ void MainWindow::OnToolsMPD()
     }
 }
 
+void MainWindow::OnSegmentAngularShortestPath() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
+        m_p->OnSegmentAngularShortestPath();
+    }
+}
+
+void MainWindow::OnSegmentMetricShortestPath() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
+        m_p->OnSegmentMetricShortestPath();
+    }
+}
+
+void MainWindow::OnSegmentTopologicalShortestPath() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
+        m_p->OnSegmentTopologicalShortestPath();
+    }
+}
+
 void MainWindow::OnToolsPointConvShapeMap()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -2418,11 +2439,22 @@ void MainWindow::updateSegmentStepDepthSubMenu()
         segmentAngularStepAct->setEnabled(0);
         topologicalStepAct->setEnabled(0);
         segmentMetricStepAct->setEnabled(0);
+        segmentAngularShortestPathAct->setEnabled(0);
+        segmentTopologicalShortestPathAct->setEnabled(0);
+        segmentMetricShortestPathAct->setEnabled(0);
         return;
     }
-    if (m_p->m_meta_graph->viewingProcessed() && m_p->m_meta_graph->isSelected())
+    if (m_p->m_meta_graph->viewingProcessed() && m_p->m_meta_graph->isSelected()) {
         segmentAngularStepAct->setEnabled(true);
-    else segmentAngularStepAct->setEnabled(0);
+        segmentAngularShortestPathAct->setEnabled(true);
+        segmentTopologicalShortestPathAct->setEnabled(true);
+        segmentMetricShortestPathAct->setEnabled(true);
+    } else {
+        segmentAngularStepAct->setEnabled(false);
+        segmentAngularShortestPathAct->setEnabled(false);
+        segmentTopologicalShortestPathAct->setEnabled(false);
+        segmentMetricShortestPathAct->setEnabled(false);
+    }
 
     if (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap() && m_p->m_meta_graph->isSelected())
         topologicalStepAct->setEnabled(true);
@@ -3109,6 +3141,15 @@ void MainWindow::createActions()
     segmentMetricStepAct = new QAction(tr("&Metric Step"), this);
     connect(segmentMetricStepAct, SIGNAL(triggered()), this, SLOT(OnToolsMPD()));
 
+    segmentAngularShortestPathAct = new QAction(tr("&Angular Shortest Path"), this);
+    connect(segmentAngularShortestPathAct, SIGNAL(triggered()), this, SLOT(OnSegmentAngularShortestPath()));
+
+    segmentMetricShortestPathAct = new QAction(tr("&Metric Shortest Path"), this);
+    connect(segmentMetricShortestPathAct, SIGNAL(triggered()), this, SLOT(OnSegmentMetricShortestPath()));
+
+    segmentTopologicalShortestPathAct = new QAction(tr("&Topological Shortest Path"), this);
+    connect(segmentTopologicalShortestPathAct, SIGNAL(triggered()), this, SLOT(OnSegmentTopologicalShortestPath()));
+
     optionsAct = new QAction(tr("Options..."), this);
     connect(optionsAct, SIGNAL(triggered()), this, SLOT(OnToolsOptions()));
 
@@ -3584,6 +3625,11 @@ void MainWindow::createMenus()
     segmentStepDepthSubMenu->addAction(segmentAngularStepAct);
     segmentStepDepthSubMenu->addAction(topologicalStepAct);
     segmentStepDepthSubMenu->addAction(segmentMetricStepAct);
+
+    segmentShortestPathSubMenu = segmentSubMenu->addMenu(tr("Shortest Path"));
+    segmentShortestPathSubMenu->addAction(segmentAngularShortestPathAct);
+    segmentShortestPathSubMenu->addAction(segmentTopologicalShortestPathAct);
+    segmentShortestPathSubMenu->addAction(segmentMetricShortestPathAct);
 
     toolsMenu->addSeparator();
     toolsMenu->addAction(optionsAct);

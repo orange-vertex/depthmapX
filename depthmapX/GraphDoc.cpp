@@ -1761,6 +1761,44 @@ void QGraphDoc::OnToolsMPD()
    }
 }
 
+void QGraphDoc::testCommunicator() {
+    if (m_communicator) {
+        QMessageBox::warning(this, tr("Warning"), tr("Please wait, another process is running"), QMessageBox::Ok,
+                             QMessageBox::Ok);
+        return;
+    }
+}
+
+void QGraphDoc::renderThis(int function, QString waitDialogText = tr("Calculating...")) {
+    m_communicator = new CMSCommunicator();
+    CreateWaitDialog(waitDialogText);
+    m_communicator->SetFunction(function);
+    m_thread.render(this);
+}
+
+void QGraphDoc::OnSegmentAngularShortestPath() {
+    testCommunicator();
+    if (m_meta_graph->viewingProcessedLines() && m_meta_graph->getDisplayedShapeGraph().isSegmentMap() &&
+        m_meta_graph->isSelected()) {
+        renderThis(CMSCommunicator::SEGMENT_ANGULAR_SHORTEST_PATH, tr("Calculating angular shortest path..."));
+    }
+}
+
+void QGraphDoc::OnSegmentMetricShortestPath() {
+    testCommunicator();
+    if (m_meta_graph->viewingProcessedLines() && m_meta_graph->getDisplayedShapeGraph().isSegmentMap() &&
+        m_meta_graph->isSelected()) {
+        renderThis(CMSCommunicator::SEGMENT_METRIC_SHORTEST_PATH, tr("Calculating metric shortest path..."));
+    }
+}
+void QGraphDoc::OnSegmentTopologicalShortestPath() {
+    testCommunicator();
+    if (m_meta_graph->viewingProcessedLines() && m_meta_graph->getDisplayedShapeGraph().isSegmentMap() &&
+        m_meta_graph->isSelected()) {
+        renderThis(CMSCommunicator::SEGMENT_TOPOLOGICAL_SHORTEST_PATH, tr("Calculating topological shortest path..."));
+    }
+}
+
 void QGraphDoc::OnToolsAPD() 
 {
    if (m_communicator) {

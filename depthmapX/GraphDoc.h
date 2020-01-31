@@ -79,7 +79,8 @@ public:
           MAKEALLLINEMAP, MAKEFEWESTLINEMAP, MAKEDRAWING,
           MAKEUSERMAP, MAKEUSERMAPSHAPE, MAKEUSERSEGMAP, MAKEUSERSEGMAPSHAPE, MAKEGATESMAP, MAKEBOUNDARYMAP, MAKESEGMENTMAP,
           MAKECONVEXMAP, 
-          AXIALANALYSIS, SEGMENTANALYSISTULIP, SEGMENTANALYSISANGULAR, TOPOMETANALYSIS, AGENTANALYSIS };
+          AXIALANALYSIS, SEGMENTANALYSISTULIP, SEGMENTANALYSISANGULAR, TOPOMETANALYSIS, AGENTANALYSIS,
+          SEGMENT_ANGULAR_SHORTEST_PATH, SEGMENT_METRIC_SHORTEST_PATH, SEGMENT_TOPOLOGICAL_SHORTEST_PATH};
 public:
    CMSCommunicator();
    virtual ~CMSCommunicator();
@@ -284,6 +285,11 @@ public:
 	void OnPushToLayer();
 	void OnEditGrid();
     void OnToolsMPD();
+    void testCommunicator();
+    void renderThis(int function, QString waitDialogText);
+    void OnSegmentAngularShortestPath();
+    void OnSegmentMetricShortestPath();
+    void OnSegmentTopologicalShortestPath();
 	void OnToolsMakeFewestLineMap();
 	void OnToolsRunSeg();
     void OnAddColumn();

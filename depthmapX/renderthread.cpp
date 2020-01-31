@@ -442,6 +442,30 @@ void RenderThread::run()
           }
          }
          break;
+         case CMSCommunicator::SEGMENT_ANGULAR_SHORTEST_PATH: {
+             ok = pDoc->m_meta_graph->generateSegmentTulipShortestPath(comm);
+             if (ok) {
+                 pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+             }
+             pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA);
+             break;
+         }
+         case CMSCommunicator::SEGMENT_METRIC_SHORTEST_PATH: {
+             ok = pDoc->m_meta_graph->generateSegmentMetricShortestPath(comm);
+             if (ok) {
+                 pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+             }
+             pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA);
+             break;
+         }
+         case CMSCommunicator::SEGMENT_TOPOLOGICAL_SHORTEST_PATH: {
+             ok = pDoc->m_meta_graph->generateSegmentTopologicalShortestPath(comm);
+             if (ok) {
+                 pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+             }
+             pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA);
+             break;
+         }
       }
 
       emit closeWaitDialog();

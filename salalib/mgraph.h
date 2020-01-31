@@ -156,6 +156,9 @@ public:
    bool makePoints( const Point2f& p, int semifilled, Communicator *communicator = NULL);  // override of PointMap
    bool makeGraph( Communicator *communicator, int algorithm, double maxdist );
    bool unmakeGraph(bool removeLinks);
+   bool generateSegmentTulipShortestPath(Communicator *communicator);
+   bool generateSegmentMetricShortestPath(Communicator *communicator);
+   bool generateSegmentTopologicalShortestPath(Communicator *communicator);
    bool analyseGraph(Communicator *communicator, Options options , bool simple_version); // <- options copied to keep thread safe
    //
    // helpers for editing maps
