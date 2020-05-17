@@ -22,10 +22,11 @@
 #include "depthmapX/GraphDoc.h"
 #include "depthmapX/compatibilitydefines.h"
 #include "depthmapX/settings.h"
-#include "depthmapX/version.h"
 
 #include "depthmapX/dialogs/ColourScaleDlg.h"
 #include "depthmapX/views/glview/glview.h"
+
+#include "version.h"
 
 #include <QMainWindow>
 #include <QButtonGroup>
@@ -88,6 +89,8 @@ public:
     void UpdateStatus(QString s1, QString s2, QString s3);
     void updateGLWindows(bool datasetChanged, bool recentreView);
     void loadFile(QString fileName);
+
+    void chooseAttributeOnIndex(int attributeIdx);
 
 protected:
     QGraphDoc* m_treeDoc;

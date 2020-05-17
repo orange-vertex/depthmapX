@@ -164,7 +164,7 @@ class SalaShape {
     //
     std::vector<SalaEdgeU> getClippingSet(QtRegion &clipframe) const;
     //
-    bool read(std::istream &stream, int version);
+    bool read(std::istream &stream);
     bool write(std::ofstream &stream);
 
     std::vector<Line> getAsLines() const {
@@ -323,10 +323,10 @@ private:
 
     void clearAll();
     // num shapes total
-    const size_t getShapeCount() const { return m_shapes.size(); }
+    size_t getShapeCount() const { return m_shapes.size(); }
     // num shapes for this object (note, request by object rowid
     // -- on interrogation, this is what you will usually receive)
-    const size_t getShapeCount(int rowid) const {
+    size_t getShapeCount(int rowid) const {
         return depthmapX::getMapAtIndex(m_shapes, rowid)->second.m_points.size();
     }
     //
@@ -388,7 +388,7 @@ private:
     void undo();
     //
     // helpers:
-    Point2f pointOffset(const PointMap &pointmap, int currpix, int side);
+    Point2f pointOffset(const PointMap &pointmap, int side);
     int moveDir(int side);
     //
     void pointPixelBorder(const PointMap &pointmap, std::map<int, int> &relations, SalaShape &shape, int side,
@@ -399,7 +399,7 @@ private:
     bool pointInPoly(const Point2f &p, int shaperef) const;
     // retrieve lists of polys point intersects:
     std::vector<int> pointInPolyList(const Point2f &p) const;
-    std::vector<int> lineInPolyList(const Line &li, int lineref = -1, double tolerance = 0.0) const;
+    std::vector<int> lineInPolyList(const Line &li, size_t lineref = -1, double tolerance = 0.0) const;
     std::vector<int> polyInPolyList(int polyref, double tolerance = 0.0) const;
     std::vector<int> shapeInPolyList(const SalaShape &shape);
     // helper to make actual test of point in shape:
@@ -516,6 +516,7 @@ private:
   public:
     // Selection
     bool isSelected() const { return m_selection; }
+    const std::map<int, SalaShape> getShapesInRegion(const QtRegion &r) const;
     bool setCurSel(QtRegion &r, bool add = false);
     bool setCurSel(const std::vector<int> &selset, bool add = false);
     bool setCurSelDirect(const std::vector<int> &selset, bool add = false);
@@ -565,7 +566,7 @@ private:
 #define __min(x, y) ((x < y) ? x : y)
 #endif
     //
-    double getSpacing() {
+    double getSpacing() const {
         return __max(m_region.width(), m_region.height()) / (10 * log((double)10 + m_shapes.size()));
     }
     //
@@ -577,8 +578,8 @@ private:
     //
   public:
     // file
-    bool read(std::istream &stream, int version, bool drawinglayer = false);
-    bool write(std::ofstream &stream, int version);
+    bool read(std::istream &stream);
+    bool write(std::ofstream &stream);
     //
     bool output(std::ofstream &stream, char delimiter = '\t');
     //
@@ -615,7 +616,7 @@ private:
   public:
     std::vector<SimpleLine> getAllShapesAsLines() const;
     std::vector<std::pair<SimpleLine, PafColor>> getAllLinesWithColour();
-    std::map<std::vector<Point2f>, PafColor> getAllPolygonsWithColour();
+    std::vector<std::pair<std::vector<Point2f>, PafColor>> getAllPolygonsWithColour();
     std::vector<std::pair<Point2f, PafColor>> getAllPointsWithColour();
     bool importLines(const std::vector<Line> &lines, const depthmapX::Table &data);
     bool importLinesWithRefs(const std::map<int, Line> &lines, const depthmapX::Table &data);

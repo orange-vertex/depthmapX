@@ -25,7 +25,7 @@
 
 int MapInfoData::import(std::istream& miffile, std::istream& midfile, ShapeMap& map)
 {
-   int retvar = MINFO_OK;
+   int mapLoaded = MINFO_OK;
 
    // read the header...
    if (!readheader(miffile)) {
@@ -37,14 +37,14 @@ int MapInfoData::import(std::istream& miffile, std::istream& midfile, ShapeMap& 
    AttributeTable& attributes = map.getAttributeTable();
 
    // read mif table
-   if (!readcolumnheaders(miffile,midfile,columnheads)) {
+   if (!readcolumnheaders(miffile, columnheads)) {
       return MINFO_TABLE;
    }
 
    // set up a list of readable columns from the headers:
    // 
    std::vector<std::string> colnames;
-   std::vector<int> readable, colindexes;
+   std::vector<size_t> readable, colindexes;
    for (size_t i = 0; i < columnheads.size(); i++) {
       dXstring::ltrim(columnheads[i]);
       auto tokens = dXstring::split(columnheads[i], ' ',true);
@@ -65,7 +65,7 @@ int MapInfoData::import(std::istream& miffile, std::istream& midfile, ShapeMap& 
 
    std::string textline;
    std::vector<std::vector<Point2f>> pointsets;
-   std::vector<int> duplicates;
+   std::vector<size_t> duplicates;
    std::vector<int> types;
 
    try {
@@ -128,7 +128,7 @@ int MapInfoData::import(std::istream& miffile, std::istream& midfile, ShapeMap& 
             }
             if (i != 0) {
                // warn about extraneous pline data
-               retvar = MINFO_MULTIPLE;
+               mapLoaded = MINFO_MULTIPLE;
                duplicates.push_back(pointsets.size() - 1);
             }
          }
@@ -209,7 +209,7 @@ int MapInfoData::import(std::istream& miffile, std::istream& midfile, ShapeMap& 
       return MINFO_TABLE;
    }
 
-   return retvar;
+   return mapLoaded;
 }
 /*
 bool MapInfoData::exportFile(std::ostream& miffile, std::ostream& midfile, const ShapeGraph& map)
@@ -444,7 +444,7 @@ bool MapInfoData::readheader(std::istream& miffile)
    return true;
 }
 
-bool MapInfoData::readcolumnheaders(std::istream& miffile, std::istream& midfile, std::vector<std::string>& columnheads)
+bool MapInfoData::readcolumnheaders(std::istream& miffile, std::vector<std::string>& columnheads)
 {
    std::string line;
 
@@ -548,7 +548,7 @@ void MapInfoData::writetable(std::ostream& miffile, std::ostream& midfile, const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-std::istream& MapInfoData::read(std::istream& stream, int version)
+std::istream& MapInfoData::read(std::istream& stream)
 {
    m_version = dXstring::readString(stream);
    m_charset = dXstring::readString(stream);

@@ -54,10 +54,8 @@ QmyEvent::QmyEvent(Type type, void* wp, int lp)
 void MainWindow::actionEvent ( QActionEvent * event )
 {
     int id;
-    if(id = event->action()->data().toInt())
+    if((id = event->action()->data().toInt()))
     {
-        int k = id;
-
     }
 }
 
@@ -756,7 +754,7 @@ void MainWindow::updateSubWindowTitles(QString newTitle) {
             if(p) subWindow->setWindowTitle(newTitle +":Map View");
             p = qobject_cast<QPlotView *>(subWindow->widget());
             if(p) subWindow->setWindowTitle(newTitle +":Scatter Plot");
-            p = qobject_cast<tableView *>(subWindow->widget());
+            p = qobject_cast<TableView *>(subWindow->widget());
             if(p) subWindow->setWindowTitle(newTitle +":Table View");
             p = qobject_cast<Q3DView *>(subWindow->widget());
             if(p) subWindow->setWindowTitle(newTitle +":3D View");
@@ -805,8 +803,8 @@ MapView *MainWindow::activeMapView()
         }
         if(!p)
         {
-            p = qobject_cast<tableView *>(activeSubWindow->widget());
-            if(p) return (MapView *)(((tableView*)p)->pDoc->m_view[1]);
+            p = qobject_cast<TableView *>(activeSubWindow->widget());
+            if(p) return (MapView *)(((TableView*)p)->pDoc->m_view[1]);
         }
         if(!p)
         {
@@ -827,8 +825,8 @@ QGraphDoc *MainWindow::activeMapDoc()
         if(p) return ((MapView *)p)->getGraphDoc();
         p = qobject_cast<QPlotView *>(activeSubWindow->widget());
         if(p) return ((QPlotView *)p)->pDoc;
-        p = qobject_cast<tableView *>(activeSubWindow->widget());
-        if(p) return ((tableView *)p)->pDoc;
+        p = qobject_cast<TableView *>(activeSubWindow->widget());
+        if(p) return ((TableView *)p)->pDoc;
         p = qobject_cast<Q3DView *>(activeSubWindow->widget());
         if(p) return ((Q3DView *)p)->pDoc;
     }
@@ -866,7 +864,7 @@ void MainWindow::OnViewTable()
     {
         if(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_TABLE])
             return setActiveSubWindow(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_TABLE]);
-        tableView *child = new tableView(this, m_p->getGraphDoc());
+        TableView *child = new TableView(mSettings, this, m_p->getGraphDoc());
         child->pDoc = m_p->getGraphDoc();
         mdiArea->addSubWindow(child);
         child->show();
@@ -953,15 +951,18 @@ void MainWindow::updateActiveWindows()
         if(((QPlotView*)p)->m_view_rsquared) Rtwo->setChecked(true);
         else Rtwo->setChecked(false);
     }
-    else if(qobject_cast<tableView *>(activeSubWindow->widget()))
+    else if(qobject_cast<TableView *>(activeSubWindow->widget()))
     {
         editToolBar->hide();
         thirdViewToolBar->hide();
         plotToolBar->hide();
         current_view_type = QGraphDoc::VIEW_TABLE;
+        QGraphDoc* m_p = activeMapDoc();
+        OnFocusGraph(m_p, QGraphDoc::CONTROLS_LOADALL);
+        m_p->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS );
         return;
     }
-    else if(p = qobject_cast<Q3DView *>(activeSubWindow->widget()))
+    else if((p = qobject_cast<Q3DView *>(activeSubWindow->widget())))
     {
         editToolBar->hide();
         plotToolBar->hide();
@@ -1068,68 +1069,84 @@ void MainWindow::updateActiveWindows()
         {
         case ID_MAPBAR_ITEM_SELECT:
             SelectButton->setChecked(true);
+            activeMapView()->OnEditSelect();
             break;
         case ID_MAPBAR_ITEM_MOVE:
             DragButton->setChecked(true);
+            activeMapView()->OnViewPan();
             break;
         case ID_MAPBAR_ITEM_ZOOM_IN:
             zoomToolButton->setIcon(QIcon(":/images/win/b-5-3.png"));
             zoomToolButton->setChecked(true);
             zoomInAct->setChecked(true);
+            activeMapView()->OnViewZoomIn();
             break;
         case ID_MAPBAR_ITEM_ZOOM_OUT:
             zoomToolButton->setIcon(QIcon(":/images/win/b-5-4.png"));
             zoomToolButton->setChecked(true);
             zoomOutAct->setChecked(true);
+            activeMapView()->OnViewZoomOut();
             break;
         case ID_MAPBAR_ITEM_FILL:
             fillColorToolButton->setChecked(true);
+            activeMapView()->OnEditFill();
             break;
         case ID_MAPBAR_ITEM_SEMIFILL:
             fillColorToolButton->setChecked(true);
+            activeMapView()->OnEditSemiFill();
             break;
         case ID_MAPBAR_ITEM_AUGMENT_FILL: // AV TV
             fillColorToolButton->setChecked(true);
+            activeMapView()->OnEditAugmentFill();
             break;
         case ID_MAPBAR_ITEM_PENCIL:
             SelectPenButton->setChecked(true);
+            activeMapView()->OnEditPencil();
             break;
         case ID_MAPBAR_ITEM_LINETOOL:
             lineToolButton->setIcon(QIcon(":/images/win/b-5-10.png"));
             lineToolButton->setChecked(true);
             SelectLineAct->setChecked(true);
+            activeMapView()->OnEditLineTool();
             break;
         case ID_MAPBAR_ITEM_POLYGON:
             lineToolButton->setIcon(QIcon(":/images/win/b-5-11.png"));
             lineToolButton->setChecked(true);
             SelectPolyLineAct->setChecked(true);
+            activeMapView()->OnEditPolygonTool();
             break;
         case ID_MAPBAR_ITEM_ISOVIST:
             newisoToolButton->setIcon(QIcon(":/images/win/b-5-12.png"));
             newisoToolButton->setChecked(true);
             MakeIosAct->setChecked(true);
+            activeMapView()->OnModeIsovist();
             break;
         case ID_MAPBAR_ITEM_HALFISOVIST:
             newisoToolButton->setIcon(QIcon(":/images/win/b-5-13.png"));
             newisoToolButton->setChecked(true);
             PartialMakeIosAct->setChecked(true);
+            activeMapView()->OnModeTargetedIsovist();
             break;
         case ID_MAPBAR_ITEM_AL2:
             AxialMapButton->setChecked(true);
+            activeMapView()->OnModeSeedAxial();
             break;
         case ID_MAPBAR_ITEM_JOIN:
             JoinToolButton->setIcon(QIcon(":/images/win/b-5-16.png"));
             JoinToolButton->setChecked(true);
             JoinAct->setChecked(true);
+            activeMapView()->OnModeJoin();
             break;
         case ID_MAPBAR_ITEM_UNJOIN:
             JoinToolButton->setIcon(QIcon(":/images/win/b-5-17.png"));
             JoinToolButton->setChecked(true);
             JoinUnlinkAct->setChecked(true);
+            activeMapView()->OnModeUnjoin();
             break;
         default:
             SelectButton->setChecked(true);
             SelectButton->setChecked(false);
+            activeMapView()->OnEditSelect();
             break;
         }
         QGraphDoc* m_p = activeMapDoc();
@@ -1768,6 +1785,11 @@ void MainWindow::SetAttributeChecks()
             it->setIcon(m_tree_icon[image]);
         }
     }
+}
+
+void MainWindow::chooseAttributeOnIndex(int attributeIdx) {
+    SetAttributeChecks();
+    m_attrWindow->setCurrentRow(attributeIdx);
 }
 
 void MainWindow::OninvertColor()
@@ -2833,9 +2855,9 @@ void MainWindow::updateToolbar()
 
         if (( ( (m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWVGA) &&
                (m_p->m_meta_graph->getDisplayedPointMap().getFilledPointCount() > 1)) ||
-             ( (m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWAXIAL) &&
+             (((m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWAXIAL) &&
                (m_p->m_meta_graph->getState() & MetaGraph::SHAPEGRAPHS)) &&
-               (!m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap()) ) )
+               (!m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap()) ) ))
             JoinToolButton->setEnabled(true);
         else
         {
