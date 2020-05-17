@@ -25,57 +25,23 @@
 
 #include "genlib/simplematrix.h"
 
-#include <unordered_set>
-
 class VGAMetricOpenMP : IVGA {
-  public:
-    struct NewNode {
-        int idx, merge = -1;
-        PixelRef ref;
-        std::vector<int> hood;
-        bool edge;
-        NewNode(PixelRef r = NoPixel) { ref = r; }
-    };
-    struct MetricIntermediateData {
-        bool seen = false;
-        float dist = -1.0f, cumangle = 0.0f;
-        NewNode *n;
+  private:
+    double m_radius;
+    bool m_gates_only;
+
+  private:
+    struct DataPoint {
+        float mspa, mspl, dist, count;
     };
 
-    static MetricIntermediateData noPixelNode;
-    struct NewMetricTriple {
-        float dist;
-        MetricIntermediateData *mid;
-        PixelRef lastpixel;
-        NewMetricTriple(float d = 0.0f, MetricIntermediateData *m = &noPixelNode, PixelRef lp = NoPixel) {
-            dist = d;
-            mid = m;
-            lastpixel = lp;
-        }
-        bool operator==(const NewMetricTriple &mp2) const {
-            return (dist == mp2.dist && mid->n->ref == mp2.mid->n->ref);
-        }
-        bool operator<(const NewMetricTriple &mp2) const {
-            return (dist < mp2.dist) || (dist == mp2.dist && mid->n->ref < mp2.mid->n->ref);
-        }
-        bool operator>(const NewMetricTriple &mp2) const {
-            return (dist > mp2.dist) || (dist == mp2.dist && mid->n->ref > mp2.mid->n->ref);
-        }
-        bool operator!=(const NewMetricTriple &mp2) const {
-            return (dist != mp2.dist) || (mid->n->ref != mp2.mid->n->ref);
-        }
-    };
-
-    struct NewMetricTripleHasher
-    {
-    };
-
-    std::vector<NewNode> getNodes(PointMap &map);
-    std::vector<MetricIntermediateData> getSourceData(const std::vector<NewNode> &nodes);
+    private : void
+              extractMetric(Node &node, std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple &curs,
+                            depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &dists,
+                            depthmapX::RowMatrix<float> &cumangles);
 
   public:
     std::string getAnalysisName() const override { return "Metric Analysis (OpenMP)"; }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) override;
-    void extractMetric(std::set<NewMetricTriple> &pixels, const NewMetricTriple &curs,
-                       std::vector<MetricIntermediateData> &iData);
+    bool run(Communicator *comm, PointMap &map, bool simple_version) override;
+    VGAMetricOpenMP(double radius, bool gates_only) : m_radius(radius), m_gates_only(gates_only) {}
 };
