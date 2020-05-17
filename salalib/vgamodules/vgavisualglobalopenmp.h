@@ -19,40 +19,29 @@
 #pragma once
 
 #include "salalib/ivga.h"
-#include "salalib/pointdata.h"
 #include "salalib/options.h"
 #include "salalib/pixelref.h"
+#include "salalib/pointdata.h"
 
 #include "genlib/simplematrix.h"
 
-class VGAVisualGlobalOpenMP : IVGA
-{
-public:
-    std::string getAnalysisName() const override {
-        return "Global Visibility Analysis (OpenMP)";
-    }
-    bool run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) override;
-    void extractUnseen(Node& node, PixelRefVector& pixels, depthmapX::RowMatrix<int>& miscs,
-                       depthmapX::RowMatrix<PixelRef>& extents) {
-        for (int i = 0; i < 32; i++) {
-            Bin &bin = node.bin(i);
-            for (auto pixVec: bin.m_pixel_vecs) {
-                for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir); ) {
-                    int& misc = miscs(pix.y, pix.x);
-                    PixelRef& extent = extents(pix.y, pix.x);
-                    if (misc == 0) {
-                        pixels.push_back(pix);
-                        misc |= (1 << i);
-                    }
-                    // 10.2.02 revised --- diagonal was breaking this as it was extent in diagonal or horizontal
-                    if (!(bin.m_dir & PixelRef::DIAGONAL)) {
-                        if (extent.col(bin.m_dir) >= pixVec.end().col(bin.m_dir))
-                            break;
-                        extent.col(bin.m_dir) = pixVec.end().col(bin.m_dir);
-                    }
-                    pix.move(bin.m_dir);
-                }
-            }
-        }
-    }
+class VGAVisualGlobalOpenMP : IVGA {
+  private:
+    double m_radius;
+    bool m_gates_only;
+
+  private:
+    struct DataPoint {
+        float count, depth, integ_dv, integ_pv;
+        float integ_tk, entropy, rel_entropy;
+    };
+
+  private:
+    void extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,
+                       depthmapX::RowMatrix<PixelRef> &extents);
+
+  public:
+    std::string getAnalysisName() const override { return "Global Visibility Analysis (OpenMP)"; }
+    bool run(Communicator *comm, PointMap &map, bool simple_version) override;
+    VGAVisualGlobalOpenMP(double radius, bool gates_only) : m_radius(radius), m_gates_only(gates_only) {}
 };

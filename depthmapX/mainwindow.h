@@ -112,7 +112,6 @@ private slots:
     void OnFilePrint();
     void OnFilePrintPreview();
     void OnFilePrintSetup();
-    void OnFileExit();
     void OnEditUndo();
     void OnEditCopyData();
     void OnEditCopy();
@@ -128,6 +127,7 @@ private slots:
     void OnLayerConvertDrawing();
     void OnConvertMapShapes();
     void OnFileExport();
+    void OnFileExportMapGeometry();
     void OnFileExportLinks();
     void OnAxialConnectionsExportAsDot();
     void OnAxialConnectionsExportAsPairCSV();
@@ -140,6 +140,7 @@ private slots:
     void OnColumnProperties();
     void OnPushToLayer();
     void OnToolsMakeGraph();
+    void OnToolsUnmakeGraph();
     void OnToolsImportVGALinks();
     void OnToolsIsovistpath();
     void OnToolsAgentLoadProgram();
@@ -250,7 +251,7 @@ private:
     QVector<QIcon> m_tree_icon;
     std::map<int, std::string> m_view_map_entries;
 
-    pvector<bool> m_attribute_locked;
+    std::vector<bool> m_attribute_locked;
     std::map<QTreeWidgetItem*, ItemTreeEntry> m_treegraphmap;
     std::map<QTreeWidgetItem*, ItemTreeEntry> m_treedrawingmap;
     QTreeWidgetItem* m_topgraph;
@@ -343,6 +344,7 @@ private:
     QAction *convertMapShapesAct;
     QAction *importAct;
     QAction *exportAct;
+    QAction *exportGeometryAct;
     QAction *exportLinksAct;
     QAction *exportAxialConnectionsDotAct;
     QAction *exportAxialConnectionsPairAct;
@@ -355,6 +357,7 @@ private:
 
     //Tools Menu Actions
     QAction *makeVisibilityGraphAct;
+    QAction *unmakeVisibilityGraphAct;
     QAction *importVGALinksAct;
     QAction *makeIsovistPathAct;
     QAction *runVisibilityGraphAnalysisAct;

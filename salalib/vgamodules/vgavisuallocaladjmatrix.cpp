@@ -20,7 +20,9 @@
 
 #include "genlib/stringutils.h"
 
-bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) {
+#include <omp.h>
+
+bool VGAVisualLocalAdjMatrix::run(Communicator *comm, PointMap &map, bool simple_version) {
     time_t atime = 0;
 
     if (comm) {
@@ -31,14 +33,14 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, Po
     AttributeTable &attributes = map.getAttributeTable();
 
     std::vector<PixelRef> filled;
-    std::vector<int> rows;
+    std::vector<AttributeRow *> rows;
 
     for (int i = 0; i < map.getCols(); i++) {
         for (int j = 0; j < map.getRows(); j++) {
             PixelRef curs = PixelRef(static_cast<short>(i), static_cast<short>(j));
             if (map.getPoint(curs).filled()) {
                 filled.push_back(curs);
-                rows.push_back(attributes.getRowid(curs));
+                rows.push_back(attributes.getRowPtr(AttributeKey(curs)));
             }
         }
     }
@@ -47,9 +49,7 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, Po
 
     count = 0;
 
-    std::vector<float> cluster_col_data(filled.size());
-    std::vector<float> control_col_data(filled.size());
-    std::vector<float> controllability_col_data(filled.size());
+    std::vector<DataPoint> col_data(filled.size());
 
     int i;
     const long N = long(filled.size());
@@ -77,8 +77,10 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, Po
 #pragma omp parallel for default(shared) private(i) schedule(dynamic)
     for (i = 0; i < N; ++i) {
 
+        DataPoint& dp = col_data[i];
+
         Point &p = map.getPoint(filled[size_t(i)]);
-        if ((p.contextfilled() && !filled[size_t(i)].iseven()) || (options.gates_only)) {
+        if ((p.contextfilled() && !filled[size_t(i)].iseven()) || (m_gates_only)) {
             count++;
             continue;
         }
@@ -112,13 +114,13 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, Po
 #pragma omp critical(add_to_col)
         {
             if (hoodSize > 1) {
-                cluster_col_data[size_t(i)] = float(cluster / double(hoodSize * (hoodSize - 1.0)));
-                control_col_data[size_t(i)] = float(control);
-                controllability_col_data[size_t(i)] = float(double(hoodSize) / double(totalReach));
+                dp.cluster = float(cluster / double(hoodSize * (hoodSize - 1.0)));
+                dp.control = float(control);
+                dp.controllability = float(double(hoodSize) / double(totalReach));
             } else {
-                cluster_col_data[size_t(i)] = -1.0f;
-                control_col_data[size_t(i)] = -1.0f;
-                controllability_col_data[size_t(i)] = -1;
+                dp.cluster = -1.0f;
+                dp.control = -1.0f;
+                dp.controllability = -1;
             }
         }
 
@@ -136,16 +138,30 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm, const Options &options, Po
         }
     }
 
-    int cluster_col = attributes.insertColumn("Visual Clustering Coefficient");
-    int control_col = attributes.insertColumn("Visual Control");
-    int controllability_col = attributes.insertColumn("Visual Controllability");
+    int cluster_col = attributes.insertOrResetColumn("Visual Clustering Coefficient");
+    int control_col = attributes.insertOrResetColumn("Visual Control");
+    int controllability_col = attributes.insertOrResetColumn("Visual Controllability");
 
-    for (size_t i = 0; i < rows.size(); i++) {
-        attributes.setValue(rows[i], cluster_col, cluster_col_data[i]);
-        attributes.setValue(rows[i], control_col, control_col_data[i]);
-        attributes.setValue(rows[i], controllability_col, controllability_col_data[i]);
+    auto dataIter = col_data.begin();
+    for (auto row: rows) {
+        row->setValue(cluster_col, dataIter->cluster);
+        row->setValue(control_col, dataIter->control);
+        row->setValue(controllability_col, dataIter->controllability);
+        dataIter++;
     }
     map.setDisplayedAttribute(cluster_col);
 
     return true;
+}
+
+void VGAVisualLocalAdjMatrix::dumpNeighbourhood(Node &node, std::set<PixelRef> &hood) const {
+    for (int i = 0; i < 32; i++) {
+        Bin &bin = node.bin(i);
+        for (auto pixVec : bin.m_pixel_vecs) {
+            for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
+                hood.insert(pix);
+                pix.move(bin.m_dir);
+            }
+        }
+    }
 }

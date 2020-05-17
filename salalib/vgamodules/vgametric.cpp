@@ -23,7 +23,7 @@
 // This is a slow algorithm, but should give the correct answer
 // for demonstrative purposes
 
-bool VGAMetric::run(Communicator *comm, const Options &options, PointMap &map, bool) {
+bool VGAMetric::run(Communicator *comm, PointMap &map, bool) {
     time_t atime = 0;
     if (comm) {
         qtimer(atime, 0);
@@ -31,26 +31,26 @@ bool VGAMetric::run(Communicator *comm, const Options &options, PointMap &map, b
     }
 
     std::string radius_text;
-    if (options.radius != -1.0) {
-        if (options.radius > 100.0) {
-            radius_text = std::string(" R") + dXstring::formatString(options.radius, "%.f");
+    if (m_radius != -1.0) {
+        if (m_radius > 100.0) {
+            radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.f");
         } else if (map.getRegion().width() < 1.0) {
-            radius_text = std::string(" R") + dXstring::formatString(options.radius, "%.4f");
+            radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.4f");
         } else {
-            radius_text = std::string(" R") + dXstring::formatString(options.radius, "%.2f");
+            radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.2f");
         }
     }
     AttributeTable &attributes = map.getAttributeTable();
 
     // n.b. these must be entered in alphabetical order to preserve col indexing:
     std::string mspa_col_text = std::string("Metric Mean Shortest-Path Angle") + radius_text;
-    int mspa_col = attributes.insertColumn(mspa_col_text.c_str());
+    int mspa_col = attributes.insertOrResetColumn(mspa_col_text.c_str());
     std::string mspl_col_text = std::string("Metric Mean Shortest-Path Distance") + radius_text;
-    int mspl_col = attributes.insertColumn(mspl_col_text.c_str());
+    int mspl_col = attributes.insertOrResetColumn(mspl_col_text.c_str());
     std::string dist_col_text = std::string("Metric Mean Straight-Line Distance") + radius_text;
-    int dist_col = attributes.insertColumn(dist_col_text.c_str());
+    int dist_col = attributes.insertOrResetColumn(dist_col_text.c_str());
     std::string count_col_text = std::string("Metric Node Count") + radius_text;
-    int count_col = attributes.insertColumn(count_col_text.c_str());
+    int count_col = attributes.insertOrResetColumn(count_col_text.c_str());
 
     int count = 0;
 
@@ -60,7 +60,7 @@ bool VGAMetric::run(Communicator *comm, const Options &options, PointMap &map, b
 
             if (map.getPoint(curs).filled()) {
 
-                if (options.gates_only) {
+                if (m_gates_only) {
                     count++;
                     continue;
                 }
@@ -86,7 +86,7 @@ bool VGAMetric::run(Communicator *comm, const Options &options, PointMap &map, b
                     std::set<MetricTriple>::iterator it = search_list.begin();
                     MetricTriple here = *it;
                     search_list.erase(it);
-                    if (options.radius != -1.0 && (here.dist * map.getSpacing()) > options.radius) {
+                    if (m_radius != -1.0 && (here.dist * map.getSpacing()) > m_radius) {
                         break;
                     }
                     Point &p = map.getPoint(here.pixel);
@@ -110,11 +110,11 @@ bool VGAMetric::run(Communicator *comm, const Options &options, PointMap &map, b
                     }
                 }
 
-                int row = attributes.getRowid(curs);
-                attributes.setValue(row, mspa_col, float(double(total_angle) / double(total_nodes)));
-                attributes.setValue(row, mspl_col, float(double(total_depth) / double(total_nodes)));
-                attributes.setValue(row, dist_col, float(double(euclid_depth) / double(total_nodes)));
-                attributes.setValue(row, count_col, float(total_nodes));
+                AttributeRow &row = attributes.getRow(AttributeKey(curs));
+                row.setValue(mspa_col, float(double(total_angle) / double(total_nodes)));
+                row.setValue(mspl_col, float(double(total_depth) / double(total_nodes)));
+                row.setValue(dist_col, float(double(euclid_depth) / double(total_nodes)));
+                row.setValue(count_col, float(total_nodes));
 
                 count++; // <- increment count
             }
@@ -129,7 +129,7 @@ bool VGAMetric::run(Communicator *comm, const Options &options, PointMap &map, b
         }
     }
 
-    map.setDisplayedAttribute(-2);
+    map.overrideDisplayedAttribute(-2);
     map.setDisplayedAttribute(mspl_col);
 
     return true;

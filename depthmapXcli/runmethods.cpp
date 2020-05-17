@@ -25,7 +25,6 @@
 #include <vector>
 #include "salalib/entityparsing.h"
 #include <salalib/gridproperties.h>
-#include <genlib/legacyconverters.h>
 #include <salalib/importutils.h>
 
 namespace dm_runmethods
@@ -54,7 +53,7 @@ namespace dm_runmethods
         return mgraph;
     }
 
-    void importFiles(const CommandLineParser &cmdP, const std::vector<std::string> &filesToImport, IPerformanceSink &perfWriter)
+    void importFiles(const CommandLineParser &cmdP, const ImportParser &parser, IPerformanceSink &perfWriter)
     {
         std::ifstream mainFileStream(cmdP.getFileName().c_str());
         if(!mainFileStream.good()) {
@@ -89,10 +88,31 @@ namespace dm_runmethods
 
             depthmapX::importFile(*mgraph,
                                   file,
-                                  false,
+                                  0,
                                   cmdP.getFileName(),
                                   depthmapX::ImportType::DRAWINGMAP,
                                   importFileType);
+        } else if ( result == MetaGraph::OK) {
+            if(parser.toImportAsAttrbiutes()) {
+
+                if(mgraph->getDisplayedMapType() == ShapeMap::EMPTYMAP) {
+                    throw depthmapX::RuntimeException("No map displayed to attach attributes to");
+                }
+
+                std::vector<std::string> fileNames = parser.getFilesToImport();
+                for(std::string fileName: fileNames) {
+                    std::string ext = fileName.substr(fileName.length() - 4, fileName.length() - 1);
+                    std::ifstream file(fileName);
+                    char delimiter = '\t';
+                    if(dXstring::toLower(ext) == ".csv") {
+                        delimiter = ',';
+                    }
+
+                    DO_TIMED("Importing attributes", depthmapX::importAttributes(mgraph->getDisplayedMapAttributes(),
+                                                                                 file,
+                                                                                 delimiter);)
+                }
+            }
         }
         DO_TIMED("Writing graph", mgraph->write(cmdP.getOuputFile().c_str(),METAGRAPH_VERSION, false);)
     }
@@ -249,6 +269,9 @@ namespace dm_runmethods
             double gridSize, const std::vector<Point2f> &fillPoints,
             double maxVisibility,
             bool boundaryGraph,
+            bool makeGraph,
+            bool unmakeGraph,
+            bool removeLinksWhenUnmaking,
             IPerformanceSink &perfWriter)
     {
         auto mGraph = loadGraph(clp.getFileName().c_str(),perfWriter);
@@ -259,32 +282,47 @@ namespace dm_runmethods
         {
             throw depthmapX::RuntimeException("Graph must have line data before preparing VGA");
         }
-        // set grid
-        QtRegion r = mGraph->getRegion();
+        if(gridSize > 0) {
+            // Create a new pointmap and set tha grid
+            QtRegion r = mGraph->getRegion();
 
-        GridProperties gp(__max(r.width(), r.height()));
-        if ( gridSize > gp.getMax() ||  gridSize < gp.getMin())
-        {
+            GridProperties gp(__max(r.width(), r.height()));
+            if ( gridSize > gp.getMax() ||  gridSize < gp.getMin())
+            {
+                std::stringstream message;
+                message << "Chosen grid spacing " << gridSize << " is outside of the expected interval of "
+                        << gp.getMin() << " <= spacing <= " << gp.getMax() << std::flush;
+                throw depthmapX::RuntimeException(message.str());
+            }
+
+            std::cout << "ok\nSetting up grid... " << std::flush;
+            mGraph->addNewPointMap();
+            DO_TIMED("Setting grid", mGraph->setGrid(gridSize, Point2f(0.0, 0.0)))
+        } else if(mGraph->getPointMaps().empty()) {
             std::stringstream message;
-            message << "Chosen grid spacing " << gridSize << " is outside of the expected interval of "
-                    << gp.getMin() << " <= spacing <= " << gp.getMax() << std::flush;
+            message << "No map exists to use. Please create a new one by providing a grid size" << std::flush;
             throw depthmapX::RuntimeException(message.str());
         }
 
-        std::cout << "ok\nSetting up grid... " << std::flush;
-        if (mGraph->getPointMaps().empty() || mGraph->getDisplayedPointMap().isProcessed()) {
-           // this can happen if there are no displayed maps -- so flag new map required:
-            mGraph->addNewPointMap();
+        if(unmakeGraph) {
+            if(!mGraph->getDisplayedPointMap().isProcessed()) {
+                std::stringstream message;
+                message << "Current map has not had its graph made so there's nothing to unmake" << std::flush;
+                throw depthmapX::RuntimeException(message.str());
+            }
+            DO_TIMED("Unmaking graph", mGraph->getDisplayedPointMap().unmake(removeLinksWhenUnmaking))
+        } else {
+            if(fillPoints.size() > 0) {
+                std::cout << "ok\nFilling grid... " << std::flush;
+                DO_TIMED("Filling grid",
+                         for_each(fillPoints.begin(), fillPoints.end(), [&mGraph](const Point2f &point)->void{fillGraph(*mGraph, point);}))
+            }
+            if(makeGraph) {
+                std::cout << "ok\nMaking graph... " << std::flush;
+                DO_TIMED("Making graph", mGraph->makeGraph(0, boundaryGraph ? 1 : 0, maxVisibility))
+            }
         }
-        DO_TIMED("Setting grid", mGraph->setGrid(gridSize, Point2f(0.0, 0.0)))
 
-        std::cout << "ok\nFilling grid... " << std::flush;
-        DO_TIMED("Filling grid",
-                 for_each(fillPoints.begin(), fillPoints.end(), [&mGraph](const Point2f &point)->void{fillGraph(*mGraph, point);}))
-
-
-        std::cout << "ok\nCalculating connectivity... " << std::flush;
-        DO_TIMED("Calculate Connectivity", mGraph->makeGraph(0, boundaryGraph ? 1 : 0, maxVisibility))
         std::cout << " ok\nWriting out result..." << std::flush;
         DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(),METAGRAPH_VERSION, false))
                 std::cout << " ok" << std::endl;
@@ -357,7 +395,7 @@ namespace dm_runmethods
         if(!sp.getAttribute().empty()) {
             const ShapeGraph& map = mGraph->getDisplayedShapeGraph();
             const AttributeTable& table = map.getAttributeTable();
-            for (int i = 0; i < table.getColumnCount(); i++) {
+            for (int i = 0; i < table.getNumColumns(); i++) {
                 if(sp.getAttribute() == table.getColumnName(i).c_str()) {
                     options.weighted_measure_col = i;
                 }
@@ -496,7 +534,6 @@ namespace dm_runmethods
         // note, trails currently per run, but output per engine
         if (agentP.recordTrailsForAgents() == 0) {
             eng.m_record_trails = true;
-            eng.m_trail_count = MAX_TRAILS;
         }
         else if (agentP.recordTrailsForAgents() > 0) {
                 eng.m_record_trails = true;
@@ -535,7 +572,9 @@ namespace dm_runmethods
                 case AgentParser::OutputType::TRAILS:
                 {
                     std::ofstream trailStream(cmdP.getOuputFile().c_str());
-                    DO_TIMED("Writing trails", eng.outputTrails(trailStream))
+                    ShapeMap trailMap("Agent Trails");
+                    eng.insertTrailsInMap(trailMap);
+                    DO_TIMED("Writing trails", mgraph->writeMapShapesAsCat(trailMap, trailStream))
                     break;
                 }
             }
@@ -560,7 +599,9 @@ namespace dm_runmethods
             if(std::find(resultTypes.begin(), resultTypes.end(), AgentParser::OutputType::TRAILS) != resultTypes.end()) {
                 std::string outFile = cmdP.getOuputFile() + "_trails.cat";
                 std::ofstream trailStream(outFile.c_str());
-                 DO_TIMED("Writing trails", eng.outputTrails(trailStream))
+                ShapeMap trailMap("Agent Trails");
+                eng.insertTrailsInMap(trailMap);
+                DO_TIMED("Writing trails", mgraph->writeMapShapesAsCat(trailMap, trailStream))
             }
         }
     }
@@ -661,6 +702,7 @@ namespace dm_runmethods
 
     void runStepDepth(
             const CommandLineParser &clp,
+            const StepDepthParser::StepType &stepType,
             const std::vector<Point2f> &stepDepthPoints,
             IPerformanceSink &perfWriter)
     {
@@ -682,7 +724,19 @@ namespace dm_runmethods
 
         Options options;
         options.global = 0;
-        options.point_depth_selection = 1;
+
+        switch (stepType) {
+            case StepDepthParser::StepType::ANGULAR:
+                options.point_depth_selection = 3;
+                break;
+            case StepDepthParser::StepType::METRIC:
+                options.point_depth_selection = 2;
+                break;
+            case StepDepthParser::StepType::VISUAL:
+                options.point_depth_selection = 1;
+                break;
+            default: { throw depthmapX::SetupCheckException("Error, unsupported step type"); }
+        }
 
         std::unique_ptr<Communicator> comm(new ICommunicator());
 
