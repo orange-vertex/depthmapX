@@ -95,7 +95,7 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
                     total_nodes += 1;
                     distribution.back() += 1;
                     if ((int)m_radius == -1 ||
-                        level < (int)m_radius && (!p.contextfilled() || search_tree[level][n].iseven())) {
+                        (level < (int)m_radius && (!p.contextfilled() || search_tree[level][n].iseven()))) {
                         extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
                         p1misc = ~0;
                         if (!p.getMergePixel().empty()) {
@@ -131,7 +131,7 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
                 double rra_d = ra / dvalue(total_nodes);
                 double rra_p = ra / pvalue(total_nodes);
                 double integ_tk = teklinteg(total_nodes, total_depth);
-                dp.depth = float(1.0 / rra_d);
+                dp.integ_dv = float(1.0 / rra_d);
                 dp.integ_pv = float(1.0 / rra_p);
 
                 if (total_depth - total_nodes + 1 > 1) {
@@ -191,25 +191,34 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
 
     // n.b. these must be entered in alphabetical order to preserve col indexing:
     // dX simple version test // TV
+    std::string entropy_col_text = std::string("Visual Entropy") + radius_text;
+    std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
+    std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
+    std::string integ_tk_col_text = std::string("Visual Integration [Tekl]") + radius_text;
+    std::string depth_col_text = std::string("Visual Mean Depth") + radius_text;
+    std::string count_col_text = std::string("Visual Node Count") + radius_text;
+    std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
+
+    attributes.insertOrResetColumn(integ_dv_col_text.c_str());
+
     if (!simple_version) {
-        std::string entropy_col_text = std::string("Visual Entropy") + radius_text;
-        entropy_col = attributes.insertOrResetColumn(entropy_col_text.c_str());
+        attributes.insertOrResetColumn(entropy_col_text.c_str());
+        attributes.insertOrResetColumn(integ_pv_col_text.c_str());
+        attributes.insertOrResetColumn(integ_tk_col_text.c_str());
+        attributes.insertOrResetColumn(depth_col_text.c_str());
+        attributes.insertOrResetColumn(count_col_text.c_str());
+        attributes.insertOrResetColumn(rel_entropy_col_text.c_str());
     }
 
-    std::string integ_dv_col_text = std::string("Visual Integration [HH]") + radius_text;
-    integ_dv_col = attributes.insertOrResetColumn(integ_dv_col_text.c_str());
+    integ_dv_col = attributes.getOrInsertColumn(integ_dv_col_text.c_str());
 
     if (!simple_version) {
-        std::string integ_pv_col_text = std::string("Visual Integration [P-value]") + radius_text;
-        integ_pv_col = attributes.insertOrResetColumn(integ_pv_col_text.c_str());
-        std::string integ_tk_col_text = std::string("Visual Integration [Tekl]") + radius_text;
-        integ_tk_col = attributes.insertOrResetColumn(integ_tk_col_text.c_str());
-        std::string depth_col_text = std::string("Visual Mean Depth") + radius_text;
-        depth_col = attributes.insertOrResetColumn(depth_col_text.c_str());
-        std::string count_col_text = std::string("Visual Node Count") + radius_text;
-        count_col = attributes.insertOrResetColumn(count_col_text.c_str());
-        std::string rel_entropy_col_text = std::string("Visual Relativised Entropy") + radius_text;
-        rel_entropy_col = attributes.insertOrResetColumn(rel_entropy_col_text.c_str());
+        entropy_col = attributes.getOrInsertColumn(entropy_col_text.c_str());
+        integ_pv_col = attributes.getOrInsertColumn(integ_pv_col_text.c_str());
+        integ_tk_col = attributes.getOrInsertColumn(integ_tk_col_text.c_str());
+        depth_col = attributes.getOrInsertColumn(depth_col_text.c_str());
+        count_col = attributes.getOrInsertColumn(count_col_text.c_str());
+        rel_entropy_col = attributes.getOrInsertColumn(rel_entropy_col_text.c_str());
     }
 
     auto dataIter = col_data.begin();
