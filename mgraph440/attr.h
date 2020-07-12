@@ -17,7 +17,7 @@
 #pragma once
 
 // Modifed by Dream
-#if defined(_WIN32)
+#if defined(_MSC_VER)
 #include <io.h>
 #else
 #include <unistd.h>
@@ -497,7 +497,7 @@ struct AttrMap {
    int   modules_req;
    int   type;
    AttrMap(int r, char *d, int a, int m, int t) { ref = r; desc = d; attr_set = a; modules_req = m; type = t; }
-   int   usable(int which_attrs = 1) const {return true; }
+   int   usable() const {return true; }
    bool  intval() const {return type == ATTR_INT;}
    bool  floatval() const {return type == ATTR_FLOAT;}
 };

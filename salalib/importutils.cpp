@@ -346,22 +346,22 @@ namespace depthmapX {
         std::vector<Line> lines;
         std::vector<Polyline> polylines;
 
-        for (int jp = 0; jp < dxfLayer.numPoints(); jp++) {
+        for (size_t jp = 0; jp < dxfLayer.numPoints(); jp++) {
             const DxfVertex &dxf_point = dxfLayer.getPoint(jp);
             points.push_back(Point2f(dxf_point.x, dxf_point.y));
         }
 
-        for (int j = 0; j < dxfLayer.numLines(); j++) {
+        for (size_t j = 0; j < dxfLayer.numLines(); j++) {
             const DxfLine &dxf_line = dxfLayer.getLine(j);
             Line line = Line(Point2f(dxf_line.getStart().x, dxf_line.getStart().y),
                              Point2f(dxf_line.getEnd().x, dxf_line.getEnd().y));
             lines.push_back(line);
         }
 
-        for (int k = 0; k < dxfLayer.numPolyLines(); k++) {
+        for (size_t k = 0; k < dxfLayer.numPolyLines(); k++) {
             const DxfPolyLine &poly = dxfLayer.getPolyLine(k);
             std::vector<Point2f> vertices;
-            for (int m = 0; m < poly.numVertices(); m++) {
+            for (size_t m = 0; m < poly.numVertices(); m++) {
                 DxfVertex v = poly.getVertex(m);
                 vertices.push_back(Point2f(v.x, v.y));
             }
@@ -369,10 +369,10 @@ namespace depthmapX {
                 depthmapX::Polyline(vertices, (poly.getAttributes() & DxfPolyLine::CLOSED) == DxfPolyLine::CLOSED));
         }
 
-        for (int l = 0; l < dxfLayer.numSplines(); l++) {
+        for (size_t l = 0; l < dxfLayer.numSplines(); l++) {
             const DxfSpline &poly = dxfLayer.getSpline(l);
             std::vector<Point2f> vertices;
-            for (int m = 0; m < poly.numVertices(); m++) {
+            for (size_t m = 0; m < poly.numVertices(); m++) {
                 DxfVertex v = poly.getVertex(m);
                 vertices.push_back(Point2f(v.x, v.y));
             }
@@ -380,12 +380,12 @@ namespace depthmapX {
                 depthmapX::Polyline(vertices, (poly.getAttributes() & DxfPolyLine::CLOSED) == DxfPolyLine::CLOSED));
         }
 
-        for (int n = 0; n < dxfLayer.numArcs(); n++) {
+        for (size_t n = 0; n < dxfLayer.numArcs(); n++) {
             const DxfArc &circ = dxfLayer.getArc(n);
             std::vector<Point2f> vertices;
-            int segments = circ.numSegments(DXFCIRCLERES);
+            size_t segments = circ.numSegments(DXFCIRCLERES);
             if (segments > 1) {
-                for (int m = 0; m <= segments; m++) {
+                for (size_t m = 0; m <= segments; m++) {
                     DxfVertex v = circ.getVertex(m, segments);
                     vertices.push_back(Point2f(v.x, v.y));
                 }
@@ -393,12 +393,12 @@ namespace depthmapX {
             polylines.push_back(depthmapX::Polyline(vertices, false));
         }
 
-        for (int n = 0; n < dxfLayer.numEllipses(); n++) {
+        for (size_t n = 0; n < dxfLayer.numEllipses(); n++) {
             const DxfEllipse &ellipse = dxfLayer.getEllipse(n);
             std::vector<Point2f> vertices;
-            int segments = ellipse.numSegments(DXFCIRCLERES);
+            size_t segments = ellipse.numSegments(DXFCIRCLERES);
             if (segments > 1) {
-                for (int m = 0; m <= segments; m++) {
+                for (size_t m = 0; m <= segments; m++) {
                     DxfVertex v = ellipse.getVertex(m, segments);
                     vertices.push_back(Point2f(v.x, v.y));
                 }
@@ -406,7 +406,7 @@ namespace depthmapX {
             polylines.push_back(depthmapX::Polyline(vertices, false));
         }
 
-        for (int nc = 0; nc < dxfLayer.numCircles(); nc++) {
+        for (size_t nc = 0; nc < dxfLayer.numCircles(); nc++) {
             const DxfCircle &circ = dxfLayer.getCircle(nc);
             std::vector<Point2f> vertices;
             for (int m = 0; m < DXFCIRCLERES; m++) {
@@ -425,6 +425,50 @@ namespace depthmapX {
         shapeMap.importPoints(points, Table());
         shapeMap.importLines(lines, Table());
         shapeMap.importPolylines(polylines, Table());
+        return true;
+    }
+
+    bool importAttributes(AttributeTable &attributes, std::istream &stream, char delimiter = '\t') {
+        Table table = csvToTable(stream, delimiter);
+        std::vector<std::string> outColumns;
+        int refcol = -1;
+        for (auto const &column : table) {
+            if (column.first == "Ref")
+                refcol = outColumns.size();
+            else
+                outColumns.push_back(column.first);
+        }
+        if(table.size() == 0) {
+            throw RuntimeException("No usable data found in file");
+        }
+        if(refcol == -1) {
+            throw RuntimeException("The \"Ref\" column is reqired");
+        }
+        if(outColumns.size() < 1) {
+            throw RuntimeException("No data found to join");
+        }
+        std::vector<AttributeRow*> inRows;
+        for(const auto& refInFile: table["Ref"]) {
+            int ref = std::stoi(refInFile);
+            auto iter = attributes.find(AttributeKey(ref));
+            if(iter == attributes.end()) {
+                std::stringstream message;
+                message << "Key " << ref << "not found in attribute table" << std::flush;
+                throw RuntimeException(message.str().c_str());
+            }
+            inRows.push_back(&(iter->getRow()));
+        }
+
+        // Up until this point we have not touched the attribute table
+        // so no need for corrective measures yet
+
+        for(const std::string& column: outColumns) {
+            int colIdx = attributes.insertOrResetColumn(column);
+            auto outRowIter = table[column].begin();
+            for(auto inRowIter = inRows.begin(); inRowIter != inRows.end(); inRowIter++, outRowIter++) {
+                (*inRowIter)->setValue(colIdx, std::stof(*outRowIter));
+            }
+        }
         return true;
     }
 } // namespace depthmapX

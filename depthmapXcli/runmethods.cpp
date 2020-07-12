@@ -53,7 +53,7 @@ namespace dm_runmethods
         return mgraph;
     }
 
-    void importFiles(const CommandLineParser &cmdP, const std::vector<std::string> &filesToImport, IPerformanceSink &perfWriter)
+    void importFiles(const CommandLineParser &cmdP, const ImportParser &parser, IPerformanceSink &perfWriter)
     {
         std::ifstream mainFileStream(cmdP.getFileName().c_str());
         if(!mainFileStream.good()) {
@@ -92,6 +92,27 @@ namespace dm_runmethods
                                   cmdP.getFileName(),
                                   depthmapX::ImportType::DRAWINGMAP,
                                   importFileType);
+        } else if ( result == MetaGraph::OK) {
+            if(parser.toImportAsAttrbiutes()) {
+
+                if(mgraph->getDisplayedMapType() == ShapeMap::EMPTYMAP) {
+                    throw depthmapX::RuntimeException("No map displayed to attach attributes to");
+                }
+
+                std::vector<std::string> fileNames = parser.getFilesToImport();
+                for(std::string fileName: fileNames) {
+                    std::string ext = fileName.substr(fileName.length() - 4, fileName.length() - 1);
+                    std::ifstream file(fileName);
+                    char delimiter = '\t';
+                    if(dXstring::toLower(ext) == ".csv") {
+                        delimiter = ',';
+                    }
+
+                    DO_TIMED("Importing attributes", depthmapX::importAttributes(mgraph->getDisplayedMapAttributes(),
+                                                                                 file,
+                                                                                 delimiter);)
+                }
+            }
         }
         DO_TIMED("Writing graph", mgraph->write(cmdP.getOuputFile().c_str(),METAGRAPH_VERSION, false);)
     }
@@ -102,8 +123,9 @@ namespace dm_runmethods
         auto mgraph = loadGraph(cmdP.getFileName().c_str(), perfWriter);
 
         if (parser.getLinkMode() == LinkParser::LinkMode::UNLINK
+                && parser.getMapTypeGroup() == LinkParser::MapTypeGroup::SHAPEGRAPHS
                 && mgraph->getDisplayedShapeGraph().getMapType() != ShapeMap::AXIALMAP) {
-            throw depthmapX::RuntimeException("Unlinking is only available for axial maps");
+            throw depthmapX::RuntimeException("Unlinking is only available for axial maps and pointmaps");
         }
 
         char delimiter = '\t';
@@ -172,17 +194,33 @@ namespace dm_runmethods
                 depthmapX::mergePixelPairs(newLinks, currentMap);
             }
         } else {
-            auto& shapeGraph = mgraph->getDisplayedShapeGraph();
-            if(parser.getLinkType() == LinkParser::LinkType::COORDS) {
-                auto mergePoints = EntityParsing::parsePoints(linksStream, delimiter);
-                for(auto point: mergePoints) {
-                    shapeGraph.unlinkAtPoint(point);
+            if(parser.getMapTypeGroup() == LinkParser::MapTypeGroup::SHAPEGRAPHS) {
+                auto& shapeGraph = mgraph->getDisplayedShapeGraph();
+                if(parser.getLinkType() == LinkParser::LinkType::COORDS) {
+                    auto mergePoints = EntityParsing::parsePoints(linksStream, delimiter);
+                    for(auto point: mergePoints) {
+                        shapeGraph.unlinkAtPoint(point);
+                    }
+                } else {
+                    auto mergePairs = EntityParsing::parseRefPairs(linksStream, delimiter);
+                    for(auto pair: mergePairs) {
+                        shapeGraph.unlinkShapesFromRefs(pair.first, pair.second);
+                    }
                 }
             } else {
-                auto mergePairs = EntityParsing::parseRefPairs(linksStream, delimiter);
-                for(auto pair: mergePairs) {
-                    shapeGraph.unlinkShapesFromRefs(pair.first, pair.second);
+                std::vector<PixelRefPair> newLinks;
+                PointMap& currentMap = mgraph->getDisplayedPointMap();
+                if(parser.getLinkType() == LinkParser::LinkType::COORDS) {
+                    std::vector<Line> mergeLines = EntityParsing::parseLines(linksStream, delimiter);
+                    std::vector<PixelRefPair> linkPairsFromCoords = depthmapX::pixelateMergeLines(mergeLines, currentMap);
+                    newLinks.insert(newLinks.end(), linkPairsFromCoords.begin(), linkPairsFromCoords.end());
+                } else {
+                    auto mergePairs = EntityParsing::parseRefPairs(linksStream, delimiter);
+                    for(auto pair: mergePairs) {
+                        newLinks.push_back(PixelRefPair(pair.first, pair.second));
+                    }
                 }
+                depthmapX::unmergePixelPairs(newLinks, currentMap);
             }
         }
 
@@ -248,6 +286,9 @@ namespace dm_runmethods
             double gridSize, const std::vector<Point2f> &fillPoints,
             double maxVisibility,
             bool boundaryGraph,
+            bool makeGraph,
+            bool unmakeGraph,
+            bool removeLinksWhenUnmaking,
             IPerformanceSink &perfWriter)
     {
         auto mGraph = loadGraph(clp.getFileName().c_str(),perfWriter);
@@ -258,32 +299,47 @@ namespace dm_runmethods
         {
             throw depthmapX::RuntimeException("Graph must have line data before preparing VGA");
         }
-        // set grid
-        QtRegion r = mGraph->getRegion();
+        if(gridSize > 0) {
+            // Create a new pointmap and set tha grid
+            QtRegion r = mGraph->getRegion();
 
-        GridProperties gp(__max(r.width(), r.height()));
-        if ( gridSize > gp.getMax() ||  gridSize < gp.getMin())
-        {
+            GridProperties gp(__max(r.width(), r.height()));
+            if ( gridSize > gp.getMax() ||  gridSize < gp.getMin())
+            {
+                std::stringstream message;
+                message << "Chosen grid spacing " << gridSize << " is outside of the expected interval of "
+                        << gp.getMin() << " <= spacing <= " << gp.getMax() << std::flush;
+                throw depthmapX::RuntimeException(message.str());
+            }
+
+            std::cout << "ok\nSetting up grid... " << std::flush;
+            mGraph->addNewPointMap();
+            DO_TIMED("Setting grid", mGraph->setGrid(gridSize, Point2f(0.0, 0.0)))
+        } else if(mGraph->getPointMaps().empty()) {
             std::stringstream message;
-            message << "Chosen grid spacing " << gridSize << " is outside of the expected interval of "
-                    << gp.getMin() << " <= spacing <= " << gp.getMax() << std::flush;
+            message << "No map exists to use. Please create a new one by providing a grid size" << std::flush;
             throw depthmapX::RuntimeException(message.str());
         }
 
-        std::cout << "ok\nSetting up grid... " << std::flush;
-        if (mGraph->getPointMaps().empty() || mGraph->getDisplayedPointMap().isProcessed()) {
-           // this can happen if there are no displayed maps -- so flag new map required:
-            mGraph->addNewPointMap();
+        if(unmakeGraph) {
+            if(!mGraph->getDisplayedPointMap().isProcessed()) {
+                std::stringstream message;
+                message << "Current map has not had its graph made so there's nothing to unmake" << std::flush;
+                throw depthmapX::RuntimeException(message.str());
+            }
+            DO_TIMED("Unmaking graph", mGraph->getDisplayedPointMap().unmake(removeLinksWhenUnmaking))
+        } else {
+            if(fillPoints.size() > 0) {
+                std::cout << "ok\nFilling grid... " << std::flush;
+                DO_TIMED("Filling grid",
+                         for_each(fillPoints.begin(), fillPoints.end(), [&mGraph](const Point2f &point)->void{fillGraph(*mGraph, point);}))
+            }
+            if(makeGraph) {
+                std::cout << "ok\nMaking graph... " << std::flush;
+                DO_TIMED("Making graph", mGraph->makeGraph(0, boundaryGraph ? 1 : 0, maxVisibility))
+            }
         }
-        DO_TIMED("Setting grid", mGraph->setGrid(gridSize, Point2f(0.0, 0.0)))
 
-        std::cout << "ok\nFilling grid... " << std::flush;
-        DO_TIMED("Filling grid",
-                 for_each(fillPoints.begin(), fillPoints.end(), [&mGraph](const Point2f &point)->void{fillGraph(*mGraph, point);}))
-
-
-        std::cout << "ok\nCalculating connectivity... " << std::flush;
-        DO_TIMED("Calculate Connectivity", mGraph->makeGraph(0, boundaryGraph ? 1 : 0, maxVisibility))
         std::cout << " ok\nWriting out result..." << std::flush;
         DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(),METAGRAPH_VERSION, false))
                 std::cout << " ok" << std::endl;
@@ -663,6 +719,7 @@ namespace dm_runmethods
 
     void runStepDepth(
             const CommandLineParser &clp,
+            const StepDepthParser::StepType &stepType,
             const std::vector<Point2f> &stepDepthPoints,
             IPerformanceSink &perfWriter)
     {
@@ -684,7 +741,19 @@ namespace dm_runmethods
 
         Options options;
         options.global = 0;
-        options.point_depth_selection = 1;
+
+        switch (stepType) {
+            case StepDepthParser::StepType::ANGULAR:
+                options.point_depth_selection = 3;
+                break;
+            case StepDepthParser::StepType::METRIC:
+                options.point_depth_selection = 2;
+                break;
+            case StepDepthParser::StepType::VISUAL:
+                options.point_depth_selection = 1;
+                break;
+            default: { throw depthmapX::SetupCheckException("Error, unsupported step type"); }
+        }
 
         std::unique_ptr<Communicator> comm(new ICommunicator());
 

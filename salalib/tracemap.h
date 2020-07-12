@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "salalib/shapemap.h";
+#include "salalib/shapemap.h"
 
 #include "genlib/p2dpoly.h"
 
@@ -29,7 +29,7 @@ class TraceMap : public ShapeMap {
     int makeTraceWithRef(const std::vector<Event2f> &trace, int trace_ref,
                          const std::map<int, float> &extraAttributes = std::map<int,float>());
     int makeTrace(const std::vector<Event2f> &trace, const std::map<int, float> &extraAttributes = std::map<int,float>());
-    bool read( std::istream& stream, int version );
-    bool write(std::ofstream &stream, int version);
+    bool read(std::istream& stream);
+    bool write(std::ofstream &stream);
     void writeTracesToXMLFile(std::ofstream &stream);
 };

@@ -102,6 +102,13 @@ private:
     GLShapeMap m_visibleDataMap;
     GLShapeMap m_visibleTraceMap;
 
+    bool m_highlightOnHover = true;
+    bool m_hoverHasShapes = false;
+    bool m_hoverStoreInvalid = false;
+    GLShapeMap m_hoveredShapes;
+    GLLinesUniform m_hoveredPixels;
+    PixelRef m_lastHoverPixel = -1;
+
     QPoint m_mouseLastPos;
     float m_eyePosX;
     float m_eyePosY;
@@ -124,6 +131,11 @@ private:
     void recalcView();
     void zoomBy(float dzf, int mouseX, int mouseY);
     void resetView();
+
+    void highlightHoveredItems(const QtRegion &region);
+    void highlightHoveredPixels(const PointMap &map, const QtRegion &region);
+    void highlightHoveredPixels(const PointMap &map, const std::set<PixelRef> &refs);
+    void highlightHoveredShapes(const ShapeMap &map, const QtRegion &region);
 
     void loadAxes();
     void loadDrawingGLObjects();

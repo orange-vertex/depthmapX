@@ -104,7 +104,6 @@ void QGraphDoc::exceptionThrownInRenderThread(int type, std::string message) {
         message << "This operation requires isovist analysis. To run it go to: ";
         message << "Tools -> Visibility -> Run Visibility Graph Analysis... ";
         message << "and select \"Calculate isovist properties\"";
-        message << flush;
         QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
                              QMessageBox::Ok, QMessageBox::Ok);
     }
@@ -409,7 +408,6 @@ void QGraphDoc::OnVGALinksFileImport()
             message << fileName;
             message << "\n\n Error: ";
             message << e.what();
-            message << flush;
             QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
                                                    QMessageBox::Ok, QMessageBox::Ok);
         }
@@ -420,7 +418,6 @@ void QGraphDoc::OnVGALinksFileImport()
             message << fileName;
             message << "\n\n Error: ";
             message << e.what();
-            message << flush;
             QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
                                                    QMessageBox::Ok, QMessageBox::Ok);
         }
@@ -1719,6 +1716,36 @@ void QGraphDoc::OnToolsMakeGraph()
    m_communicator->SetFunction( CMSCommunicator::MAKEGRAPH );
 
    m_thread.render(this);
+}
+
+void QGraphDoc::OnToolsUnmakeGraph()
+{
+    int state = m_meta_graph->getState();
+    if (m_communicator) {
+       QMessageBox::warning(this, tr("Notice"), tr("Please wait, another task is running"), QMessageBox::Ok, QMessageBox::Ok);
+       return;
+    }
+    if (~state & MetaGraph::POINTMAPS) {
+       QMessageBox::warning(this, tr("Notice"), tr("Please make grid before filling"), QMessageBox::Ok, QMessageBox::Ok);
+       return;
+    }
+    if (m_meta_graph->viewingProcessed()) {
+       if ( QMessageBox::Yes != QMessageBox::question(this, tr("Notice"),
+                                                      tr("This will clear existing data and attributes. Do you want to continue?"),
+                                                      QMessageBox::Yes|QMessageBox::No, QMessageBox::No) )
+        return;
+    }
+    bool removeLinks = false;
+    if(m_meta_graph->getDisplayedPointMap().getMergedPixelPairs().size() > 0) {
+        removeLinks = QMessageBox::Yes == QMessageBox::question(this, tr("Notice"),
+                                                                     tr("Would you also like to clear the links?"),
+                                                                     QMessageBox::Yes|QMessageBox::No, QMessageBox::No);
+    }
+    bool ok = m_meta_graph->unmakeGraph(removeLinks);
+    if (ok) {
+       SetUpdateFlag(QGraphDoc::NEW_DATA);
+    }
+    SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
 }
 
 /////////////////////////////////////////////////////////////////////////////

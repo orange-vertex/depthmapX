@@ -22,10 +22,11 @@
 #include "depthmapX/GraphDoc.h"
 #include "depthmapX/compatibilitydefines.h"
 #include "depthmapX/settings.h"
-#include "depthmapX/version.h"
 
 #include "depthmapX/dialogs/ColourScaleDlg.h"
 #include "depthmapX/views/glview/glview.h"
+
+#include "version.h"
 
 #include <QMainWindow>
 #include <QButtonGroup>
@@ -89,6 +90,8 @@ public:
     void updateGLWindows(bool datasetChanged, bool recentreView);
     void loadFile(QString fileName);
 
+    void chooseAttributeOnIndex(int attributeIdx);
+
 protected:
     QGraphDoc* m_treeDoc;
     void closeEvent(QCloseEvent *event);
@@ -112,7 +115,6 @@ private slots:
     void OnFilePrint();
     void OnFilePrintPreview();
     void OnFilePrintSetup();
-    void OnFileExit();
     void OnEditUndo();
     void OnEditCopyData();
     void OnEditCopy();
@@ -142,6 +144,7 @@ private slots:
     void OnColumnProperties();
     void OnPushToLayer();
     void OnToolsMakeGraph();
+    void OnToolsUnmakeGraph();
     void OnToolsImportVGALinks();
     void OnToolsIsovistpath();
     void OnToolsAgentLoadProgram();
@@ -359,6 +362,7 @@ private:
 
     //Tools Menu Actions
     QAction *makeVisibilityGraphAct;
+    QAction *unmakeVisibilityGraphAct;
     QAction *importVGALinksAct;
     QAction *makeIsovistPathAct;
     QAction *runVisibilityGraphAnalysisAct;

@@ -35,8 +35,8 @@ int TraceMap::makeTrace(const std::vector<Event2f> &trace, const std::map<int, f
     return makeTraceWithRef(trace, getNextShapeKey(), extraAttributes);
 }
 
-bool TraceMap::read(std::istream &stream, int version) {
-    ShapeMap::read(stream, version, false);
+bool TraceMap::read(std::istream &stream) {
+    ShapeMap::read(stream);
 
     int count = 0;
     stream.read((char *)&count, sizeof(count));
@@ -48,8 +48,8 @@ bool TraceMap::read(std::istream &stream, int version) {
     return true;
 }
 
-bool TraceMap::write(std::ofstream &stream, int version) {
-    ShapeMap::write(stream, version);
+bool TraceMap::write(std::ofstream &stream) {
+    ShapeMap::write(stream);
 
     // write trace times
     int count = m_traceTimes.size();

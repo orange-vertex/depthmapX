@@ -306,7 +306,7 @@ Point2f Agent::onWeightedLook(bool wholeisovist) {
         bin.first();
 
         // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
         int node = bin.is_tail() ? -1 : bin.cursor();
 #else
         int node = bin.is_tail() ? -1 : bin.cursor().x;
@@ -316,7 +316,7 @@ Point2f Agent::onWeightedLook(bool wholeisovist) {
             weightmap.push_back(wpair(weight, node));
             bin.next();
             // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
             node = bin.is_tail() ? -1 : bin.cursor();
 #else
             node = bin.is_tail() ? -1 : bin.cursor().x;
@@ -468,7 +468,6 @@ Point2f Agent::onLoSLook(bool wholeisovist, int look_type) {
     int bbin = -1;
     if (m_program->m_destination_directed) {
         Point2f vec2 = m_destination - m_loc;
-        double test = vec2.length();
         vec2.normalise();
         bbin = binfromvec(vec2);
     }
@@ -522,10 +521,8 @@ Point2f Agent::onLoSLook(bool wholeisovist, int look_type) {
 }
 
 Point2f Agent::onDirectedLoSLook(bool wholeisovist, int look_type) {
-    int bbin = -1;
     Point2f vec2 = m_destination - m_loc;
     vec2.normalise();
-    bbin = binfromvec(vec2);
     int targetbin = -1;
     int vbin = m_program->m_vbin;
     if (wholeisovist || vbin == -1) {

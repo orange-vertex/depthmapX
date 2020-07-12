@@ -501,7 +501,7 @@ public:
    //
 
    // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
    friend pvector<T> intersect(const pvector<T>& a, const pvector<T>& b);
 #endif
 };
@@ -1286,7 +1286,7 @@ public:
    const T& operator [] (T pos) const
       { return m_data[pos+1]; }
 public:
-   ::std::istream& read( ::std::istream& stream, ::std::streampos offset = -1 );
+   ::std::istream& read(::std::istream& stream, ::std::streampos = -1);
    ::std::ostream& write( ::std::ostream& stream );
 };
 
@@ -1383,7 +1383,7 @@ void psubvec<T>::clear()
 }
 
 template <class T>
-::std::istream& psubvec<T>::read( ::std::istream& stream, ::std::streampos offset )
+::std::istream& psubvec<T>::read( ::std::istream& stream, ::std::streampos )
 {
    if (m_data) {
       delete [] m_data;
@@ -1465,7 +1465,7 @@ template <class T1, class T2>
 template <class T1, class T2> class keyvaluepairref
 {
    // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
 protected:
 #else
 public:
@@ -1496,7 +1496,7 @@ public:
    const T2& value() const { return *m_value; }
 
    // Quick mod - TV
-#if defined(_WIN32)
+#if defined(_MSC_VER)
    friend bool operator == <T1,T2>(const keyvaluepairref<T1,T2>& a, const keyvaluepairref<T1,T2>& b);
    friend bool operator <  <T1,T2>(const keyvaluepairref<T1,T2>& a, const keyvaluepairref<T1,T2>& b);
    friend bool operator >  <T1,T2>(const keyvaluepairref<T1,T2>& a, const keyvaluepairref<T1,T2>& b);
@@ -1582,7 +1582,7 @@ public:
    { return m_vector.search(Pair(item)).value(); }
    const T2& search(const T1& item) const
    { return m_vector.search(Pair(item)).value(); }
-   const size_t searchindex(const T1& item) const
+   size_t searchindex(const T1& item) const
    { return m_vector.searchindex(Pair(item)); }
    void remove_at(size_t i)
    { m_vector.remove_at(i); }

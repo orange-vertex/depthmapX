@@ -1,4 +1,4 @@
-// depthmapX - spatial network analysis platform
+// Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017 Christian Sailer
 
 // This program is free software: you can redistribute it and/or modify
@@ -14,21 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef VERSION_H
-#define VERSION_H
+#include <QPixmap>
+#include <QDir>
+#include <QDateTime>
 
-#include "version_defs.h"
+#include "coreapplication.h"
 
-// use these to define the depthmap versions
-#define DEPTHMAPX_MAJOR_VERSION 0
-#define DEPTHMAPX_MINOR_VERSION 6
-#define DEPTHMAPX_REVISION_VERSION 0
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
-#define DEPTHMAP_MODULE_VERSION 10.04
 
-// leave these alone - C Preprocessor magic to get stuff to the right format
-#define STRINGIFY(v) #v
-#define TITLE_BASE_FORMAT(version, minor, revision) "depthmapX " STRINGIFY(version) "." STRINGIFY(minor) "." STRINGIFY(revision)
-#define TITLE_BASE TITLE_BASE_FORMAT(DEPTHMAPX_MAJOR_VERSION, DEPTHMAPX_MINOR_VERSION, DEPTHMAPX_REVISION_VERSION)
+int main(int argc, char *argv[])
+{
+    Q_INIT_RESOURCE(resource);
+    Q_INIT_RESOURCE(settingsdialog);
 
-#endif // VERSION_H
+    CoreApplication app(argc, argv);
+
+    return app.exec();
+}

@@ -20,7 +20,7 @@
 
 #include "genlib/stringutils.h"
 
-bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &map, bool simple_version) {
+bool VGAVisualGlobal::run(Communicator *comm, PointMap &map, bool simple_version) {
     time_t atime = 0;
     if (comm) {
         qtimer(atime, 0);
@@ -28,10 +28,11 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
     }
     AttributeTable &attributes = map.getAttributeTable();
 
-    int entropy_col, rel_entropy_col, integ_dv_col, integ_pv_col, integ_tk_col, depth_col, count_col;
+    int entropy_col = -1, rel_entropy_col = -1, integ_dv_col = -1, integ_pv_col = -1, integ_tk_col = -1,
+        depth_col = -1, count_col = -1;
     std::string radius_text;
-    if (options.radius != -1) {
-        radius_text = std::string(" R") + dXstring::formatString(int(options.radius), "%d");
+    if (m_radius != -1) {
+        radius_text = std::string(" R") + dXstring::formatString(int(m_radius), "%d");
     }
 
     // n.b. these must be entered in alphabetical order to preserve col indexing:
@@ -66,18 +67,18 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
     depthmapX::RowMatrix<int> miscs(map.getRows(), map.getCols());
     depthmapX::RowMatrix<PixelRef> extents(map.getRows(), map.getCols());
 
-    for (int i = 0; i < map.getCols(); i++) {
-        for (int j = 0; j < map.getRows(); j++) {
+    for (size_t i = 0; i < map.getCols(); i++) {
+        for (size_t j = 0; j < map.getRows(); j++) {
             PixelRef curs = PixelRef(i, j);
             if (map.getPoint(curs).filled()) {
 
-                if ((map.getPoint(curs).contextfilled() && !curs.iseven()) || (options.gates_only)) {
+                if ((map.getPoint(curs).contextfilled() && !curs.iseven()) || (m_gates_only)) {
                     count++;
                     continue;
                 }
 
-                for (int ii = 0; ii < map.getCols(); ii++) {
-                    for (int jj = 0; jj < map.getRows(); jj++) {
+                for (size_t ii = 0; ii < map.getCols(); ii++) {
+                    for (size_t jj = 0; jj < map.getRows(); jj++) {
                         miscs(jj, ii) = 0;
                         extents(jj, ii) = PixelRef(ii, jj);
                     }
@@ -94,18 +95,19 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
                 int level = 0;
                 while (search_tree[level].size()) {
                     search_tree.push_back(PixelRefVector());
-                    const PixelRefVector& searchTreeAtLevel = search_tree[level];
+                    const PixelRefVector &searchTreeAtLevel = search_tree[level];
                     distribution.push_back(0);
-                    for (auto currLvlIter = searchTreeAtLevel.rbegin(); currLvlIter != searchTreeAtLevel.rend(); currLvlIter++) {
+                    for (auto currLvlIter = searchTreeAtLevel.rbegin(); currLvlIter != searchTreeAtLevel.rend();
+                         currLvlIter++) {
                         int &pmisc = miscs(currLvlIter->y, currLvlIter->x);
                         Point &p = map.getPoint(*currLvlIter);
                         if (p.filled() && pmisc != ~0) {
                             total_depth += level;
                             total_nodes += 1;
                             distribution.back() += 1;
-                            if ((int)options.radius == -1 ||
-                                level < (int)options.radius &&
-                                    (!p.contextfilled() || currLvlIter->iseven())) {
+                            if ((int)m_radius == -1 ||
+                                (level < (int)m_radius &&
+                                    (!p.contextfilled() || currLvlIter->iseven()))) {
                                 extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
                                 pmisc = ~0;
                                 if (!p.getMergePixel().empty()) {
@@ -189,15 +191,14 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
                         row.setValue(rel_entropy_col, (float)-1);
                     }
                 }
-            }
-
-            count++; // <- increment count
-            if (comm) {
-                if (qtimer(atime, 500)) {
-                    if (comm->IsCancelled()) {
-                        throw Communicator::CancelledException();
+                count++; // <- increment count
+                if (comm) {
+                    if (qtimer(atime, 500)) {
+                        if (comm->IsCancelled()) {
+                            throw Communicator::CancelledException();
+                        }
+                        comm->CommPostMessage(Communicator::CURRENT_RECORD, count);
                     }
-                    comm->CommPostMessage(Communicator::CURRENT_RECORD, count);
                 }
             }
         }
@@ -215,7 +216,7 @@ bool VGAVisualGlobal::run(Communicator *comm, const Options &options, PointMap &
 }
 
 void VGAVisualGlobal::extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,
-                   depthmapX::RowMatrix<PixelRef> &extents) {
+                                    depthmapX::RowMatrix<PixelRef> &extents) {
     for (int i = 0; i < 32; i++) {
         Bin &bin = node.bin(i);
         for (auto pixVec : bin.m_pixel_vecs) {

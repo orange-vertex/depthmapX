@@ -18,6 +18,8 @@
 #include "attributetable.h"
 #include "attributetableindex.h"
 
+#include <functional>
+
 class AttributeTableView
 {
 public:
@@ -45,7 +47,8 @@ private:
 class AttributeTableHandle : public AttributeTableView
 {
 public:
-    AttributeTableHandle(AttributeTable &table) : m_mutableTable(table), AttributeTableView(table){}
+    AttributeTableHandle(AttributeTable &table) : AttributeTableView(table), m_mutableTable(table){}
+    virtual ~AttributeTableHandle(){}
     typedef std::vector<AttributeIndexItem> Index;
     const Index& getTableIndex() const {return m_mutableIndex;}
     virtual void setDisplayColIndex(int columnIndex);
@@ -56,7 +59,7 @@ private:
 
 };
 
-struct index_item_key : public std::unary_function<AttributeKey, bool> {
+struct index_item_key : public std::function<bool(AttributeKey)> {
     explicit index_item_key(const AttributeKey &baseline) : m_baseline(baseline) {}
     bool operator() (const AttributeIndexItem &arg) { return arg.key.value == m_baseline.value; }
     const AttributeKey& m_baseline;

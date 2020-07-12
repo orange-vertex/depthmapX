@@ -17,12 +17,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "salalib/axialmodules/axialstepdepth.h"
-#include "salalib/axialmodules/axialhelpers.h"
 
 #include "genlib/pflipper.h"
 #include "genlib/stringutils.h"
 
-bool AxialStepDepth::run(Communicator *, const Options &, ShapeGraph &map, bool) {
+bool AxialStepDepth::run(Communicator *, ShapeGraph &map, bool) {
 
     AttributeTable &attributes = map.getAttributeTable();
 
