@@ -511,11 +511,11 @@ private:
   protected:
     mutable bool m_show; // used when shape map is a drawing layer
     bool m_editable;
-    bool m_selection;
     std::set<int> m_selection_set; // note: uses keys
   public:
     // Selection
-    bool isSelected() const { return m_selection; }
+    bool hasSelectedElements() const { return !m_selection_set.empty(); }
+    const std::map<int, SalaShape> getShapesInRegion(const QtRegion &r) const;
     bool setCurSel(QtRegion &r, bool add = false);
     bool setCurSel(const std::vector<int> &selset, bool add = false);
     bool setCurSelDirect(const std::vector<int> &selset, bool add = false);
@@ -565,7 +565,7 @@ private:
 #define __min(x, y) ((x < y) ? x : y)
 #endif
     //
-    double getSpacing() {
+    double getSpacing() const {
         return __max(m_region.width(), m_region.height()) / (10 * log((double)10 + m_shapes.size()));
     }
     //
@@ -615,7 +615,7 @@ private:
   public:
     std::vector<SimpleLine> getAllShapesAsLines() const;
     std::vector<std::pair<SimpleLine, PafColor>> getAllLinesWithColour();
-    std::map<std::vector<Point2f>, PafColor> getAllPolygonsWithColour();
+    std::vector<std::pair<std::vector<Point2f>, PafColor>> getAllPolygonsWithColour();
     std::vector<std::pair<Point2f, PafColor>> getAllPointsWithColour();
     bool importLines(const std::vector<Line> &lines, const depthmapX::Table &data);
     bool importLinesWithRefs(const std::map<int, Line> &lines, const depthmapX::Table &data);
