@@ -16,11 +16,13 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#ifndef __SALAPROGRAM_H__
-#define __SALAPROGRAM_H__
+#pragma once
+
+#include "salalib/attributetable.h"
 
 #include "genlib/stringutils.h"
-#include "genlib/paftl.h"
+
+#include <cmath>
 #include <vector>
 #include <set>
 #include <map>
@@ -88,7 +90,7 @@ inline bool operator > (const SalaStr& a, const SalaStr& b)
 
 struct SalaList {
    int *refcount;
-   pvector<SalaObj> *list;
+   std::vector<SalaObj> *list;
 public:
    friend bool operator == (const SalaList& a, const SalaList& b);
    friend bool operator != (const SalaList& a, const SalaList& b);
@@ -178,7 +180,7 @@ public:
       type = t; 
       if (t & S_LIST) {
          data.list.refcount = new int(1);
-         data.list.list = new pvector<SalaObj>;
+         data.list.list = new std::vector<SalaObj>;
       }
       else {
          data.count = 1; 
@@ -191,8 +193,7 @@ public:
       type = t; 
       if (t & S_LIST) {
          data.list.refcount = new int(1);
-         data.list.list = new pvector<SalaObj>;
-         data.list.list->set(v); // set blanks
+         data.list.list = new std::vector<SalaObj>(v); // set blanks
       }
       else {
          data.var = v; 
@@ -239,7 +240,7 @@ public:
    friend bool operator <= (SalaObj& a, SalaObj& b);
    // operations for lists:
    SalaObj& list_at(int i);
-   SalaObj char_at(size_t i); // actually returns a string of the char -- note constant
+   SalaObj char_at(int i); // actually returns a string of the char -- note constant
    int length();
    // check for no parameters
    void ensureNone()
@@ -265,14 +266,14 @@ protected:
    //
    SalaProgram *m_program; // information about the running program (in particular, the global variable and error stack)
    SalaCommand *m_parent;
-   prefvec<SalaCommand> m_children;
+   std::vector<SalaCommand> m_children;
    //
    std::map<std::string,int> m_var_names;
    //
    Command m_command;
    int m_indent;  // vital for program flow due to Pythonesque syntax
-   pvector<SalaObj> m_eval_stack;
-   pvector<SalaObj> m_func_stack;
+   std::vector<SalaObj> m_eval_stack;
+   std::vector<SalaObj> m_func_stack;
    //
    SalaObj m_for_iter;  // object used in a for loop
    //
@@ -298,8 +299,8 @@ class SalaProgram
    friend class SalaCommand;
    //
    SalaCommand m_root_command;
-   pvector<SalaObj> m_var_stack;
-   prefvec<SalaError> m_error_stack;
+   std::vector<SalaObj> m_var_stack;
+   std::vector<SalaError> m_error_stack;
    //
    // column is stored away from the context, as it's not actually passed to the program itself, just used to update a column
    int m_col;  
@@ -308,7 +309,9 @@ class SalaProgram
    SalaObj m_thisobj;
    //
    bool m_marked; // this is used to tell the program that a node has been "marked" -- all marks are cleared at the end of the execution
-   //
+   // marks for state management in maps
+   std::map<int, SalaObj> marks;
+
 public:
    SalaProgram(SalaObj context);
    ~SalaProgram();
@@ -436,7 +439,7 @@ inline int SalaObj::toInt() const
    switch(type) {
       case S_BOOL: return data.b ? 1 : 0;
       case S_INT: return data.i;
-      case S_DOUBLE: return int(floor(data.f)); // ensure properly implemented
+      case S_DOUBLE: return int(std::floor(data.f)); // ensure properly implemented
       default: throw SalaError(std::string("Cannot convert ") + getTypeIndefArt() + getTypeStr() + std::string(" to an integer value"));
    }
    return 0;
@@ -655,11 +658,11 @@ inline SalaObj& SalaObj::list_at(int i)
       throw SalaError("Index out of range");
    return data.list.list->at(i); 
 }
-inline SalaObj SalaObj::char_at(size_t i) // actually returns a string of the char
+inline SalaObj SalaObj::char_at(int i) // actually returns a string of the char
 {
    if (i < 0)
       i += data.str.length();
-   if (i < 0 || i >= data.str.length()) 
+   if (i < 0 || i >= static_cast<int>(data.str.length()))
       throw SalaError("String index out of range");
    return SalaObj(std::string(1,data.str.char_at(i)));
 }
@@ -697,6 +700,8 @@ inline const std::string SalaObj::getTypeStr() const
       return "tuple";
    case S_THIS:
       return "this";
+   default:
+       break;
    }
    if (type & S_GRAPHOBJ) {
       return "graph object";
@@ -765,7 +770,7 @@ struct SalaBuffer
    { bufpos = -1; buffer[0] = '\0'; }
    operator std::string()
    { buffer[bufpos + 1] = '\0'; return std::string(buffer); }
-   const bool empty()
+   bool empty()
    { return bufpos == -1; }
 };
 
@@ -793,7 +798,3 @@ struct SalaMemberFuncLabel : public SalaFuncLabel
    }
 };
 
-
-/////////////////////////////////////////////////////////////////////////////////////
-
-#endif

@@ -71,7 +71,7 @@ public:
 
    // Quick mod - TV
 #if 0
-#if !defined(_WIN32)
+#if !defined(_MSC_VER)
    size_t size() const
    { return pmemvec<T>::size(); }
 
@@ -85,12 +85,12 @@ public:
 #endif
 
 public:
-   bool read( std::ifstream& stream, int version, bool drawinglayer = true );
+   bool read(std::ifstream& stream, int version, bool = true);
    bool write(std::ostream &stream, int version );
 };
 
 template <class T>
-bool SpacePixelGroup<T>::read( std::ifstream& stream, int version, bool drawinglayer )
+bool SpacePixelGroup<T>::read( std::ifstream& stream, int version, bool )
 {
    if (version >= VERSION_SPACEPIXELGROUPS) {
       m_name = dXstring440::readString(stream);

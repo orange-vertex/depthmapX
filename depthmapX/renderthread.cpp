@@ -152,7 +152,7 @@ void RenderThread::run()
 
       case CMSCommunicator::MAKEISOVIST:
          if (comm->GetSeedAngle() == -1.0) {
-            ok = pDoc->m_meta_graph->makeIsovist( comm, comm->GetSeedPoint() );
+            ok = pDoc->m_meta_graph->makeIsovist( comm, comm->GetSeedPoint(), 0, 0, comm->simple_version );
          }
          else {
             double ang1 = comm->GetSeedAngle() - comm->GetSeedFoV() * 0.5;
@@ -161,7 +161,7 @@ void RenderThread::run()
                ang1 += 2.0 * M_PI;
             if (ang2 > 2.0 * M_PI)
                ang2 -= 2.0 * M_PI;
-            ok = pDoc->m_meta_graph->makeIsovist( comm, comm->GetSeedPoint(), ang1, ang2 );
+            ok = pDoc->m_meta_graph->makeIsovist( comm, comm->GetSeedPoint(), ang1, ang2, comm->simple_version );
          }
          if (ok) {
             pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
@@ -200,9 +200,9 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
 
-      case CMSCommunicator::MAKEDRAWING:
+      case CMSCommunicator::MAKEDRAWING: {
          // option 1 is: 0 a data map, 1 an axial map
-         ok = pDoc->m_meta_graph->convertToDrawing( comm, comm->GetString().toStdString(), comm->GetOption(1) );
+         ok = pDoc->m_meta_graph->convertToDrawing( comm, comm->GetString().toStdString(), (comm->GetOption(1) == 0));
          if (ok) {
 			 pDoc->modifiedFlag = true;
          }
@@ -213,7 +213,7 @@ void RenderThread::run()
          QApplication::postEvent(pMain, new QmyEvent((enum QEvent::Type)FOCUSGRAPH, (void*)pDoc, QGraphDoc::CONTROLS_LOADDRAWING));
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_TOTAL, QGraphDoc::NEW_DATA );
          break;
-
+      }
       case CMSCommunicator::MAKEUSERMAP:
          ok = pDoc->m_meta_graph->convertDrawingToAxial( comm, comm->GetString().toStdString());
          if (ok) {
@@ -270,9 +270,15 @@ void RenderThread::run()
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
       
-      case CMSCommunicator::MAKEGATESMAP:
+      case CMSCommunicator::MAKEGATESMAP: {
          // note: relies on the fact that make data map from drawing sets option 1 to -1, whereas make data layer from graph it to either 0 or 1
-         ok = pDoc->m_meta_graph->convertToData( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1), comm->GetOption(1) );
+         int shapeMapType = ShapeMap::DRAWINGMAP;
+         bool copydata = false;
+         if(comm->GetOption(1) != -1) {
+             shapeMapType = ShapeMap::DATAMAP;
+             copydata = (comm->GetOption(1) != 0);
+         }
+         ok = pDoc->m_meta_graph->convertToData( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1), shapeMapType, copydata );
          if (ok) {
             if (comm->GetOption(0) == 0) {
                // note: there is both a new table and a deleted table, but deleted table leads to a greater redraw:
@@ -287,10 +293,16 @@ void RenderThread::run()
          }
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
-
-      case CMSCommunicator::MAKECONVEXMAP:
+      }
+      case CMSCommunicator::MAKECONVEXMAP: {
          // note: relies on the fact that make convex map from drawing sets option 1 to -1, whereas make convex map from data sets it to either 0 or 1
-         ok = pDoc->m_meta_graph->convertToConvex( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1), comm->GetOption(1) );
+         int shapeMapType = ShapeMap::DRAWINGMAP;
+         bool copydata = false;
+         if(comm->GetOption(1) != -1) {
+             shapeMapType = ShapeMap::DATAMAP;
+             copydata = (comm->GetOption(1) != 0);
+         }
+         ok = pDoc->m_meta_graph->convertToConvex( comm, comm->GetString().toStdString(), (comm->GetOption(0) == 1),  shapeMapType, copydata);
          if (ok) {
             if (comm->GetOption(0) == 0) {
                // note: there is both a new table and a deleted table, but deleted table leads to a greater redraw:
@@ -305,7 +317,7 @@ void RenderThread::run()
          }
          pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
          break;
-
+      }
       case CMSCommunicator::MAKEBOUNDARYMAP:
          break;
 
@@ -423,7 +435,7 @@ void RenderThread::run()
          {
             try {
               pDoc->m_meta_graph->runAgentEngine( comm );
-              pDoc->SetUpdateFlag(QGraphDoc::NEW_DATA);
+              pDoc->SetUpdateFlag(QGraphDoc::NEW_TABLE);
               pDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_POINTS, QGraphDoc::NEW_DATA );
             } catch (depthmapX::PointMapException const & e) {
               emit runtimeExceptionThrown(e.getErrorType(), e.what());

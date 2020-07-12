@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include <genlib/xmlparse.h>
+#include "xmlparse.h"
 
 enum { STEP_START, STEP_ELEMENT_NAME, 
                    STEP_ATTRIBUTE_NAME,
@@ -37,7 +37,7 @@ bool xmlelement::parse(std::ifstream& stream, bool parsesubelements)
    std::string attribute;
    std::string value;
    while (!complete && stream) {
-      char c = stream.get();
+      char c = static_cast<char>(stream.get());
       if (stream) {
          switch (step) {
          case STEP_START:

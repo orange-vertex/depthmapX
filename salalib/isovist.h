@@ -18,8 +18,9 @@
 
 // isovist.h
 
-#ifndef __ISOVIST_H__
-#define __ISOVIST_H__
+#pragma once
+
+#include "salalib/attributetable.h"
 
 #include "genlib/bsptree.h"
 #include <set>
@@ -66,7 +67,7 @@ protected:
    std::set<IsoSeg> m_blocks;
    std::set<IsoSeg> m_gaps;
    std::vector<Point2f> m_poly;
-   prefvec<PointDist> m_occlusion_points;
+   std::vector<PointDist> m_occlusion_points;
    double m_perimeter;
    double m_occluded_perimeter;
    double m_max_radial;
@@ -74,16 +75,14 @@ protected:
 public:
    Isovist() {;}
    const std::vector<Point2f>& getPolygon() const { return m_poly; }
-   const prefvec<PointDist>& getOcclusionPoints() const { return m_occlusion_points; }
+   const std::vector<PointDist>& getOcclusionPoints() const { return m_occlusion_points; }
    const Point2f& getCentre() const { return m_centre; }
    //
    void makeit(BSPNode *root, const Point2f& p, const QtRegion& region, double startangle = 0.0, double endangle = 0.0);
    void make(BSPNode *here);
    void drawnode(const Line& li, int tag);
    void addBlock(const Line& li, int tag, double startangle, double endangle);
-   void setData(AttributeTable& table, int row, bool simple_version);
+   void setData(AttributeTable &table, AttributeRow &row, bool simple_version);
    //
    int getClosestLine(BSPNode *root, const Point2f& p);
 };
-
-#endif

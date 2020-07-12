@@ -17,8 +17,9 @@
 
 // ngraph.h
 
-#ifndef __NGRAPH_H__
-#define __NGRAPH_H__
+#pragma once
+
+#include "salalib/pixelref.h"
 
 #include <set>
 
@@ -38,22 +39,22 @@ struct PixelVec
    PixelRef end() const
    { return m_end; }
    //
-   std::istream &read(std::istream &stream, int version, const char dir);
-   std::istream &read(std::istream &stream, int version, const char dir, const PixelVec& context);
-   std::ofstream& write(std::ofstream& stream, const char dir);
-   std::ofstream& write(std::ofstream& stream, const char dir, const PixelVec& context);
+   std::istream &read(std::istream &stream, const char dir);
+   std::istream &read(std::istream &stream, const char dir, const PixelVec& context);
+   std::ostream &write(std::ostream &stream, const char dir);
+   std::ostream &write(std::ostream &stream, const char dir, const PixelVec& context);
 };
 
 class Bin
 {
    friend class Node;
 protected:
-   char m_dir;
    unsigned short m_node_count;
    float m_distance;
    float m_occ_distance;
-   std::vector<PixelVec> m_pixel_vecs;
 public:
+   char m_dir;
+   std::vector<PixelVec> m_pixel_vecs;
    Bin()
    { m_dir = PixelRef::NODIR; m_node_count = 0; m_distance = 0.0f; m_occ_distance = 0.0f; }
    //
@@ -80,14 +81,13 @@ protected:
    mutable int m_curvec;
    mutable PixelRef m_curpix;
 public:
-   void contents(PixelRefVector& hood);
    void first() const;
    void next() const;
    bool is_tail() const;
    PixelRef cursor() const;
    //
-   std::istream &read(std::istream &stream, int version);
-   std::ofstream& write(std::ofstream& stream, int version);
+   std::istream &read(std::istream &stream);
+   std::ostream &write(std::ostream &stream);
    //
    friend std::ostream& operator << (std::ostream& stream, const Bin& bin);
 };
@@ -103,7 +103,7 @@ public:
 public:
    // Note: this function clears the bins as it goes
    void make(const PixelRef pix, PixelRefVector *bins, float *bin_far_dists, int q_octants);
-   void extractUnseen(PixelRefVector& pixels, PointMap *pointdata, int binmark);
+   void extractUnseen(PixelRefVector& pixels, PointMap *pointdata);
    void extractMetric(std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple& curs);
    void extractAngular(std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple& curs);
    bool concaveConnected();
@@ -142,8 +142,8 @@ public:
    bool is_tail() const;
    PixelRef cursor() const;
    //
-   std::istream &read(std::istream &stream, int version);
-   std::ofstream& write(std::ofstream& stream, int version);
+   std::istream &read(std::istream &stream);
+   std::ostream &write(std::ostream &stream);
    //
    friend std::ostream& operator << (std::ostream& stream, const Node& node);
 };
@@ -186,5 +186,3 @@ inline bool operator < (const PixelRefV& a, const PixelRefV& b)
 {
    return (a.x < b.x || (a.x == b.x && a.y < b.y));
 }
-
-#endif

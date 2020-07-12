@@ -22,6 +22,7 @@
 #include "genlib/exceptions.h"
 #include "salalib/point.h"
 #include "salalib/options.h"
+#include "salalib/attributetable.h"
 #include <vector>
 #include <set>
 #include <deque>
@@ -35,7 +36,7 @@ class OldPoint1 {
    friend class PointMap;
 protected:
    int m_noderef;
-   int m_state; 
+   int m_state;
 };
 
 class OldPoint2 {
@@ -81,15 +82,14 @@ class PointMap : public PixelBase
    // pushValuesToLayer: this swaps values from a PointMap to a DataLayer, and it needs to be changed in the future
    // (e.g., when making DataLayers into ShapeMaps)
    friend class MetaGraph;
-private:
+public:
    bool m_hasIsovistAnalysis = false;
+   const std::vector<SpacePixelFile>& getDrawingFiles() { return *m_drawingFiles; }
 protected:
    std::string m_name;
    const QtRegion* m_parentRegion;
    const std::vector<SpacePixelFile>* m_drawingFiles;
-   std::vector<Point> m_points;    // will contain the graph reference when created
-   //int m_rows;
-   //int m_cols;
+   depthmapX::ColumnMatrix<Point> m_points;    // will contain the graph reference when created
    int m_filled_point_count;
    double m_spacing;
    Point2f m_offset;
@@ -100,17 +100,44 @@ protected:
    bool m_boundarygraph;
    int m_undocounter;
    std::vector<PixelRefPair> m_merge_lines;
-   // The attributes table replaces AttrHeader / AttrRow data format
-   AttributeTable m_attributes;
+private:
+   std::unique_ptr<AttributeTable> m_attributes;
+   std::unique_ptr<AttributeTableHandle> m_attribHandle;
+   LayerManagerImpl m_layers;
 public:
-   PointMap(const QtRegion& parentRegion, const std::vector<SpacePixelFile>& drawingFiles, const std::string& name = std::string("VGA Map"));
+   PointMap(const QtRegion& parentRegion, const std::vector<SpacePixelFile>& drawingFiles,
+            const std::string& name = std::string("VGA Map"));
+   virtual ~PointMap() {}
+   void copy(const PointMap& other);
    const std::string& getName() const
    { return m_name; }
+
+   PointMap(PointMap&& other):
+              m_parentRegion(std::move(other.m_parentRegion)),
+              m_drawingFiles(std::move(other.m_drawingFiles)),
+              m_points(std::move(other.m_points)),
+              m_attributes(std::move(other.m_attributes)),
+              m_attribHandle(std::move(other.m_attribHandle)),
+              m_layers(std::move(other.m_layers)) {
+       copy(other);
+   }
+   PointMap& operator =(PointMap&& other) {
+       m_parentRegion = std::move(other.m_parentRegion);
+       m_drawingFiles = std::move(other.m_drawingFiles);
+       m_points = std::move(other.m_points);
+       m_attributes = std::move(other.m_attributes);
+       m_attribHandle = std::move(other.m_attribHandle);
+       m_layers = std::move(other.m_layers);
+       copy(other);
+       return *this;
+   }
+   PointMap(const PointMap& ) = delete;
+   PointMap& operator =(const PointMap&) = delete;
 
    void communicate( time_t& atime, Communicator *comm, int record );
    // constrain is constrain to existing rows / cols
    PixelRef pixelate( const Point2f& p, bool constrain = true, int scalefactor = 1 ) const;
-   Point2f depixelate( const PixelRef& p, double scalefactor = 1.0 ) const;   // Inlined below 
+   Point2f depixelate( const PixelRef& p, double scalefactor = 1.0 ) const;   // Inlined below
    QtRegion regionate( const PixelRef& p, double border ) const;     // Inlined below
    bool setGrid(double spacing, const Point2f& offset = Point2f());
    std::vector<std::pair<PixelRef, PixelRef>> getMergedPixelPairs()
@@ -140,27 +167,21 @@ public:
       { return !m_processed && m_undocounter != 0; }
    void outputPoints(std::ostream& stream, char delim );
    void outputMergeLines(std::ostream& stream, char delim);
-   int  tagState(bool settag, bool sparkgraph = false);
+   int  tagState(bool settag);
    bool sparkGraph2(Communicator *comm, bool boundarygraph, double maxdist );
+   bool unmake(bool removeLinks);
    bool sparkPixel2(PixelRef curs, int make, double maxdist = -1.0);
    bool sieve2(sparkSieve2& sieve, std::vector<PixelRef>& addlist, int q, int depth, PixelRef curs);
    // bool makeGraph( Graph& graph, int optimization_level = 0, Communicator *comm = NULL);
    //
-   bool binDisplay(Communicator *comm);
-   bool analyseIsovist(Communicator *comm, MetaGraph& mgraph, bool simple_version);
-   bool analyseVisual(Communicator *comm, Options& options, bool simple_version);
-   bool analyseVisualPointDepth(Communicator *comm);
-   bool analyseMetric(Communicator *comm, Options& options);
-   bool analyseMetricPointDepth(Communicator *comm);
-   bool analyseAngular(Communicator *comm, Options& options);
-   bool analyseAngularPointDepth(Communicator *comm);
-   bool analyseThruVision(Communicator *comm);
+   bool binDisplay(Communicator *);
    bool mergePoints(const Point2f& p);
    bool unmergePoints();
+   bool unmergePixel(PixelRef a);
    bool mergePixels(PixelRef a, PixelRef b);
    void mergeFromShapeMap(const ShapeMap& shapemap);
    bool isPixelMerged(const PixelRef &a);
-   
+
    void outputSummary(std::ostream& myout, char delimiter = '\t');
    void outputMif(std::ostream& miffile, std::ostream& midfile );
    void outputNet(std::ostream& netfile );
@@ -168,11 +189,12 @@ public:
    void outputBinSummaries(std::ostream& myout);
 
    const Point& getPoint(const PixelRef& p) const
-      { return m_points[p.x*m_rows + p.y]; }
+      { return m_points(static_cast<size_t>(p.y), static_cast<size_t>(p.x)); }
    Point& getPoint(const PixelRef& p)
-      { return m_points[p.x*m_rows + p.y]; }
+      { return m_points(static_cast<size_t>(p.y), static_cast<size_t>(p.x)); }
+   depthmapX::BaseMatrix<Point>& getPoints() { return m_points; }
    const int& pointState( const PixelRef& p ) const
-      { return m_points[p.x*m_rows + p.y].m_state; }
+      { return m_points(static_cast<size_t>(p.y), static_cast<size_t>(p.x)).m_state; }
    // to be phased out
    bool blockedAdjacent( const PixelRef p ) const;
    //
@@ -188,7 +210,7 @@ public:
 protected:
    int expand( const PixelRef p1, const PixelRef p2, PixelRefVector& list, int filltype );
    //
-   //void walk( PixelRef& start, int steps, Graph& graph, 
+   //void walk( PixelRef& start, int steps, Graph& graph,
    //           int parity, int dominant_axis, const int grad_pair[] );
 
    // Selection functionality
@@ -197,7 +219,7 @@ protected:
    int m_selection;
    bool m_pinned_selection;
    std::set<int> m_selection_set;      // n.b., m_selection_set stored as int for compatibility with other map layers
-   mutable PixelRef s_bl; 
+   mutable PixelRef s_bl;
    mutable PixelRef s_tr;
 public:
    bool isSelected() const                              // does a selection exist
@@ -219,53 +241,58 @@ protected:
    mutable int m_displayed_attribute;
 public:
    int addAttribute(const std::string& name)
-      { return m_attributes.insertColumn(name); }
+      { return m_attributes->insertOrResetColumn(name); }
    void removeAttribute(int col)
-      { m_attributes.removeColumn(col); }
-   // I don't want to do this, but every so often you will need to update this table 
+      { m_attributes->removeColumn(col); }
+   // I don't want to do this, but every so often you will need to update this table
    // use const version by preference
    AttributeTable& getAttributeTable()
-      { return m_attributes; }
+      { return *m_attributes.get(); }
    const AttributeTable& getAttributeTable() const
-      { return m_attributes; }
+      { return *m_attributes.get(); }
+   LayerManagerImpl& getLayers()
+      { return m_layers; }
+   const LayerManagerImpl& getLayers() const
+      { return m_layers; }
+   AttributeTableHandle& getAttributeTableHandle()
+      { return *m_attribHandle.get(); }
+   const AttributeTableHandle& getAttributeTableHandle() const
+      { return *m_attribHandle.get(); }
 public:
    double getDisplayMinValue() const
-   { return (m_displayed_attribute != -1) ? m_attributes.getMinValue(m_displayed_attribute) : 0; } 
+   { return (m_displayed_attribute != -1) ? m_attributes->getColumn(m_displayed_attribute).getStats().min : 0; }
 
-   // Quick mod - TV
-#if defined(_WIN32)
    double getDisplayMaxValue() const
-   { return (m_displayed_attribute != -1) ? m_attributes.getMaxValue(m_displayed_attribute) : pixelate(m_region.top_right); } 
-#else
-   double getDisplayMaxValue() const
-   { return (m_displayed_attribute != -1) ? m_attributes.getMaxValue(m_displayed_attribute) : pixelate(m_region.top_right).x; }
-#endif
-   //
-   mutable DisplayParams m_display_params;
+   { return (m_displayed_attribute != -1) ? m_attributes->getColumn(m_displayed_attribute).getStats().max : pixelate(m_region.top_right).x; }
+
    const DisplayParams& getDisplayParams() const
-   { return m_attributes.getDisplayParams(m_displayed_attribute); } 
+   { return m_attributes->getColumn(m_displayed_attribute).getDisplayParams(); }
    // make a local copy of the display params for access speed:
    void setDisplayParams(const DisplayParams& dp, bool apply_to_all = false)
    { if (apply_to_all)
-        m_attributes.setDisplayParams(dp); 
-     else 
-        m_attributes.setDisplayParams(m_displayed_attribute, dp); 
-     m_display_params = dp; }
+        m_attributes->setDisplayParams(dp);
+     else
+        m_attributes->getColumn(m_displayed_attribute).setDisplayParams(dp);
+   }
    //
 public:
    void setDisplayedAttribute( int col );
    // use set displayed attribute instead unless you are deliberately changing the column order:
    void overrideDisplayedAttribute(int attribute)
    { m_displayed_attribute = attribute; }
-   // now, there is a slightly odd thing here: the displayed attribute can go out of step with the underlying 
+   // now, there is a slightly odd thing here: the displayed attribute can go out of step with the underlying
    // attribute data if there is a delete of an attribute in idepthmap.h, so it just needs checking before returning!
    int getDisplayedAttribute() const
-   { if (m_displayed_attribute == m_attributes.m_display_column) return m_displayed_attribute;
-     if (m_attributes.m_display_column != -2) {
-        m_displayed_attribute = m_attributes.m_display_column;
-        m_display_params = m_attributes.getDisplayParams(m_displayed_attribute);
+   {
+     if (m_displayed_attribute == m_attribHandle->getDisplayColIndex()) return m_displayed_attribute;
+     if (m_attribHandle->getDisplayColIndex() != -2) {
+        m_displayed_attribute = m_attribHandle->getDisplayColIndex();
      }
      return m_displayed_attribute; }
+
+   float getDisplayedSelectedAvg() {
+       return(m_attributes->getSelAvg(m_displayed_attribute));
+   }
 
    double getLocationValue(const Point2f& point);
    //
@@ -314,8 +341,8 @@ public:
    // this is an odd helper function, value in range 0 to 1
    PixelRef pickPixel(double value) const;
 public:
-   bool read(std::istream &stream, int version );
-   bool write(std::ofstream& stream, int version );
+   bool read(std::istream &stream);
+   bool write(std::ostream &stream);
    void addGridConnections(); // adds grid connections where graph does not include them
    void outputConnectionsAsCSV(std::ostream &myout, std::string delim = ",");
    void outputLinksAsCSV(std::ostream &myout, std::string delim = ",");
@@ -325,7 +352,7 @@ public:
 
 inline Point2f PointMap::depixelate( const PixelRef& p, double scalefactor ) const
 {
-   return Point2f( m_bottom_left.x + m_spacing * scalefactor * double(p.x), 
+   return Point2f( m_bottom_left.x + m_spacing * scalefactor * double(p.x),
                    m_bottom_left.y + m_spacing * scalefactor * double(p.y) );
 }
 
@@ -344,7 +371,7 @@ inline QtRegion PointMap::regionate( const PixelRef& p, double border ) const
 // A helper class for metric integration
 
 // to allow a dist / PixelRef pair for easy sorting
-// (have to do comparison operation on both dist and PixelRef as 
+// (have to do comparison operation on both dist and PixelRef as
 // otherwise would have a duplicate key for pqmap / pqvector)
 
 struct MetricTriple
@@ -410,7 +437,7 @@ inline int whichbin( const Point2f& grad )
 
    // This is only for true gradients...
    //    ...see below for calculated gradients
-   //    
+   //
    // Octant:
    //       +     -
    //    - \ 8 | 8 / +
@@ -418,7 +445,7 @@ inline int whichbin( const Point2f& grad )
    //      ---- ----
    //      16/ | \32
    //    + /24 | 24\ -
-   //      -      +    
+   //      -      +
 
    if (fabs(grad.y) > fabs(grad.x)) {
       bin = 1; // temporary: label y priority
@@ -527,10 +554,10 @@ inline int processoctant(int bin)
 inline int flagoctant(int bin)
 {
    int q = 0;
-         
+
    // have to use two q octants if you are on diagonals or axes...
    switch (bin) {
-   case 0: 
+   case 0:
       q |= 1 << 1; q |= 1 << 3; break;
    case 1: case 2: case 3:
       q |= 1 << 1; break;
@@ -538,11 +565,11 @@ inline int flagoctant(int bin)
       q |= 1 << 1; q |= 1 << 7; break;
    case 5: case 6: case 7:
       q |= 1 << 7; break;
-   case 8: 
+   case 8:
       q |= 1 << 7; q |= 1 << 6; break;
    case 9: case 10: case 11:
       q = 1 << 6; break;
-   case 12: 
+   case 12:
       q |= 1 << 6; q |= 1 << 0; break;
    case 13: case 14: case 15:
       q |= 1 << 0; break;
@@ -554,11 +581,11 @@ inline int flagoctant(int bin)
       q |= 1 << 2; q |= 1 << 4; break;
    case 21: case 22: case 23:
       q |= 1 << 4; break;
-   case 24: 
+   case 24:
       q |= 1 << 4; q |= 1 << 5; break;
    case 25: case 26: case 27:
       q |= 1 << 5; break;
-   case 28: 
+   case 28:
       q |= 1 << 5; q |= 1 << 3; break;
    case 29: case 30: case 31:
       q |= 1 << 3; break;
@@ -572,15 +599,16 @@ inline int flagoctant(int bin)
 
 inline int q_opposite(int bin)
 {
-   int q = -1;
    int opposing_bin = (16 + bin) % 32;
 
-            //      \ 6 | 7 /
-            //      0 \ | / 1
-            //      - -   - -
-            //      2 / | \ 3
-            //      / 4 | 5 \
-         
+   /*
+    *       \ 6 | 7 /
+    *      0 \ | / 1
+    *      - -   - -
+    *      2 / | \ 3
+    *      / 4 | 5 \
+    */
+
    return flagoctant(opposing_bin);
 }
 

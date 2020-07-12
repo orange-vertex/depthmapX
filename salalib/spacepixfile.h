@@ -16,6 +16,21 @@ public:
    //
    SpacePixelFile(const std::string& name = std::string())
    { m_name = name; m_current_layer = -1; }
+   SpacePixelFile(SpacePixelFile&& other):
+       m_name(other.m_name),
+       m_current_layer(other.m_current_layer),
+       m_spacePixels(std::move(other.m_spacePixels)),
+       m_region(std::move(other.m_region)) {}
+   SpacePixelFile& operator =(SpacePixelFile&& other) {
+       m_name = other.m_name;
+       m_current_layer = other.m_current_layer;
+       m_spacePixels = std::move(other.m_spacePixels);
+       m_region = std::move(other.m_region);
+       return *this;
+   }
+   SpacePixelFile(const SpacePixelFile&) = delete;
+   SpacePixelFile& operator =(const SpacePixelFile&) = delete;
+
    void setName(const std::string& name)
    { m_name = name; }
    const std::string& getName() const
@@ -31,15 +46,12 @@ public:
    const SalaShape& getNextShape() const
       { return m_spacePixels[m_current_layer].getNextShape(); }
 
-   //
-   void cutLine(Line& l);//, short dir);
-   //
    // Is any one sublayer shown?
 
    bool isShown() const
       { for (size_t i = 0; i < m_spacePixels.size(); i++) if (m_spacePixels[i].isShown()) return true; return false; }
    //
 public:
-   bool read(std::istream &stream, int version, bool drawinglayer = true );
-   bool write( std::ofstream& stream, int version );
+   bool read(std::istream &stream);
+   bool write(std::ofstream& stream);
 };

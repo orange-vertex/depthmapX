@@ -25,31 +25,33 @@
 
 #include "mainwindow.h"
 
-#include "MakeLayerDlg.h"
-#include "OptionsDlg.h"
-#include "AxialAnalysisOptionsDlg.h"
-#include "SegmentAnalysisDlg.h"
-#include "GridDialog.h"
-#include "MakeOptionsDlg.h"
-#include "EditConnectionsDlg.h"
-#include "ColourScaleDlg.h"
-#include "FewestLineOptionsDlg.h"
-#include "PromptReplace.h"
-#include "FilePropertiesDlg.h"
-#include "InsertColumnDlg.h"
-#include "PushDialog.h"
-#include "AgentAnalysisDlg.h"
-#include "NewLayerDlg.h"
-#include "AttributeChooserDlg.h"
-#include "LayerChooserDlg.h"
-#include "RenameObjectDlg.h"
-#include "ColumnPropertiesDlg.h"
-#include "IsovistPathDlg.h"
-#include "ConvertShapesDlg.h"
-#include "TopoMetDlg.h"
-#include "AttributeSummary.h"
-#include "depthmapView.h"
-#include "viewhelpers.h"
+#include "dialogs/MakeLayerDlg.h"
+#include "dialogs/OptionsDlg.h"
+#include "dialogs/AxialAnalysisOptionsDlg.h"
+#include "dialogs/SegmentAnalysisDlg.h"
+#include "dialogs/GridDialog.h"
+#include "dialogs/MakeOptionsDlg.h"
+#include "dialogs/EditConnectionsDlg.h"
+#include "dialogs/ColourScaleDlg.h"
+#include "dialogs/FewestLineOptionsDlg.h"
+#include "dialogs/PromptReplace.h"
+#include "dialogs/FilePropertiesDlg.h"
+#include "dialogs/InsertColumnDlg.h"
+#include "dialogs/PushDialog.h"
+#include "dialogs/AgentAnalysisDlg.h"
+#include "dialogs/NewLayerDlg.h"
+#include "dialogs/AttributeChooserDlg.h"
+#include "dialogs/LayerChooserDlg.h"
+#include "dialogs/RenameObjectDlg.h"
+#include "dialogs/ColumnPropertiesDlg.h"
+#include "dialogs/IsovistPathDlg.h"
+#include "dialogs/ConvertShapesDlg.h"
+#include "dialogs/TopoMetDlg.h"
+#include "dialogs/AttributeSummary.h"
+
+#include "views/depthmapview/depthmapview.h"
+#include "views/viewhelpers.h"
+
 #include <QMetaType>
 
 #ifdef _WIN32
@@ -102,7 +104,6 @@ void QGraphDoc::exceptionThrownInRenderThread(int type, std::string message) {
         message << "This operation requires isovist analysis. To run it go to: ";
         message << "Tools -> Visibility -> Run Visibility Graph Analysis... ";
         message << "and select \"Calculate isovist properties\"";
-        message << flush;
         QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
                              QMessageBox::Ok, QMessageBox::Ok);
     }
@@ -216,19 +217,23 @@ void QGraphDoc::OnLayerNew()
       ShapeMap *map;
       if (dlg.m_layer_type == 0) {
           int ref = m_meta_graph->addShapeMap(dlg.m_name.toStdString());
-         map = &(m_meta_graph->getDataMaps()[ref]);
+          m_meta_graph->setDisplayedDataMapRef(ref);
+          map = &(m_meta_graph->getDataMaps()[ref]);
       }
       else if (dlg.m_layer_type == 1) {
-         int ref = m_meta_graph->addShapeGraph(dlg.m_name.toStdString(),ShapeMap::CONVEXMAP);
-         map = &(m_meta_graph->getShapeGraphs().getMap(ref));
+          int ref = m_meta_graph->addShapeGraph(dlg.m_name.toStdString(),ShapeMap::CONVEXMAP);
+          m_meta_graph->setDisplayedShapeGraphRef(ref);
+          map = m_meta_graph->getShapeGraphs()[size_t(ref)].get();
       }
       else if (dlg.m_layer_type == 2) {
-         int ref = m_meta_graph->addShapeGraph(dlg.m_name.toStdString(),ShapeMap::AXIALMAP);
-         map = &(m_meta_graph->getShapeGraphs().getMap(ref));
+          int ref = m_meta_graph->addShapeGraph(dlg.m_name.toStdString(),ShapeMap::AXIALMAP);
+          m_meta_graph->setDisplayedShapeGraphRef(ref);
+          map = m_meta_graph->getShapeGraphs()[size_t(ref)].get();
       }
       else if (dlg.m_layer_type == 3) {
-         int ref = m_meta_graph->addShapeGraph(dlg.m_name.toStdString(),ShapeMap::PESHMAP);
-         map = &(m_meta_graph->getShapeGraphs().getMap(ref));
+          int ref = m_meta_graph->addShapeGraph(dlg.m_name.toStdString(),ShapeMap::PESHMAP);
+          m_meta_graph->setDisplayedShapeGraphRef(ref);
+          map = m_meta_graph->getShapeGraphs()[size_t(ref)].get();
       }
 
       QtRegion r = m_meta_graph->getBoundingBox();
@@ -400,7 +405,6 @@ void QGraphDoc::OnVGALinksFileImport()
             message << fileName;
             message << "\n\n Error: ";
             message << e.what();
-            message << flush;
             QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
                                                    QMessageBox::Ok, QMessageBox::Ok);
         }
@@ -411,7 +415,6 @@ void QGraphDoc::OnVGALinksFileImport()
             message << fileName;
             message << "\n\n Error: ";
             message << e.what();
-            message << flush;
             QMessageBox::warning(this, tr("Warning"), tr(message.str().c_str()),
                                                    QMessageBox::Ok, QMessageBox::Ok);
         }
@@ -708,6 +711,79 @@ void QGraphDoc::OnFileExport()
          else if (mode == 2) {
             m_meta_graph->getDisplayedPointMap().outputMif(miffile,midfile);
         }
+    }
+}
+
+void QGraphDoc::OnFileExportMapGeometry() {
+    if (m_communicator) {
+        QMessageBox::warning(this, tr("Notice"), tr("Sorry, cannot export as another process is running"),
+                             QMessageBox::Ok, QMessageBox::Ok);
+        return; // Locked
+    }
+    if (m_meta_graph->viewingNone()) {
+        QMessageBox::warning(this, tr("Notice"), tr("Sorry, cannot export as there is no data to export"),
+                             QMessageBox::Ok, QMessageBox::Ok);
+        return; // No graph to export
+    }
+
+    QString suffix;
+    int mode = -1;
+
+    int view_class = m_meta_graph->getViewClass();
+    if (view_class & MetaGraph::VIEWAXIAL) {
+        mode = 0;
+        suffix = m_meta_graph->getDisplayedShapeGraph().getName().c_str();
+    } else if (view_class & MetaGraph::VIEWDATA) {
+        mode = 1;
+        suffix = m_meta_graph->getDisplayedDataMap().getName().c_str();
+    }
+
+    if (mode == -1) {
+        QMessageBox::warning(this, tr("Notice"),
+                             tr("Sorry, depthmapX does not support saving the currently displayed layer"),
+                             QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+    suffix.replace(' ', '_');
+
+    QFilePath path(m_opened_name);
+    QString defaultname = path.m_path + (path.m_name.isEmpty() ? windowTitle() : path.m_name) + tr("_") + suffix;
+
+    QString template_string = tr("Chiron and Alasdair Transfer Format file (*.cat)\n");
+
+    QFileDialog::Options options = 0;
+    QString selectedFilter;
+    QString outfile =
+        QFileDialog::getSaveFileName(0, tr("Save Output As"), defaultname, template_string, &selectedFilter, options);
+    if (outfile.isEmpty()) {
+        return;
+    }
+
+    FILE *fp = fopen(outfile.toLatin1(), "wb");
+    fclose(fp);
+
+    QFilePath filepath(outfile);
+    QString ext = filepath.m_ext;
+
+    if (ext == "CAT") {
+        std::ofstream stream(outfile.toLatin1());
+        if (stream.fail() || stream.bad()) {
+            QMessageBox::warning(this, tr("Notice"), tr("Sorry, unable to open file for export"), QMessageBox::Ok,
+                                 QMessageBox::Ok);
+            mode = -1;
+        }
+
+        switch (mode) {
+        case 0:
+            m_meta_graph->writeMapShapesAsCat(m_meta_graph->getDisplayedShapeGraph(), stream);
+            break;
+        case 1:
+            m_meta_graph->writeMapShapesAsCat(m_meta_graph->getDisplayedDataMap(), stream);
+            break;
+        default:
+            break;
+        }
+        stream.close();
     }
 }
 
@@ -1326,11 +1402,7 @@ void QGraphDoc::OnToolsMakeFewestLineMap()
    int replace = 0;
 
    // check for existing axial maps and warn user if necessary:
-   ShapeGraphs& axialmaps = m_meta_graph->getShapeGraphs();
-   if (axialmaps.getMapRef("Fewest-Line Map (Subsets)") != paftl::npos ||
-       axialmaps.getMapRef("Fewest Line Map (Subsets)") != paftl::npos ||
-       axialmaps.getMapRef("Fewest-Line Map (Minimal)") != paftl::npos ||
-       axialmaps.getMapRef("Fewest Line Map (Minimal)") != paftl::npos) {
+   if (m_meta_graph->hasFewestLineMaps()) {
       CPromptReplace dlg;
       dlg.m_message = tr("There is already a fewest line axial map, would you like to add to it or replace it?");
       int result = dlg.exec();
@@ -1427,22 +1499,22 @@ void QGraphDoc::OnToolsAgentRun()
    AgentEngine& eng = m_meta_graph->getAgentEngine();
 
    // set up eng here...
-   if (!eng.size()) {
-      eng.push_back(AgentSet());
+   if (!eng.agentSets.size()) {
+      eng.agentSets.push_back(AgentSet());
    }
 
    CAgentAnalysisDlg dlg;
    dlg.m_timesteps = eng.m_timesteps;
-   dlg.m_release_rate = eng.tail().m_release_rate;
-   dlg.m_release_location = eng.tail().m_release_locations.size() ? 1 : 0;
-   dlg.m_frames = eng.tail().m_lifetime;
-   if (eng.tail().m_vbin == -1) {
+   dlg.m_release_rate = eng.agentSets.back().m_release_rate;
+   dlg.m_release_location = eng.agentSets.back().m_release_locations.size() ? 1 : 0;
+   dlg.m_frames = eng.agentSets.back().m_lifetime;
+   if (eng.agentSets.back().m_vbin == -1) {
       dlg.m_fov = 32;
    }
    else {
-      dlg.m_fov = eng.tail().m_vbin * 2 + 1;
+      dlg.m_fov = eng.agentSets.back().m_vbin * 2 + 1;
    }
-   dlg.m_steps = eng.tail().m_steps;
+   dlg.m_steps = eng.agentSets.back().m_steps;
    dlg.m_record_trails = eng.m_record_trails;
    dlg.m_trail_count = eng.m_trail_count;
    dlg.m_names.push_back("<None>");
@@ -1456,34 +1528,34 @@ void QGraphDoc::OnToolsAgentRun()
    }
 
    eng.m_timesteps = dlg.m_timesteps;
-   eng.tail().m_release_rate = dlg.m_release_rate;
-   eng.tail().m_lifetime = dlg.m_frames;
+   eng.agentSets.back().m_release_rate = dlg.m_release_rate;
+   eng.agentSets.back().m_lifetime = dlg.m_frames;
    if (dlg.m_fov == 32) {
-      eng.tail().m_vbin = -1;
+      eng.agentSets.back().m_vbin = -1;
    }
    else {
-      eng.tail().m_vbin = (dlg.m_fov - 1) / 2;
+      eng.agentSets.back().m_vbin = (dlg.m_fov - 1) / 2;
    }
-   eng.tail().m_steps = dlg.m_steps;
+   eng.agentSets.back().m_steps = dlg.m_steps;
    if (dlg.m_occlusion == 0) {
-      eng.tail().m_sel_type = AgentProgram::SEL_STANDARD;
+      eng.agentSets.back().m_sel_type = AgentProgram::SEL_STANDARD;
    }
    else if (dlg.m_occlusion == 1) {
-      eng.tail().m_sel_type = AgentProgram::SEL_LOS;
+      eng.agentSets.back().m_sel_type = AgentProgram::SEL_LOS;
    }
    else if (dlg.m_occlusion == 2) {
-      eng.tail().m_sel_type = AgentProgram::SEL_LOS_OCC;
+      eng.agentSets.back().m_sel_type = AgentProgram::SEL_LOS_OCC;
    }
    else {
       // (dlg.m_occlusion - 2) should be from 1...8
-      eng.tail().m_sel_type = AgentProgram::SEL_OCCLUSION + (dlg.m_occlusion - 2);
+      eng.agentSets.back().m_sel_type = AgentProgram::SEL_OCCLUSION + (dlg.m_occlusion - 2);
    }
    if (dlg.m_release_location == 1) {
       std::set<int> selected = m_meta_graph->getSelSet();
-      std::copy(selected.begin(), selected.end(), std::back_inserter(eng.tail().m_release_locations));;
+      std::copy(selected.begin(), selected.end(), std::back_inserter(eng.agentSets.back().m_release_locations));;
    }
    else {
-      eng.tail().m_release_locations.clear();
+      eng.agentSets.back().m_release_locations.clear();
    }
    eng.m_gatelayer = dlg.m_gatelayer;
 
@@ -1587,6 +1659,36 @@ void QGraphDoc::OnToolsMakeGraph()
    m_communicator->SetFunction( CMSCommunicator::MAKEGRAPH );
 
    m_thread.render(this);
+}
+
+void QGraphDoc::OnToolsUnmakeGraph()
+{
+    int state = m_meta_graph->getState();
+    if (m_communicator) {
+       QMessageBox::warning(this, tr("Notice"), tr("Please wait, another task is running"), QMessageBox::Ok, QMessageBox::Ok);
+       return;
+    }
+    if (~state & MetaGraph::POINTMAPS) {
+       QMessageBox::warning(this, tr("Notice"), tr("Please make grid before filling"), QMessageBox::Ok, QMessageBox::Ok);
+       return;
+    }
+    if (m_meta_graph->viewingProcessed()) {
+       if ( QMessageBox::Yes != QMessageBox::question(this, tr("Notice"),
+                                                      tr("This will clear existing data and attributes. Do you want to continue?"),
+                                                      QMessageBox::Yes|QMessageBox::No, QMessageBox::No) )
+        return;
+    }
+    bool removeLinks = false;
+    if(m_meta_graph->getDisplayedPointMap().getMergedPixelPairs().size() > 0) {
+        removeLinks = QMessageBox::Yes == QMessageBox::question(this, tr("Notice"),
+                                                                     tr("Would you also like to clear the links?"),
+                                                                     QMessageBox::Yes|QMessageBox::No, QMessageBox::No);
+    }
+    bool ok = m_meta_graph->unmakeGraph(removeLinks);
+    if (ok) {
+       SetUpdateFlag(QGraphDoc::NEW_DATA);
+    }
+    SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_DATA );
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1915,7 +2017,7 @@ void QGraphDoc::OnPushToLayer()
       int toplayerclass = (m_meta_graph->getViewClass() & MetaGraph::VIEWFRONT);
       std::string origin_layer;
       std::string origin_attribute;
-      std::map<IntPair,std::string> names;
+      std::map<std::pair<int, int>, std::string> names;
       // I'm just going to allow push from any layer to any other layer
       // (apart from VGA graphs, which cannot map onto themselves
       if (toplayerclass == MetaGraph::VIEWVGA) {
@@ -1946,20 +2048,21 @@ void QGraphDoc::OnPushToLayer()
       std::vector<ShapeMap>& datamaps = m_meta_graph->getDataMaps();
       for (i = 0; i < datamaps.size(); i++) {
          if (toplayerclass != MetaGraph::VIEWDATA || i != m_meta_graph->getDisplayedDataMapRef()) {
-            names.insert(std::make_pair(IntPair(MetaGraph::VIEWDATA,int(i)),std::string("Data Maps: ") + datamaps[i].getName()));
+            names.insert(std::make_pair(std::pair<int, int>(MetaGraph::VIEWDATA,int(i)),std::string("Data Maps: ") + datamaps[i].getName()));
          }
       }
-      ShapeGraphs& shapegraphs = m_meta_graph->getShapeGraphs();
-      for (i = 0; i < shapegraphs.getMapCount(); i++) {
-         if (toplayerclass != MetaGraph::VIEWAXIAL || i != shapegraphs.getDisplayedMapRef()) {
-            names.insert(std::make_pair(IntPair(MetaGraph::VIEWAXIAL,int(i)),std::string("Shape Graphs: ") + shapegraphs.getMap(i).getName()));
+      auto& shapegraphs = m_meta_graph->getShapeGraphs();
+      for (i = 0; i < shapegraphs.size(); i++) {
+         if (toplayerclass != MetaGraph::VIEWAXIAL || i != m_meta_graph->getDisplayedShapeGraphRef()) {
+            names.insert(std::make_pair(std::pair<int, int>(MetaGraph::VIEWAXIAL,int(i)),
+                                        std::string("Shape Graphs: ") + shapegraphs[i]->getName()));
          }
       }
       for (i = 0; i < m_meta_graph->getPointMaps().size(); i++) {
          // note 1: no VGA graph can push to another VGA graph (point onto point transforms)
          // note 2: I simply haven't written "axial" -> vga yet, not that it can't be possible (e.g., "axial" could actually be a convex map)
          if (toplayerclass != MetaGraph::VIEWVGA && toplayerclass != MetaGraph::VIEWAXIAL) {
-            names.insert(std::make_pair(IntPair(MetaGraph::VIEWVGA,int(i)),std::string("Visibility Graphs: ") + m_meta_graph->getPointMaps()[i].getName()));
+            names.insert(std::make_pair(std::pair<int, int>(MetaGraph::VIEWVGA,int(i)),std::string("Visibility Graphs: ") + m_meta_graph->getPointMaps()[i].getName()));
          }
       }
       CPushDialog dlg(names);
@@ -1969,9 +2072,9 @@ void QGraphDoc::OnPushToLayer()
          m_communicator = new CMSCommunicator;   // dummy value to prevent draw while this operation is in progress
          // now have to separate vga and axial layers again:
          int sel = dlg.m_layer_selection;
-         IntPair dest = depthmapX::getMapAtIndex(names, sel)->first;
+         std::pair<int, int> dest = depthmapX::getMapAtIndex(names, sel)->first;
 //         CWaitCursor c;
-         m_meta_graph->pushValuesToLayer(dest.a, dest.b, dlg.m_function, dlg.m_count_intersections);
+         m_meta_graph->pushValuesToLayer(dest.first, dest.second, dlg.m_function, dlg.m_count_intersections);
          delete m_communicator;
          m_communicator = NULL;
          SetUpdateFlag(NEW_TABLE);
@@ -1990,7 +2093,7 @@ void QGraphDoc::OnAddColumn()
       else {
          AttributeTable& tab = m_meta_graph->getAttributeTable();
          bool found = false;
-         for (int i = 0; i < tab.getColumnCount(); i++) {
+         for (int i = 0; i < tab.getNumColumns(); i++) {
             if (tab.getColumnName(i) == dlg.m_object_name.toStdString()) {
 				QMessageBox::warning(this, tr("Notice"), tr("Sorry, another column already has this name, please choose a unique column name"), QMessageBox::Ok, QMessageBox::Ok);
                found = true;
@@ -2036,12 +2139,13 @@ int QGraphDoc::RenameColumn(AttributeTable *tab, int col)
    CRenameObjectDlg dlg("Column",colname);  // using the column name sets the dialog to replace column name mode
    bool success = false;
    while (dlg.exec() == QDialog::Accepted && !success && dlg.m_object_name != colname) {
-      int newcol = tab->renameColumn(col,dlg.m_object_name.toStdString());
-      if (newcol == -1) {
+       std::string newColName = dlg.m_object_name.toStdString();
+      if (tab->hasColumn(newColName)) {
 		  QMessageBox::warning(this, tr("Notice"), tr("Sorry, another column already has this name, please choose a unique column name"), QMessageBox::Ok, QMessageBox::Ok);
       }
       else {
-         return newcol;
+         tab->renameColumn(tab->getColumnName(col), newColName);
+         return tab->getColumnIndex(newColName);
       }
    }
    return -1;
@@ -2050,9 +2154,10 @@ int QGraphDoc::RenameColumn(AttributeTable *tab, int col)
 void QGraphDoc::OnColumnProperties() 
 {
    AttributeTable *tab = &(m_meta_graph->getAttributeTable());
+   LayerManagerImpl *layers = &(m_meta_graph->getLayers());
    int col = m_meta_graph->getDisplayedAttribute();
 
-   CColumnPropertiesDlg dlg(tab,col);
+   CColumnPropertiesDlg dlg(tab, layers, col);
    
    dlg.exec();
 }
@@ -2149,7 +2254,7 @@ bool QGraphDoc::ReplaceColumnContents(PointMap *pointmap, ShapeMap *shapemap, in
          }
       }
       if (!error) {
-         table->setColumnFormula(col,text);
+         table->getColumn(col).setFormula(text);
       }
       delete [] text;
    }

@@ -65,27 +65,30 @@ TEST_CASE("LINK args valid", "valid")
     {
         ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "LINK", "-lnk", "1.2,3.4,5.6,7.8"};
         LinkParser cmdP;
-        cmdP.parse(ah.argc(), ah.argv());
-        REQUIRE(cmdP.getMergeLines().size() == 1);
-        REQUIRE(cmdP.getMergeLines()[0].start().x == Approx(1.2).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[0].start().y == Approx(3.4).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[0].end().x == Approx(5.6).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[0].end().y == Approx(7.8).epsilon(EPSILON));
+        cmdP.parse(int(ah.argc()), ah.argv());
+        REQUIRE(cmdP.getManualLinks().size() == 1);
+        REQUIRE(cmdP.getManualLinks()[0] == "1.2,3.4,5.6,7.8");
+        REQUIRE(cmdP.getLinkMode() == cmdP.LinkMode::LINK);
     }
 
     {
         ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "LINK", "-lnk", "1.2,3.4,5.6,7.8", "-lnk", "0.1,0.2,0.3,0.4"};
         LinkParser cmdP;
         cmdP.parse(ah.argc(), ah.argv());
-        REQUIRE(cmdP.getMergeLines().size() == 2);
-        REQUIRE(cmdP.getMergeLines()[0].start().x == Approx(1.2).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[0].start().y == Approx(3.4).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[0].end().x == Approx(5.6).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[0].end().y == Approx(7.8).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[1].start().x == Approx(0.1).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[1].start().y == Approx(0.2).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[1].end().x == Approx(0.3).epsilon(EPSILON));
-        REQUIRE(cmdP.getMergeLines()[1].end().y == Approx(0.4).epsilon(EPSILON));
+        REQUIRE(cmdP.getManualLinks().size() == 2);
+        REQUIRE(cmdP.getManualLinks()[0] == "1.2,3.4,5.6,7.8");
+        REQUIRE(cmdP.getManualLinks()[1] == "0.1,0.2,0.3,0.4");
+        REQUIRE(cmdP.getLinkMode() == cmdP.LinkMode::LINK);
     }
 
+    {
+        ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "LINK", "-lnk", "1.2,3.4,5.6,7.8", "-lnk", "0.1,0.2,0.3,0.4",
+                          "-lm", "unlink", "-lmt", "pointmaps"};
+        LinkParser cmdP;
+        cmdP.parse(ah.argc(), ah.argv());
+        REQUIRE(cmdP.getManualLinks().size() == 2);
+        REQUIRE(cmdP.getManualLinks()[0] == "1.2,3.4,5.6,7.8");
+        REQUIRE(cmdP.getManualLinks()[1] == "0.1,0.2,0.3,0.4");
+        REQUIRE(cmdP.getLinkMode() == cmdP.LinkMode::UNLINK);
+    }
 }
