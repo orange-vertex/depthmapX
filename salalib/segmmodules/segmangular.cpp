@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -74,7 +73,7 @@ bool SegmentAngular::run(Communicator *comm, ShapeGraph &map, bool) {
 
     std::vector<bool> covered(map.getShapeCount());
     size_t i = 0;
-    for (auto & iter : attributes){
+    for (auto &iter : attributes) {
         for (size_t j = 0; j < map.getShapeCount(); j++) {
             covered[j] = false;
         }

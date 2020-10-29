@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -32,7 +31,7 @@ bool SegmentTopologicalPD::run(Communicator *, ShapeGraph &map, bool) {
     std::vector<float> seglengths;
     float maxseglength = 0.0f;
     for (size_t cursor = 0; cursor < map.getShapeCount(); cursor++) {
-        AttributeRow& row = map.getAttributeRowFromShapeIndex(cursor);
+        AttributeRow &row = map.getAttributeRowFromShapeIndex(cursor);
         axialrefs.push_back(row.getValue("Axial Line Ref"));
         seglengths.push_back(row.getValue("Segment Length"));
         if (seglengths.back() > maxseglength) {
@@ -101,7 +100,7 @@ bool SegmentTopologicalPD::run(Communicator *, ShapeGraph &map, bool) {
             }
 
             connected_cursor = iter->first.ref;
-            AttributeRow& row = map.getAttributeRowFromShapeIndex(connected_cursor);
+            AttributeRow &row = map.getAttributeRowFromShapeIndex(connected_cursor);
             if (seen[connected_cursor] > segdepth) {
                 float length = seglengths[connected_cursor];
                 int axialref = axialrefs[connected_cursor];

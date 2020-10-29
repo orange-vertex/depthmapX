@@ -438,20 +438,20 @@ namespace depthmapX {
             else
                 outColumns.push_back(column.first);
         }
-        if(table.size() == 0) {
+        if (table.size() == 0) {
             throw RuntimeException("No usable data found in file");
         }
-        if(refcol == -1) {
+        if (refcol == -1) {
             throw RuntimeException("The \"Ref\" column is reqired");
         }
-        if(outColumns.size() < 1) {
+        if (outColumns.size() < 1) {
             throw RuntimeException("No data found to join");
         }
-        std::vector<AttributeRow*> inRows;
-        for(const auto& refInFile: table["Ref"]) {
+        std::vector<AttributeRow *> inRows;
+        for (const auto &refInFile : table["Ref"]) {
             int ref = std::stoi(refInFile);
             auto iter = attributes.find(AttributeKey(ref));
-            if(iter == attributes.end()) {
+            if (iter == attributes.end()) {
                 std::stringstream message;
                 message << "Key " << ref << "not found in attribute table" << std::flush;
                 throw RuntimeException(message.str().c_str());
@@ -462,10 +462,10 @@ namespace depthmapX {
         // Up until this point we have not touched the attribute table
         // so no need for corrective measures yet
 
-        for(const std::string& column: outColumns) {
+        for (const std::string &column : outColumns) {
             int colIdx = attributes.insertOrResetColumn(column);
             auto outRowIter = table[column].begin();
-            for(auto inRowIter = inRows.begin(); inRowIter != inRows.end(); inRowIter++, outRowIter++) {
+            for (auto inRowIter = inRows.begin(); inRowIter != inRows.end(); inRowIter++, outRowIter++) {
                 (*inRowIter)->setValue(colIdx, std::stof(*outRowIter));
             }
         }

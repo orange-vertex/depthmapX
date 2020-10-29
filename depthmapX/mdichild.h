@@ -13,17 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-#ifndef MDICHILD_H
-#define MDICHILD_H
+#pragma once
 
 #include <QTextEdit>
 
-class MdiChild : public QTextEdit
-{
+class MdiChild : public QTextEdit {
     Q_OBJECT
 
-public:
+  public:
     MdiChild();
 
     void newFile();
@@ -34,13 +31,13 @@ public:
     QString userFriendlyCurrentFile();
     QString currentFile() { return curFile; }
 
-protected:
+  protected:
     void closeEvent(QCloseEvent *event);
 
-private slots:
+  private slots:
     void documentWasModified();
 
-private:
+  private:
     bool maybeSave();
     void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
@@ -48,5 +45,3 @@ private:
     QString curFile;
     bool isUntitled;
 };
-
-#endif

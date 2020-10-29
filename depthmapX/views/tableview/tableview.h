@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#pragma once
+
 #include "GraphDoc.h"
 #include "settings.h"
 #include <QTableWidget>
@@ -46,7 +48,7 @@ class TableView : public QTableWidget {
     virtual void closeEvent(QCloseEvent *event);
     virtual void resizeEvent(QResizeEvent *event);
     virtual void scrollContentsBy(int dx, int dy);
-    void focusInEvent(QFocusEvent* e);
+    void focusInEvent(QFocusEvent *e);
 
   private:
     void PrepareCache(int to);

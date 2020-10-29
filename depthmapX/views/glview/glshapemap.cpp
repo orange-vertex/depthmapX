@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -17,17 +16,15 @@
 #include "glshapemap.h"
 
 void GLShapeMap::loadGLObjects(const std::vector<std::pair<SimpleLine, PafColor>> &colouredLines,
-                               const std::vector<std::pair<std::vector<Point2f>, PafColor>>& colouredPolygons,
-                               const std::vector<std::pair<Point2f, PafColor>> &colouredPoints,
-                               const int pointSides, const float pointRadius) {
+                               const std::vector<std::pair<std::vector<Point2f>, PafColor>> &colouredPolygons,
+                               const std::vector<std::pair<Point2f, PafColor>> &colouredPoints, const int pointSides,
+                               const float pointRadius) {
     m_lines.loadLineData(colouredLines);
     m_polygons.loadPolygonData(colouredPolygons);
     m_points.loadPolygonData(colouredPoints, pointSides, pointRadius);
 }
 
 void GLShapeMap::loadGLObjects(ShapeMap &shapeMap) {
-    loadGLObjects(shapeMap.getAllLinesWithColour(),
-                  shapeMap.getAllPolygonsWithColour(),
-                  shapeMap.getAllPointsWithColour(),
-                  8, shapeMap.getSpacing()*0.1);
+    loadGLObjects(shapeMap.getAllLinesWithColour(), shapeMap.getAllPolygonsWithColour(),
+                  shapeMap.getAllPointsWithColour(), 8, shapeMap.getSpacing() * 0.1);
 }

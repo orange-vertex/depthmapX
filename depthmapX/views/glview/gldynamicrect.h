@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -16,20 +15,20 @@
 
 #pragma once
 
-#include <qopengl.h>
-#include <QVector>
-#include <QVector3D>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
 #include <QRgb>
+#include <QVector3D>
+#include <QVector>
+#include <qopengl.h>
 
-class GLDynamicRect
-{
-public:
+class GLDynamicRect {
+  public:
     GLDynamicRect();
-    void paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel, const QMatrix2x2 &m_selectionBounds);
+    void paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel,
+                 const QMatrix2x2 &m_selectionBounds);
     void initializeGL(bool m_core);
     void updateGL(bool m_core);
     void cleanup();
@@ -37,10 +36,10 @@ public:
     void setStrokeColour(const QRgb &strokeColour);
     int vertexCount() const { return m_count / DATA_DIMENSIONS; }
 
-    GLDynamicRect( const GLDynamicRect& ) = delete;
-    GLDynamicRect& operator=(const GLDynamicRect& ) = delete;
+    GLDynamicRect(const GLDynamicRect &) = delete;
+    GLDynamicRect &operator=(const GLDynamicRect &) = delete;
 
-protected:
+  protected:
     void add(const GLfloat v);
 
     int m_count;
@@ -59,7 +58,7 @@ protected:
     QVector4D m_colour_fill = QVector4D(0.0f, 1.0f, 0.0f, 0.3f);
     QVector4D m_colour_stroke = QVector4D(1.0f, 1.0f, 1.0f, 1.0f);
 
-private:
+  private:
     const int DATA_DIMENSIONS = 1;
     void setupVertexAttribs();
     int count() const { return m_count; }

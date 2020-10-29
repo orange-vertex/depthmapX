@@ -1,4 +1,3 @@
-// genlib - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2011-2012, Tasos Varoudis
 
 // This program is free software: you can redistribute it and/or modify
@@ -14,37 +13,30 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#pragma once
 
-#ifndef __XMLPARSE_H__
-#define __XMLPARSE_H__
-
+#include <algorithm>
+#include <fstream>
+#include <map>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <map>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
 
-struct xmlelement
-{
-   std::string name;
-   bool closetag;
-   std::map<std::string, std::string> attributes;
-   std::vector<xmlelement> subelements;
-   xmlelement()
-   { closetag = false;}
-   bool parse(std::ifstream& stream, bool parsesubelements = false);
-   friend std::ostream& operator << (std::ostream& stream, const xmlelement& elem);
-protected:
-   bool subparse(std::ifstream& stream);
-   void badcharacter(char c, const std::string& location);
+struct xmlelement {
+    std::string name;
+    bool closetag;
+    std::map<std::string, std::string> attributes;
+    std::vector<xmlelement> subelements;
+    xmlelement() { closetag = false; }
+    bool parse(std::ifstream &stream, bool parsesubelements = false);
+    friend std::ostream &operator<<(std::ostream &stream, const xmlelement &elem);
+
+  protected:
+    bool subparse(std::ifstream &stream);
+    void badcharacter(char c, const std::string &location);
 };
 
-struct xmlerror
-{
-   std::string error;
-   xmlerror(const std::string& e = std::string())
-   { error = e; }
+struct xmlerror {
+    std::string error;
+    xmlerror(const std::string &e = std::string()) { error = e; }
 };
-
-#endif

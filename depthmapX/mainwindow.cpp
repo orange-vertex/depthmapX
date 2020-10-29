@@ -13,64 +13,54 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 #include "mainwindow.h"
 
-#include "depthmapX/views/depthmapview/depthmapview.h"
 #include "depthmapX/views/3dview/3dview.h"
+#include "depthmapX/views/depthmapview/depthmapview.h"
 #include "depthmapX/views/plotview/plotview.h"
 #include "depthmapX/views/tableview/tableview.h"
 #include "dialogs/AboutDlg.h"
 #include "dialogs/settings/settingsdialog.h"
 
-#include <QtGui>
 #include <QDesktopServices>
-#include <QtWidgets/QMdiArea>
-#include <QtWidgets/QDockWidget>
-#include <QtWidgets/QToolButton>
-#include <QtWidgets/QFileDialog>
-#include <QtWidgets/QStatusBar>
-#include <QtWidgets/QMenu>
+#include <QtGui>
 #include <QtWidgets/QColorDialog>
+#include <QtWidgets/QDockWidget>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QMdiArea>
 #include <QtWidgets/QMdiSubWindow>
-#include <QtWidgets/QToolBar>
+#include <QtWidgets/QMenu>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QMessageBox>
-
+#include <QtWidgets/QStatusBar>
+#include <QtWidgets/QToolBar>
+#include <QtWidgets/QToolButton>
 
 static int current_view_type = 0;
 
 const QString editstatetext[] = {"Not Editable", "Editable Off", "Editable On"};
 
-QmyEvent::QmyEvent(Type type, void* wp, int lp)
-    : QEvent(type)
-{
+QmyEvent::QmyEvent(Type type, void *wp, int lp) : QEvent(type) {
     registerEventType(type);
     wparam = wp;
     lparam = lp;
 }
 
-void MainWindow::actionEvent ( QActionEvent * event )
-{
+void MainWindow::actionEvent(QActionEvent *event) {
     int id;
-    if((id = event->action()->data().toInt()))
-    {
+    if ((id = event->action()->data().toInt())) {
     }
 }
 
-bool MainWindow::eventFilter(QObject *object, QEvent *e)
-{
-    if (object == this && e->type() == (QEvent::Type)FOCUSGRAPH)
-    {
-        OnFocusGraph((QGraphDoc*)((QmyEvent*)e)->wparam, ((QmyEvent*)e)->lparam);
+bool MainWindow::eventFilter(QObject *object, QEvent *e) {
+    if (object == this && e->type() == (QEvent::Type)FOCUSGRAPH) {
+        OnFocusGraph((QGraphDoc *)((QmyEvent *)e)->wparam, ((QmyEvent *)e)->lparam);
         return true;
     }
     return QObject::eventFilter(object, e);
 }
 
-MainWindow::MainWindow(const QString &fileToLoad, Settings &settings) : mSettings(settings)
-{
+MainWindow::MainWindow(const QString &fileToLoad, Settings &settings) : mSettings(settings) {
     m_treeDoc = NULL;
     mdiArea = new QMdiArea;
     setCentralWidget(mdiArea);
@@ -78,7 +68,6 @@ MainWindow::MainWindow(const QString &fileToLoad, Settings &settings) : mSetting
 
     windowMapper = new QSignalMapper(this);
     connect(windowMapper, SIGNAL(mapped(QWidget *)), this, SLOT(setActiveSubWindow(QWidget *)));
-
 
     m_indexWidget = new IndexWidget(this);
     QDockWidget *indexDock = new QDockWidget(tr("Index"), this);
@@ -103,16 +92,14 @@ MainWindow::MainWindow(const QString &fileToLoad, Settings &settings) : mSetting
     updateGLWindows(true, true);
 
     installEventFilter(this);
-//	setWindowIcon(QIcon(tr(":/images/cur/icon-1-1.png")));
+    //	setWindowIcon(QIcon(tr(":/images/cur/icon-1-1.png")));
 
-    if (fileToLoad.length()>0)
-    {
+    if (fileToLoad.length() > 0) {
         loadFile(fileToLoad);
     }
 }
 
-QWidget * MainWindow::setupAttributesListWidget()
-{
+QWidget *MainWindow::setupAttributesListWidget() {
     QWidget *widget = new QWidget(this);
 
     QLayout *vlayout = new QVBoxLayout(widget);
@@ -143,20 +130,18 @@ QWidget * MainWindow::setupAttributesListWidget()
     return widget;
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
-{
+void MainWindow::closeEvent(QCloseEvent *event) {
     mdiArea->closeAllSubWindows();
     if (activeMapView()) {
-         event->ignore();
+        event->ignore();
     } else {
-        QApplication::postEvent((QObject*)&m_wndColourScale, new QEvent(QEvent::Close));
-         writeSettings();
-         event->accept();
+        QApplication::postEvent((QObject *)&m_wndColourScale, new QEvent(QEvent::Close));
+        writeSettings();
+        event->accept();
     }
 }
 
-void MainWindow::OnFileNew()
-{
+void MainWindow::OnFileNew() {
     MapView *child = createMapView();
     child->getGraphDoc()->OnNewDocument();
     child->setCurrentFile("");
@@ -168,46 +153,40 @@ void MainWindow::OnFileNew()
 void MainWindow::loadFile(QString fileName) {
     QMdiSubWindow *existing = findMapView(fileName);
     if (existing) {
-          mdiArea->setActiveSubWindow(existing);
-          return;
+        mdiArea->setActiveSubWindow(existing);
+        return;
     }
     MapView *child = createMapView();
-    QByteArray ba = fileName.toUtf8(); // quick fix for weird chars (russian filename bug report)
-    char *file = ba.data(); // quick fix for weird chars (russian filename bug report)
-    if(child->getGraphDoc()->OnOpenDocument(file)) // quick fix for weird chars (russian filename bug report)
+    QByteArray ba = fileName.toUtf8();              // quick fix for weird chars (russian filename bug report)
+    char *file = ba.data();                         // quick fix for weird chars (russian filename bug report)
+    if (child->getGraphDoc()->OnOpenDocument(file)) // quick fix for weird chars (russian filename bug report)
     {
-         child->setCurrentFile(fileName);
-         child->postLoadFile();
-         statusBar()->showMessage(tr("File loaded"), 2000);
-         child->show();
-         OnFocusGraph(child->getGraphDoc(), QGraphDoc::CONTROLS_LOADALL);
-         setCurrentFile(fileName);
+        child->setCurrentFile(fileName);
+        child->postLoadFile();
+        statusBar()->showMessage(tr("File loaded"), 2000);
+        child->show();
+        OnFocusGraph(child->getGraphDoc(), QGraphDoc::CONTROLS_LOADALL);
+        setCurrentFile(fileName);
     } else {
-         child->close();
-         QMessageBox::warning(this, "Failed to load", QString("Failed to load file ")+fileName, QMessageBox::Ok, QMessageBox::Ok );
+        child->close();
+        QMessageBox::warning(this, "Failed to load", QString("Failed to load file ") + fileName, QMessageBox::Ok,
+                             QMessageBox::Ok);
     }
 }
 
-void MainWindow::OnFileOpen()
-{
-   QString template_string;
-   template_string += "Graph Files (*.graph)\nAll files (*.*)";
+void MainWindow::OnFileOpen() {
+    QString template_string;
+    template_string += "Graph Files (*.graph)\nAll files (*.*)";
 
-   QFileDialog::Options options = 0;
-   QString selectedFilter;
-     QString fileName = QFileDialog::getOpenFileName(
-       0, tr("Open"),
-       "",
-       template_string,
-       &selectedFilter,
-       options);
-     if (!fileName.isEmpty()) {
-          loadFile(fileName);
-     }
+    QFileDialog::Options options = 0;
+    QString selectedFilter;
+    QString fileName = QFileDialog::getOpenFileName(0, tr("Open"), "", template_string, &selectedFilter, options);
+    if (!fileName.isEmpty()) {
+        loadFile(fileName);
+    }
 }
 
-void MainWindow::showContextMenu(QPoint &point)
-{
+void MainWindow::showContextMenu(QPoint &point) {
     QMenu menu;
     menu.addAction(renameColumnAct);
     menu.addAction(updateColumAct);
@@ -218,514 +197,402 @@ void MainWindow::showContextMenu(QPoint &point)
     menu.exec(point);
 }
 
-void MainWindow::OnFilePrint()
-{
+void MainWindow::OnFilePrint() {}
 
-}
+void MainWindow::OnFilePrintPreview() {}
 
-void MainWindow::OnFilePrintPreview()
-{
+void MainWindow::OnFilePrintSetup() {}
 
-}
-
-void MainWindow::OnFilePrintSetup()
-{
-
-}
-
-void MainWindow::OnEditUndo()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnEditUndo() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnEditUndo();
     }
 }
 
-void MainWindow::OnEditCopyData()
-{
+void MainWindow::OnEditCopyData() {}
+
+void MainWindow::OnEditCopy() {
+    MapView *m_p = activeMapView();
+    if (m_p)
+        m_p->OnEditCopy();
 }
 
-void MainWindow::OnEditCopy()
-{
-    MapView* m_p = activeMapView();
-    if(m_p) m_p->OnEditCopy();
-}
-
-void MainWindow::OnEditSave()
-{
-    MapView* m_p = activeMapView();
-    if(m_p)
-    {
+void MainWindow::OnEditSave() {
+    MapView *m_p = activeMapView();
+    if (m_p) {
         m_p->OnEditSave();
     }
 }
 
-void MainWindow::OnEditClear()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnEditClear() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnEditClear();
     }
 }
 
-void MainWindow::OnEditQuery()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnEditQuery() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnEditQuery();
     }
 }
 
-void MainWindow::OnViewZoomsel()
-{
-    MapView* m_p = activeMapView();
-    if(m_p) m_p->OnViewZoomsel();
+void MainWindow::OnViewZoomsel() {
+    MapView *m_p = activeMapView();
+    if (m_p)
+        m_p->OnViewZoomsel();
 }
 
-void MainWindow::OnEditSelectToLayer()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnEditSelectToLayer() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnEditSelectToLayer();
     }
 }
 
-void MainWindow::OnFileImport()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnFileImport() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnFileImport();
     }
 }
 
-void MainWindow::OnLayerNew()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnLayerNew() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnLayerNew();
     }
 }
 
-void MainWindow::OnLayerDelete()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnLayerDelete() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnLayerDelete();
     }
 }
 
-void MainWindow::OnLayerConvert()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnLayerConvert() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnLayerConvert();
     }
 }
 
-void MainWindow::OnLayerConvertDrawing()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnLayerConvertDrawing() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnLayerConvertDrawing();
     }
 }
 
-void MainWindow::OnConvertMapShapes()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnConvertMapShapes() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnConvertMapShapes();
     }
 }
 
-void MainWindow::OnFileExport()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnFileExport() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnFileExport();
     }
 }
 
-
-void MainWindow::OnFileExportMapGeometry()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnFileExportMapGeometry() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnFileExportMapGeometry();
     }
 }
 
-void MainWindow::OnFileExportLinks()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnFileExportLinks() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnFileExportLinks();
     }
 }
 
-void MainWindow::OnAxialConnectionsExportAsDot()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnAxialConnectionsExportAsDot() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnAxialConnectionsExportAsDot();
     }
 }
 
-void MainWindow::OnAxialConnectionsExportAsPairCSV()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnAxialConnectionsExportAsPairCSV() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnAxialConnectionsExportAsPairCSV();
     }
 }
 
-void MainWindow::OnSegmentConnectionsExportAsPairCSV()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnSegmentConnectionsExportAsPairCSV() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnSegmentConnectionsExportAsPairCSV();
     }
 }
 
-void MainWindow::OnPointmapExportConnectionsAsCSV()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnPointmapExportConnectionsAsCSV() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnPointmapExportConnectionsAsCSV();
     }
 }
 
-void MainWindow::OnAddColumn()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnAddColumn() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnAddColumn();
     }
 }
 
-void MainWindow::OnRenameColumn()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnRenameColumn() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnRenameColumn();
     }
 }
 
-void MainWindow::OnUpdateColumn()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnUpdateColumn() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnUpdateColumn();
     }
 }
 
-void MainWindow::OnRemoveColumn()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnRemoveColumn() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnRemoveColumn();
     }
 }
 
-void MainWindow::OnColumnProperties()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnColumnProperties() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnColumnProperties();
     }
 }
 
-void MainWindow::OnPushToLayer()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnPushToLayer() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnPushToLayer();
     }
 }
 
-void MainWindow::OnEditGrid()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnEditGrid() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnEditGrid();
     }
 }
 
-void MainWindow::OnToolsMakeGraph()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsMakeGraph() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsMakeGraph();
     }
 }
 
-void MainWindow::OnToolsUnmakeGraph()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsUnmakeGraph() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsUnmakeGraph();
     }
 }
 
-void MainWindow::OnToolsImportVGALinks()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsImportVGALinks() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnVGALinksFileImport();
     }
 }
 
-void MainWindow::OnToolsGenerateIsovistsFromFile()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsGenerateIsovistsFromFile() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnGenerateIsovistsFromFile();
     }
 }
 
-void MainWindow::OnToolsRun()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsRun() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsRun();
     }
 }
 
-void MainWindow::OnToolsAgentRun()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsAgentRun() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsAgentRun();
     }
 }
 
-void MainWindow::OnToolsIsovistpath()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsIsovistpath() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsIsovistpath();
     }
 }
 
-void MainWindow::OnToolsAgentLoadProgram()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
-        if(m_p->m_view[QGraphDoc::VIEW_3D])
-            ((Q3DView*)m_p->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentLoadProgram();
+void MainWindow::OnToolsAgentLoadProgram() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
+        if (m_p->m_view[QGraphDoc::VIEW_3D])
+            ((Q3DView *)m_p->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentLoadProgram();
     }
 }
 
-void MainWindow::OnToolsRunAxa()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsRunAxa() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsRunAxa();
     }
 }
 
-void MainWindow::OnToolsPD()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsPD() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsPD();
     }
 }
 
-void MainWindow::OnToolsMakeFewestLineMap()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsMakeFewestLineMap() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsMakeFewestLineMap();
     }
 }
 
-void MainWindow::OnToolsAxialConvShapeMap()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsAxialConvShapeMap() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsAxialConvShapeMap();
     }
 }
 
-void MainWindow::OnToolsLineLoadUnlinks()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsLineLoadUnlinks() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsLineLoadUnlinks();
     }
 }
 
-void MainWindow::OnToolsRunSeg()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsRunSeg() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsRunSeg();
     }
 }
 
-void MainWindow::OnToolsTopomet()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsTopomet() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsTopomet();
     }
 }
 
-void MainWindow::OnToolsTPD()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsTPD() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsTPD();
     }
 }
 
-void MainWindow::OnToolsMPD()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsMPD() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsMPD();
     }
 }
 
-void MainWindow::OnToolsPointConvShapeMap()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsPointConvShapeMap() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsPointConvShapeMap();
     }
 }
 
-void MainWindow::OnToolsAPD()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnToolsAPD() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnToolsAPD();
     }
 }
 
-void MainWindow::OnToolsOptions()
-{
+void MainWindow::OnToolsOptions() {
     SettingsDialog dialog(mSettings);
-    if(QDialog::Accepted == dialog.exec()) {
+    if (QDialog::Accepted == dialog.exec()) {
         readSettings();
     }
 }
 
-void MainWindow::OnViewCentreView()
-{
-    activeMapDoc()->SetRedrawFlag(QGraphDoc::VIEW_MAP, QGraphDoc::REDRAW_TOTAL, QGraphDoc::NEW_DEPTHMAPVIEW_SETUP, this);
+void MainWindow::OnViewCentreView() {
+    activeMapDoc()->SetRedrawFlag(QGraphDoc::VIEW_MAP, QGraphDoc::REDRAW_TOTAL, QGraphDoc::NEW_DEPTHMAPVIEW_SETUP,
+                                  this);
 }
 
-void MainWindow::OnViewShowGrid()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnViewShowGrid() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnViewShowGrid();
     }
 }
 
-void MainWindow::OnViewSummary()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnViewSummary() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         m_p->OnViewSummary();
     }
 }
 
-void MainWindow::OnViewColourRange()
-{
+void MainWindow::OnViewColourRange() {
     if (m_wndColourScale.isVisible()) {
         m_wndColourScale.hide();
-    }
-    else {
-        QRect recta,rectb;
+    } else {
+        QRect recta, rectb;
         recta = geometry();
         rectb = m_wndColourScale.geometry();
-        m_wndColourScale.setGeometry(recta.right() - 7 - rectb.width(), recta.top() + 68, rectb.width(), rectb.height());
+        m_wndColourScale.setGeometry(recta.right() - 7 - rectb.width(), recta.top() + 68, rectb.width(),
+                                     rectb.height());
         m_wndColourScale.m_docked = true;
         m_wndColourScale.show();
     }
 }
 
-void MainWindow::OnHelpBugs()
-{
-    bool foo = QDesktopServices::openUrl( QUrl("https://github.com/SpaceGroupUCL/depthmapX/issues") );
+void MainWindow::OnHelpBugs() {
+    bool foo = QDesktopServices::openUrl(QUrl("https://github.com/SpaceGroupUCL/depthmapX/issues"));
 }
 
-void MainWindow::OnHelpManual()
-{
-    bool foo = QDesktopServices::openUrl( QUrl("http://www.vr.ucl.ac.uk/depthmap/depthmap4r1.pdf") );
+void MainWindow::OnHelpManual() {
+    bool foo = QDesktopServices::openUrl(QUrl("http://www.vr.ucl.ac.uk/depthmap/depthmap4r1.pdf"));
 }
 
-void MainWindow::OnHelpTutorials()
-{
-    bool foo = QDesktopServices::openUrl( QUrl("http://www.vr.ucl.ac.uk/depthmap/tutorials/") );
+void MainWindow::OnHelpTutorials() {
+    bool foo = QDesktopServices::openUrl(QUrl("http://www.vr.ucl.ac.uk/depthmap/tutorials/"));
 }
 
-void MainWindow::OnHelpSalaManual()
-{
-    bool foo = QDesktopServices::openUrl( QUrl("http://www.vr.ucl.ac.uk/depthmap/scripting/") );
+void MainWindow::OnHelpSalaManual() {
+    bool foo = QDesktopServices::openUrl(QUrl("http://www.vr.ucl.ac.uk/depthmap/scripting/"));
 }
 
-void MainWindow::OnFileClose()
-{
-    MapView* m_p = activeMapView();
-    if(m_p) QApplication::postEvent((QObject*)m_p, new QEvent(QEvent::Close));
+void MainWindow::OnFileClose() {
+    MapView *m_p = activeMapView();
+    if (m_p)
+        QApplication::postEvent((QObject *)m_p, new QEvent(QEvent::Close));
 }
 
-void MainWindow::OnFileSave()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnFileSave() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         bool saved = m_p->OnFileSave();
-        if(saved) {
+        if (saved) {
             statusBar()->showMessage(tr("File saved"), 2000);
             setCurrentFile(m_p->m_opened_name);
             updateSubWindowTitles(m_p->m_base_title);
@@ -735,13 +602,11 @@ void MainWindow::OnFileSave()
     }
 }
 
-void MainWindow::OnFileSaveAs()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
+void MainWindow::OnFileSaveAs() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (m_p) {
         bool saved = m_p->OnFileSaveAs();
-        if(saved) {
+        if (saved) {
             statusBar()->showMessage(tr("File saved"), 2000);
             setCurrentFile(m_p->m_opened_name);
             updateSubWindowTitles(m_p->m_base_title);
@@ -752,113 +617,106 @@ void MainWindow::OnFileSaveAs()
 }
 void MainWindow::updateSubWindowTitles(QString newTitle) {
     QList<QMdiSubWindow *> windowList = mdiArea->subWindowList();
-    QList<QMdiSubWindow *>::iterator iter = windowList.begin(), end =
-    windowList.end();
-    for ( ; iter != end; ++iter )
-    {
+    QList<QMdiSubWindow *>::iterator iter = windowList.begin(), end = windowList.end();
+    for (; iter != end; ++iter) {
         QWidget *p = 0;
-        if (QMdiSubWindow *subWindow = *iter)
-        {
+        if (QMdiSubWindow *subWindow = *iter) {
             p = qobject_cast<MapView *>(subWindow->widget());
-            if(p) subWindow->setWindowTitle(newTitle +":Map View");
+            if (p)
+                subWindow->setWindowTitle(newTitle + ":Map View");
             p = qobject_cast<QPlotView *>(subWindow->widget());
-            if(p) subWindow->setWindowTitle(newTitle +":Scatter Plot");
+            if (p)
+                subWindow->setWindowTitle(newTitle + ":Scatter Plot");
             p = qobject_cast<TableView *>(subWindow->widget());
-            if(p) subWindow->setWindowTitle(newTitle +":Table View");
+            if (p)
+                subWindow->setWindowTitle(newTitle + ":Table View");
             p = qobject_cast<Q3DView *>(subWindow->widget());
-            if(p) subWindow->setWindowTitle(newTitle +":3D View");
+            if (p)
+                subWindow->setWindowTitle(newTitle + ":3D View");
         }
     }
-
 }
 
-void MainWindow::OnAppAbout()
-{
+void MainWindow::OnAppAbout() {
     CAboutDlg aboutDlg;
     aboutDlg.exec();
 }
 
-MapView *MainWindow::createMapView()
-{
-    QGraphDoc* doc = new QGraphDoc("", "");
+MapView *MainWindow::createMapView() {
+    QGraphDoc *doc = new QGraphDoc("", "");
     doc->m_mainFrame = this;
 
-    if(m_defaultMapWindowIsLegacy)
-    {
+    if (m_defaultMapWindowIsLegacy) {
         QDepthmapView *child = new QDepthmapView(*doc, mSettings);
         mdiArea->addSubWindow(child);
         return child;
-    }
-    else
-    {
+    } else {
         GLView *child = new GLView(*doc, mSettings);
         mdiArea->addSubWindow(child);
         return child;
     }
-
 }
 
-MapView *MainWindow::activeMapView()
-{
+MapView *MainWindow::activeMapView() {
     QWidget *p = 0;
-    if (QMdiSubWindow *activeSubWindow = mdiArea->activeSubWindow())
-    {
+    if (QMdiSubWindow *activeSubWindow = mdiArea->activeSubWindow()) {
         p = qobject_cast<MapView *>(activeSubWindow->widget());
-        if(p) return (MapView *)p;
-        if(!p)
-        {
+        if (p)
+            return (MapView *)p;
+        if (!p) {
             p = qobject_cast<QPlotView *>(activeSubWindow->widget());
-            if(p) return (MapView *)(((QPlotView*)p)->pDoc->m_view[1]);
+            if (p)
+                return (MapView *)(((QPlotView *)p)->pDoc->m_view[1]);
         }
-        if(!p)
-        {
+        if (!p) {
             p = qobject_cast<TableView *>(activeSubWindow->widget());
-            if(p) return (MapView *)(((TableView*)p)->pDoc->m_view[1]);
+            if (p)
+                return (MapView *)(((TableView *)p)->pDoc->m_view[1]);
         }
-        if(!p)
-        {
+        if (!p) {
             p = qobject_cast<Q3DView *>(activeSubWindow->widget());
-            if(p) return (MapView *)(((Q3DView*)p)->pDoc->m_view[1]);
+            if (p)
+                return (MapView *)(((Q3DView *)p)->pDoc->m_view[1]);
         }
     }
     current_view_type = 0;
     return 0;
 }
 
-QGraphDoc *MainWindow::activeMapDoc()
-{
+QGraphDoc *MainWindow::activeMapDoc() {
     QWidget *p = 0;
-    if (QMdiSubWindow *activeSubWindow = mdiArea->activeSubWindow())
-    {
+    if (QMdiSubWindow *activeSubWindow = mdiArea->activeSubWindow()) {
         p = qobject_cast<MapView *>(activeSubWindow->widget());
-        if(p) return ((MapView *)p)->getGraphDoc();
+        if (p)
+            return ((MapView *)p)->getGraphDoc();
         p = qobject_cast<QPlotView *>(activeSubWindow->widget());
-        if(p) return ((QPlotView *)p)->pDoc;
+        if (p)
+            return ((QPlotView *)p)->pDoc;
         p = qobject_cast<TableView *>(activeSubWindow->widget());
-        if(p) return ((TableView *)p)->pDoc;
+        if (p)
+            return ((TableView *)p)->pDoc;
         p = qobject_cast<Q3DView *>(activeSubWindow->widget());
-        if(p) return ((Q3DView *)p)->pDoc;
+        if (p)
+            return ((Q3DView *)p)->pDoc;
     }
     return 0;
 }
 
-QMdiSubWindow *MainWindow::findMapView(const QString &fileName)
-{
+QMdiSubWindow *MainWindow::findMapView(const QString &fileName) {
     QString canonicalFilePath = QFileInfo(fileName).canonicalFilePath();
 
     foreach (QMdiSubWindow *window, mdiArea->subWindowList()) {
         MapView *mdiChild = qobject_cast<MapView *>(window->widget());
-          if (mdiChild && mdiChild->getCurrentFile() == canonicalFilePath) return window;
+        if (mdiChild && mdiChild->getCurrentFile() == canonicalFilePath)
+            return window;
     }
     return 0;
 }
 
-void MainWindow::OnWindowMap()
-{
-    MapView* m_p = activeMapView();
-    if(m_p)
-    {
-        if(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_MAP])
+void MainWindow::OnWindowMap() {
+    MapView *m_p = activeMapView();
+    if (m_p) {
+        if (m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_MAP])
             return setActiveSubWindow(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_MAP]);
         QDepthmapView *child = new QDepthmapView(*m_p->getGraphDoc(), mSettings);
         mdiArea->addSubWindow(child);
@@ -866,12 +724,10 @@ void MainWindow::OnWindowMap()
     }
 }
 
-void MainWindow::OnViewTable()
-{
-    MapView* m_p = activeMapView();
-    if(m_p)
-    {
-        if(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_TABLE])
+void MainWindow::OnViewTable() {
+    MapView *m_p = activeMapView();
+    if (m_p) {
+        if (m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_TABLE])
             return setActiveSubWindow(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_TABLE]);
         TableView *child = new TableView(mSettings, this, m_p->getGraphDoc());
         child->pDoc = m_p->getGraphDoc();
@@ -880,12 +736,10 @@ void MainWindow::OnViewTable()
     }
 }
 
-void MainWindow::OnWindow3dView()
-{
-    MapView* m_p = activeMapView();
-    if(m_p)
-    {
-        if(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_3D])
+void MainWindow::OnWindow3dView() {
+    MapView *m_p = activeMapView();
+    if (m_p) {
+        if (m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_3D])
             return setActiveSubWindow(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_3D]);
         Q3DView *child = new Q3DView(this, m_p->getGraphDoc());
         child->pDoc = m_p->getGraphDoc();
@@ -894,12 +748,10 @@ void MainWindow::OnWindow3dView()
     }
 }
 
-void MainWindow::OnWindowGLView()
-{
-    MapView* m_p = activeMapView();
-    if(m_p)
-    {
-        if(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_MAP_GL])
+void MainWindow::OnWindowGLView() {
+    MapView *m_p = activeMapView();
+    if (m_p) {
+        if (m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_MAP_GL])
             return setActiveSubWindow(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_MAP_GL]);
         GLView *child = new GLView(*m_p->getGraphDoc(), mSettings);
         mdiArea->addSubWindow(child);
@@ -907,12 +759,10 @@ void MainWindow::OnWindowGLView()
     }
 }
 
-void MainWindow::OnViewScatterplot()
-{
-    MapView* m_p = activeMapView();
-    if(m_p)
-    {
-        if(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_SCATTER])
+void MainWindow::OnViewScatterplot() {
+    MapView *m_p = activeMapView();
+    if (m_p) {
+        if (m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_SCATTER])
             return setActiveSubWindow(m_p->getGraphDoc()->m_view[QGraphDoc::VIEW_SCATTER]);
         QPlotView *child = new QPlotView;
         child->pDoc = m_p->getGraphDoc();
@@ -922,107 +772,120 @@ void MainWindow::OnViewScatterplot()
     }
 }
 
-void MainWindow::update3DToolbar()
-{
-    updateActiveWindows();
-}
+void MainWindow::update3DToolbar() { updateActiveWindows(); }
 
-void MainWindow::updateActiveWindows()
-{
+void MainWindow::updateActiveWindows() {
     current_view_type = 0;
     QMdiSubWindow *activeSubWindow = mdiArea->activeSubWindow();
-    if(!activeSubWindow)
-    {
+    if (!activeSubWindow) {
         editToolBar->hide();
         thirdViewToolBar->hide();
         plotToolBar->hide();
         return;
     }
 
-    QWidget* p = qobject_cast<QPlotView *>(activeSubWindow->widget());
-    if(p)
-    {
+    QWidget *p = qobject_cast<QPlotView *>(activeSubWindow->widget());
+    if (p) {
         editToolBar->hide();
         thirdViewToolBar->hide();
         plotToolBar->show();
         current_view_type = QGraphDoc::VIEW_SCATTER;
-        OnFocusGraph(((QPlotView*)p)->pDoc, QGraphDoc::CONTROLS_LOADALL);
-        RedoPlotViewMenu(((QPlotView*)p)->pDoc);
+        OnFocusGraph(((QPlotView *)p)->pDoc, QGraphDoc::CONTROLS_LOADALL);
+        RedoPlotViewMenu(((QPlotView *)p)->pDoc);
 
-        if(((QPlotView*)p)->m_view_monochrome) toggleColor->setChecked(true);
-        else toggleColor->setChecked(false);
-        if(((QPlotView*)p)->m_view_origin) toggleOrg->setChecked(true);
-        else toggleOrg->setChecked(false);
-        if(((QPlotView*)p)->m_view_trend_line) viewTrend->setChecked(true);
-        else viewTrend->setChecked(false);
-        if(((QPlotView*)p)->m_view_equation) yx->setChecked(true);
-        else yx->setChecked(false);
-        if(((QPlotView*)p)->m_view_rsquared) Rtwo->setChecked(true);
-        else Rtwo->setChecked(false);
-    }
-    else if(qobject_cast<TableView *>(activeSubWindow->widget()))
-    {
+        if (((QPlotView *)p)->m_view_monochrome)
+            toggleColor->setChecked(true);
+        else
+            toggleColor->setChecked(false);
+        if (((QPlotView *)p)->m_view_origin)
+            toggleOrg->setChecked(true);
+        else
+            toggleOrg->setChecked(false);
+        if (((QPlotView *)p)->m_view_trend_line)
+            viewTrend->setChecked(true);
+        else
+            viewTrend->setChecked(false);
+        if (((QPlotView *)p)->m_view_equation)
+            yx->setChecked(true);
+        else
+            yx->setChecked(false);
+        if (((QPlotView *)p)->m_view_rsquared)
+            Rtwo->setChecked(true);
+        else
+            Rtwo->setChecked(false);
+    } else if (qobject_cast<TableView *>(activeSubWindow->widget())) {
         editToolBar->hide();
         thirdViewToolBar->hide();
         plotToolBar->hide();
         current_view_type = QGraphDoc::VIEW_TABLE;
-        QGraphDoc* m_p = activeMapDoc();
+        QGraphDoc *m_p = activeMapDoc();
         OnFocusGraph(m_p, QGraphDoc::CONTROLS_LOADALL);
-        m_p->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS );
+        m_p->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS);
         return;
-    }
-    else if((p = qobject_cast<Q3DView *>(activeSubWindow->widget())))
-    {
+    } else if ((p = qobject_cast<Q3DView *>(activeSubWindow->widget()))) {
         editToolBar->hide();
         plotToolBar->hide();
         thirdViewToolBar->show();
-        QGraphDoc* pDoc = activeMapDoc();
+        QGraphDoc *pDoc = activeMapDoc();
         Q3DView *ptr = (Q3DView *)p;
 
-        if(ptr->m_animating) toolsAgentsPlayAct->setChecked(true);
-        else toolsAgentsPlayAct->setChecked(0);
-        if(!ptr->m_animating) toolsAgentsPauseAct->setChecked(true);
-        else toolsAgentsPauseAct->setChecked(0);
+        if (ptr->m_animating)
+            toolsAgentsPlayAct->setChecked(true);
+        else
+            toolsAgentsPlayAct->setChecked(0);
+        if (!ptr->m_animating)
+            toolsAgentsPauseAct->setChecked(true);
+        else
+            toolsAgentsPauseAct->setChecked(0);
 
-        if(ptr->m_mouse_mode == ID_3D_PAN) thirdPanAct->setChecked(true);
-        else thirdPanAct->setChecked(0);
-        if(ptr->m_mouse_mode == ID_3D_ROT) thirdRotAct->setChecked(true);
-        else thirdRotAct->setChecked(0);
-        if(ptr->m_mouse_mode == ID_3D_ZOOM) thirdZoomAct->setChecked(true);
-        else thirdZoomAct->setChecked(0);
-        if(ptr->m_mouse_mode == ID_3D_PLAY_LOOP) playLoopAct->setChecked(true);
-        else playLoopAct->setChecked(0);
-        if(ptr->m_fill) thirdFilledAct->setChecked(true);
-        else thirdFilledAct->setChecked(0);
+        if (ptr->m_mouse_mode == ID_3D_PAN)
+            thirdPanAct->setChecked(true);
+        else
+            thirdPanAct->setChecked(0);
+        if (ptr->m_mouse_mode == ID_3D_ROT)
+            thirdRotAct->setChecked(true);
+        else
+            thirdRotAct->setChecked(0);
+        if (ptr->m_mouse_mode == ID_3D_ZOOM)
+            thirdZoomAct->setChecked(true);
+        else
+            thirdZoomAct->setChecked(0);
+        if (ptr->m_mouse_mode == ID_3D_PLAY_LOOP)
+            playLoopAct->setChecked(true);
+        else
+            playLoopAct->setChecked(0);
+        if (ptr->m_fill)
+            thirdFilledAct->setChecked(true);
+        else
+            thirdFilledAct->setChecked(0);
 
         if (pDoc->m_meta_graph && pDoc->m_meta_graph->viewingProcessedPoints())
             toolsImportTracesAct->setEnabled(true);
         else
             toolsImportTracesAct->setEnabled(false);
 
-        if (!pDoc->m_meta_graph || !pDoc->m_meta_graph->viewingProcessedPoints())
-        {
-            if (ptr->m_mouse_mode == ID_ADD_AGENT) ptr->m_mouse_mode = ID_3D_ROT;
+        if (!pDoc->m_meta_graph || !pDoc->m_meta_graph->viewingProcessedPoints()) {
+            if (ptr->m_mouse_mode == ID_ADD_AGENT)
+                ptr->m_mouse_mode = ID_3D_ROT;
             addAgentAct->setEnabled(false);
-        }
-        else
-        {
+        } else {
             addAgentAct->setEnabled(true);
-            if (ptr->m_mouse_mode == ID_ADD_AGENT) addAgentAct->setChecked(1);
-            else addAgentAct->setChecked(0);
+            if (ptr->m_mouse_mode == ID_ADD_AGENT)
+                addAgentAct->setChecked(1);
+            else
+                addAgentAct->setChecked(0);
         }
 
-        if (ptr->m_mannequins.size())
-        {
+        if (ptr->m_mannequins.size()) {
             toolsAgentsPlayAct->setEnabled(true);
             toolsAgentsPauseAct->setEnabled(true);
             toolsAgentsStopAct->setEnabled(true);
 
-            if (((Q3DView *)p)->m_animating) toolsAgentsPlayAct->setChecked(true);
-            else toolsAgentsPlayAct->setChecked(false);
-        }
-        else
-        {
+            if (((Q3DView *)p)->m_animating)
+                toolsAgentsPlayAct->setChecked(true);
+            else
+                toolsAgentsPlayAct->setChecked(false);
+        } else {
             toolsAgentsPlayAct->setChecked(false);
             toolsAgentsPlayAct->setEnabled(false);
             toolsAgentsPauseAct->setEnabled(false);
@@ -1033,49 +896,42 @@ void MainWindow::updateActiveWindows()
             toolsAgentsPauseAct->setEnabled(true);
             if (!ptr->m_animating) {
                 toolsAgentsPauseAct->setChecked(true);
-            }
-            else {
+            } else {
                 toolsAgentsPauseAct->setChecked(false);
             }
-        }
-        else {
+        } else {
             toolsAgentsPauseAct->setChecked(false);
             toolsAgentsPauseAct->setEnabled(false);
         }
 
         if (ptr->m_mannequins.size()) {
             toolsAgentsStopAct->setEnabled(true);
-        }
-        else {
+        } else {
             toolsAgentsStopAct->setEnabled(false);
         }
 
         if (ptr->m_drawtrails) {
             agentTrailsAct->setChecked(1);
-        }
-        else {
+        } else {
             agentTrailsAct->setChecked(0);
         }
 
         if (ptr->m_fill) {
             thirdFilledAct->setChecked(1);
-        }
-        else {
+        } else {
             thirdFilledAct->setChecked(0);
         }
         current_view_type = QGraphDoc::VIEW_3D;
         return;
-    }
-    else if((p = qobject_cast<MapView *>(activeSubWindow->widget())))
-    {
+    } else if ((p = qobject_cast<MapView *>(activeSubWindow->widget()))) {
         editToolBar->show();
         thirdViewToolBar->hide();
         plotToolBar->hide();
         current_view_type = QGraphDoc::VIEW_MAP;
-        QWidget* v = qobject_cast<MapView *>(activeSubWindow->widget());
-        if(v) current_view_type = QGraphDoc::VIEW_MAP_GL;
-        switch(m_selected_mapbar_item)
-        {
+        QWidget *v = qobject_cast<MapView *>(activeSubWindow->widget());
+        if (v)
+            current_view_type = QGraphDoc::VIEW_MAP_GL;
+        switch (m_selected_mapbar_item) {
         case ID_MAPBAR_ITEM_SELECT:
             SelectButton->setChecked(true);
             activeMapView()->OnEditSelect();
@@ -1158,63 +1014,62 @@ void MainWindow::updateActiveWindows()
             activeMapView()->OnEditSelect();
             break;
         }
-        QGraphDoc* m_p = activeMapDoc();
+        QGraphDoc *m_p = activeMapDoc();
         OnFocusGraph(m_p, QGraphDoc::CONTROLS_LOADALL);
-        m_p->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS );
+        m_p->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS);
     }
 }
 
 void MainWindow::updateGLWindows(bool datasetChanged, bool recentreView) {
     QList<QMdiSubWindow *> windows = mdiArea->subWindowList();
     for (int i = 0; i < windows.size(); ++i) {
-        GLView *child = qobject_cast<GLView*>(windows.at(i)->widget());
-        if(!child) continue;
-        if(datasetChanged) child->notifyDatasetChanged();
-        if(recentreView) child->matchViewToCurrentMetaGraph();
+        GLView *child = qobject_cast<GLView *>(windows.at(i)->widget());
+        if (!child)
+            continue;
+        if (datasetChanged)
+            child->notifyDatasetChanged();
+        if (recentreView)
+            child->matchViewToCurrentMetaGraph();
     }
 }
 
-void MainWindow::setActiveSubWindow(QWidget *win)
-{
-    if (!win) return;
-    foreach (QMdiSubWindow *window, mdiArea->subWindowList())
-    {
-        if(window->widget() == win)
-        {
+void MainWindow::setActiveSubWindow(QWidget *win) {
+    if (!win)
+        return;
+    foreach (QMdiSubWindow *window, mdiArea->subWindowList()) {
+        if (window->widget() == win) {
             mdiArea->setActiveSubWindow(window);
             return;
         }
     }
     QString t = QString(TITLE_BASE);
-    setWindowTitle(t+" "+windowTitle());
+    setWindowTitle(t + " " + windowTitle());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 static bool in_FocusGraph;
-int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
-{
+int MainWindow::OnFocusGraph(QGraphDoc *pDoc, int lParam) {
     in_FocusGraph = true;
     updateToolbar();
     x_coord->clear();
     y_coord->clear();
 
     // Replacement for m_linelayer_chooser is my tree ctrl:
-    if (lParam == QGraphDoc::CONTROLS_DESTROYALL && pDoc == m_treeDoc) {        // Lost graph
+    if (lParam == QGraphDoc::CONTROLS_DESTROYALL && pDoc == m_treeDoc) { // Lost graph
         delete pDoc;
         m_treeDoc = NULL;
         m_topgraph = NULL;
         m_backgraph = NULL;
         m_attrWindow->clear();
         m_indexWidget->clear();
-    }
-    else if (lParam == QGraphDoc::CONTROLS_LOADALL && pDoc != m_treeDoc) {     // [Possible] change of window (sent on focus)
+    } else if (lParam == QGraphDoc::CONTROLS_LOADALL &&
+               pDoc != m_treeDoc) { // [Possible] change of window (sent on focus)
         m_treeDoc = pDoc;
         m_topgraph = NULL;
         m_backgraph = NULL;
         MakeTree();
-    }
-    else if (lParam == QGraphDoc::CONTROLS_LOADGRAPH && pDoc == m_treeDoc) {     // Force update if match current window
+    } else if (lParam == QGraphDoc::CONTROLS_LOADGRAPH && pDoc == m_treeDoc) { // Force update if match current window
         m_topgraph = NULL;
         m_backgraph = NULL;
         m_attrWindow->clear();
@@ -1223,30 +1078,29 @@ int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
         MakeGraphTree();
         // also make drawing tree as this overrides layer visible status sometimes:
         MakeDrawingTree();
-    }
-    else if (lParam == QGraphDoc::CONTROLS_RELOADGRAPH && pDoc == m_treeDoc) {     // Force reload of graph tree if match current window
+    } else if (lParam == QGraphDoc::CONTROLS_RELOADGRAPH &&
+               pDoc == m_treeDoc) { // Force reload of graph tree if match current window
         m_topgraph = NULL;
         m_backgraph = NULL;
         m_attrWindow->clear();
         m_indexWidget->clear();
         ClearGraphTree();
         MakeTree();
-    }
-    else if (lParam == QGraphDoc::CONTROLS_LOADDRAWING && pDoc == m_treeDoc) {     // Force update if match current window
+    } else if (lParam == QGraphDoc::CONTROLS_LOADDRAWING &&
+               pDoc == m_treeDoc) { // Force update if match current window
         m_backgraph = NULL;
         m_attrWindow->clear();
         m_indexWidget->clear();
         ClearGraphTree();
         MakeGraphTree();
         MakeDrawingTree();
-    }
-    else if (lParam == QGraphDoc::CONTROLS_LOADATTRIBUTES && pDoc == m_treeDoc) {     // Force update if match current window
+    } else if (lParam == QGraphDoc::CONTROLS_LOADATTRIBUTES &&
+               pDoc == m_treeDoc) { // Force update if match current window
         MakeAttributeList();
-    }
-    else if (lParam == QGraphDoc::CONTROLS_CHANGEATTRIBUTE && pDoc == m_treeDoc) {     // Force update if match current window
+    } else if (lParam == QGraphDoc::CONTROLS_CHANGEATTRIBUTE &&
+               pDoc == m_treeDoc) { // Force update if match current window
         SetAttributeChecks();
-    }
-    else if (lParam == QGraphDoc::CONTROLS_LOADCONVERT && pDoc == m_treeDoc) {
+    } else if (lParam == QGraphDoc::CONTROLS_LOADCONVERT && pDoc == m_treeDoc) {
         m_topgraph = NULL;
         m_backgraph = NULL;
         m_attrWindow->clear();
@@ -1257,14 +1111,13 @@ int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
         SetDrawingTreeChecks();
     }
     if (m_treeDoc == NULL) {
-//		tree.EnableWindow(FALSE);
+        //		tree.EnableWindow(FALSE);
         // Stop some strange auto scroll property:
-//		SetTreeStyle(TVS_NOSCROLL, TRUE);
-    }
-    else {
-//		tree.EnableWindow(TRUE);
+        //		SetTreeStyle(TVS_NOSCROLL, TRUE);
+    } else {
+        //		tree.EnableWindow(TRUE);
         // Stop some strange auto scroll property:
-//		SetTreeStyle(TVS_NOSCROLL, FALSE);
+        //		SetTreeStyle(TVS_NOSCROLL, FALSE);
     }
 
     m_wndColourScale.OnFocusGraph(pDoc, lParam);
@@ -1273,16 +1126,17 @@ int MainWindow::OnFocusGraph(QGraphDoc* pDoc, int lParam)
     return 0;
 }
 
-void MainWindow::MakeTree()
-{
+void MainWindow::MakeTree() {
     m_indexWidget->clear();
     m_treegraphmap.clear();
     m_treedrawingmap.clear();
 
-    for (int i = 0; i < 5; i++) m_treeroots[i] = NULL;
+    for (int i = 0; i < 5; i++)
+        m_treeroots[i] = NULL;
 
     MetaGraph *graph = m_treeDoc->m_meta_graph;
-    if (!graph) return;
+    if (!graph)
+        return;
 
     int state = graph->getState();
     int viewclass = graph->getViewClass();
@@ -1291,28 +1145,28 @@ void MainWindow::MakeTree()
     MakeDrawingTree();
 }
 
-void MainWindow::OnSelchangingList()
-{
-    if(in_FocusGraph) return;
+void MainWindow::OnSelchangingList() {
+    if (in_FocusGraph)
+        return;
 
     int row = -1;
     row = m_attrWindow->currentRow();
-    if(row > -1 && m_treeDoc){
-      MetaGraph *graph = m_treeDoc->m_meta_graph;
-      if (graph->viewingProcessed()) {
-         graph->setDisplayedAttribute(row - 1);
-      }
-      m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS );
-      SetAttributeChecks();
-      OnFocusGraph(m_treeDoc, QGraphDoc::CONTROLS_CHANGEATTRIBUTE); // Bug Test TV
-   }
+    if (row > -1 && m_treeDoc) {
+        MetaGraph *graph = m_treeDoc->m_meta_graph;
+        if (graph->viewingProcessed()) {
+            graph->setDisplayedAttribute(row - 1);
+        }
+        m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_FOCUS);
+        SetAttributeChecks();
+        OnFocusGraph(m_treeDoc, QGraphDoc::CONTROLS_CHANGEATTRIBUTE); // Bug Test TV
+    }
 
-   // this *does* work here (but only if they click on a valid attribute):
+    // this *does* work here (but only if they click on a valid attribute):
 }
 
-void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
-{
-    if(in_FocusGraph) return;
+void MainWindow::OnSelchangingTree(QTreeWidgetItem *hItem, int col) {
+    if (in_FocusGraph)
+        return;
 
     MetaGraph *graph = m_treeDoc->m_meta_graph;
     bool update = false;
@@ -1329,45 +1183,39 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
                     if (graph->getViewClass() & MetaGraph::VIEWVGA) {
                         if (graph->getDisplayedPointMapRef() == entry.m_cat) {
                             graph->setViewClass(MetaGraph::SHOWHIDEVGA);
-                        }
-                        else {
+                        } else {
                             graph->setDisplayedPointMapRef(entry.m_cat);
                         }
-                    }
-                    else {
+                    } else {
                         graph->setDisplayedPointMapRef(entry.m_cat);
                         graph->setViewClass(MetaGraph::SHOWVGATOP);
                     }
                     remenu = true;
                     break;
                 case 1:
-                   if (graph->getViewClass() & MetaGraph::VIEWAXIAL) {
-                      if (graph->getDisplayedShapeGraphRef() == entry.m_cat) {
-                         graph->setViewClass(MetaGraph::SHOWHIDEAXIAL);
-                      }
-                      else {
-                         graph->setDisplayedShapeGraphRef(entry.m_cat);
-                      }
-                   }
-                   else {
-                      graph->setDisplayedShapeGraphRef(entry.m_cat);
-                      graph->setViewClass(MetaGraph::SHOWAXIALTOP);
-                   }
+                    if (graph->getViewClass() & MetaGraph::VIEWAXIAL) {
+                        if (graph->getDisplayedShapeGraphRef() == entry.m_cat) {
+                            graph->setViewClass(MetaGraph::SHOWHIDEAXIAL);
+                        } else {
+                            graph->setDisplayedShapeGraphRef(entry.m_cat);
+                        }
+                    } else {
+                        graph->setDisplayedShapeGraphRef(entry.m_cat);
+                        graph->setViewClass(MetaGraph::SHOWAXIALTOP);
+                    }
                     remenu = true;
                     break;
                 case 2:
-                   if (graph->getViewClass() & MetaGraph::VIEWDATA) {
-                      if (graph->getDisplayedDataMapRef() == entry.m_cat) {
-                         graph->setViewClass(MetaGraph::SHOWHIDESHAPE);
-                      }
-                      else {
-                         graph->setDisplayedDataMapRef(entry.m_cat);
-                      }
-                   }
-                   else {
-                      graph->setDisplayedDataMapRef(entry.m_cat);
-                      graph->setViewClass(MetaGraph::SHOWSHAPETOP);
-                   }
+                    if (graph->getViewClass() & MetaGraph::VIEWDATA) {
+                        if (graph->getDisplayedDataMapRef() == entry.m_cat) {
+                            graph->setViewClass(MetaGraph::SHOWHIDESHAPE);
+                        } else {
+                            graph->setDisplayedDataMapRef(entry.m_cat);
+                        }
+                    } else {
+                        graph->setDisplayedDataMapRef(entry.m_cat);
+                        graph->setViewClass(MetaGraph::SHOWSHAPETOP);
+                    }
                     remenu = true;
                     break;
                 case 4:
@@ -1379,9 +1227,8 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
                     m_treeDoc->SetRemenuFlag(QGraphDoc::VIEW_ALL, true);
                     OnFocusGraph(m_treeDoc, QGraphDoc::CONTROLS_CHANGEATTRIBUTE);
                 }
-                m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_TABLE );
-            }
-            else if (entry.m_subcat == -1 && m_indexWidget->isEditableColumn(col)) {
+                m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_TABLE);
+            } else if (entry.m_subcat == -1 && m_indexWidget->isEditableColumn(col)) {
                 // hit editable box
                 if (entry.m_type == 1) {
                     int type = graph->getShapeGraphs()[entry.m_cat]->getMapType();
@@ -1399,150 +1246,140 @@ void MainWindow::OnSelchangingTree(QTreeWidgetItem* hItem, int col)
                     // (it may be worth switching it to topmost when they do click here)
                     OnFocusGraph(m_treeDoc, QGraphDoc::CONTROLS_CHANGEATTRIBUTE);
                 }
-            }
-            else {
+            } else {
                 // They've clicked on the displayed layers
                 if (entry.m_type == 1) {
-                   update = true;
-                   graph->getShapeGraphs()[entry.m_cat]->setLayerVisible(entry.m_subcat, m_indexWidget->isItemSetVisible(hItem));
-                }
-                else if (entry.m_type == 2) {
-                   update = true;
-                   graph->getDataMaps()[entry.m_cat].setLayerVisible(entry.m_subcat, m_indexWidget->isItemSetVisible(hItem));
+                    update = true;
+                    graph->getShapeGraphs()[entry.m_cat]->setLayerVisible(entry.m_subcat,
+                                                                          m_indexWidget->isItemSetVisible(hItem));
+                } else if (entry.m_type == 2) {
+                    update = true;
+                    graph->getDataMaps()[entry.m_cat].setLayerVisible(entry.m_subcat,
+                                                                      m_indexWidget->isItemSetVisible(hItem));
                 }
                 if (update) {
-                    m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_TABLE );
+                    m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_TABLE);
                     OnFocusGraph(m_treeDoc, QGraphDoc::CONTROLS_CHANGEATTRIBUTE);
                 }
             }
         }
-    }
-    else {
+    } else {
         auto iter = m_treedrawingmap.find(hItem);
         if (iter != m_treedrawingmap.end()) {
             ItemTreeEntry entry = iter->second;
             if (entry.m_subcat != -1) {
-                if (graph->getLineLayer(entry.m_cat,entry.m_subcat).isShown()) {
-                    graph->getLineLayer(entry.m_cat,entry.m_subcat).setShow(false);
+                if (graph->getLineLayer(entry.m_cat, entry.m_subcat).isShown()) {
+                    graph->getLineLayer(entry.m_cat, entry.m_subcat).setShow(false);
                     graph->redoPointMapBlockLines();
                     graph->resetBSPtree();
-                }
-                else {
-                    graph->getLineLayer(entry.m_cat,entry.m_subcat).setShow(true);
+                } else {
+                    graph->getLineLayer(entry.m_cat, entry.m_subcat).setShow(true);
                     graph->redoPointMapBlockLines();
                     graph->resetBSPtree();
                 }
             }
-            m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_LINESET );
+            m_treeDoc->SetRedrawFlag(QGraphDoc::VIEW_ALL, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_LINESET);
         }
     }
 }
 
-void MainWindow::SetGraphTreeChecks()
-{
+void MainWindow::SetGraphTreeChecks() {
     in_FocusGraph = true;
     MetaGraph *graph = m_treeDoc->m_meta_graph;
     int viewclass = graph->getViewClass();
-    for (auto item: m_treegraphmap) {
-        QTreeWidgetItem* key = item.first;
+    for (auto item : m_treegraphmap) {
+        QTreeWidgetItem *key = item.first;
         ItemTreeEntry entry = item.second;
         int checkstyle = 7;
         if (entry.m_cat != -1) {
             if (entry.m_subcat == -1) {
                 // this is the main type box hit
                 switch (entry.m_type) {
-                    case 0:
-                        if (viewclass & MetaGraph::VIEWVGA && graph->getDisplayedPointMapRef() == entry.m_cat) {
-                            checkstyle = 5;
-                            m_topgraph = key;
-                        }
-                        else if (viewclass & MetaGraph::VIEWBACKVGA && graph->getDisplayedPointMapRef() == entry.m_cat) {
-                            checkstyle = 6;
-                            m_backgraph = key;
-                        }
-                        break;
-                    case 1:
-                        if (viewclass & MetaGraph::VIEWAXIAL && graph->getDisplayedShapeGraphRef() == entry.m_cat) {
-                            checkstyle = 5;
-                            m_topgraph = key;
-                        }
-                        else if (viewclass & MetaGraph::VIEWBACKAXIAL && graph->getDisplayedShapeGraphRef() == entry.m_cat) {
-                            checkstyle = 6;
-                            m_backgraph = key;
-                        }
-                        break;
-                    case 2:
-                        if (viewclass & MetaGraph::VIEWDATA && graph->getDisplayedDataMapRef() == entry.m_cat) {
-                            checkstyle = 5;
-                            m_topgraph = key;
-                        }
-                        else if (viewclass & MetaGraph::VIEWBACKDATA && graph->getDisplayedDataMapRef() == entry.m_cat) {
-                            checkstyle = 6;
-                            m_backgraph = key;
-                        }
-                        break;
+                case 0:
+                    if (viewclass & MetaGraph::VIEWVGA && graph->getDisplayedPointMapRef() == entry.m_cat) {
+                        checkstyle = 5;
+                        m_topgraph = key;
+                    } else if (viewclass & MetaGraph::VIEWBACKVGA && graph->getDisplayedPointMapRef() == entry.m_cat) {
+                        checkstyle = 6;
+                        m_backgraph = key;
+                    }
+                    break;
+                case 1:
+                    if (viewclass & MetaGraph::VIEWAXIAL && graph->getDisplayedShapeGraphRef() == entry.m_cat) {
+                        checkstyle = 5;
+                        m_topgraph = key;
+                    } else if (viewclass & MetaGraph::VIEWBACKAXIAL &&
+                               graph->getDisplayedShapeGraphRef() == entry.m_cat) {
+                        checkstyle = 6;
+                        m_backgraph = key;
+                    }
+                    break;
+                case 2:
+                    if (viewclass & MetaGraph::VIEWDATA && graph->getDisplayedDataMapRef() == entry.m_cat) {
+                        checkstyle = 5;
+                        m_topgraph = key;
+                    } else if (viewclass & MetaGraph::VIEWBACKDATA && graph->getDisplayedDataMapRef() == entry.m_cat) {
+                        checkstyle = 6;
+                        m_backgraph = key;
+                    }
+                    break;
                 }
 
-                if(checkstyle == 5)
+                if (checkstyle == 5)
                     m_indexWidget->setItemVisibility(key, Qt::Checked);
-                else if(checkstyle == 6)
+                else if (checkstyle == 6)
                     m_indexWidget->setItemVisibility(key, Qt::PartiallyChecked);
-                else if(checkstyle == 7)
+                else if (checkstyle == 7)
                     m_indexWidget->setItemVisibility(key, Qt::Unchecked);
 
                 // the editable box
                 int editable = MetaGraph::NOT_EDITABLE;
                 switch (entry.m_type) {
-                    case 0:
-                        if (graph->getPointMaps()[entry.m_cat].isProcessed()) {
-                            editable = MetaGraph::NOT_EDITABLE;
-                        }
-                        else {
-                            editable = MetaGraph::EDITABLE_ON;
-                        }
-                        break;
-                    case 1:
-                        {
-                            int type = graph->getShapeGraphs()[entry.m_cat]->getMapType();
-                            if (type == ShapeMap::SEGMENTMAP || type == ShapeMap::ALLLINEMAP) {
-                                editable = MetaGraph::NOT_EDITABLE;
-                            }
-                            else {
-                                editable = graph->getShapeGraphs()[entry.m_cat]->isEditable() ? MetaGraph::EDITABLE_ON : MetaGraph::EDITABLE_OFF;
-                            }
-                        }
-                        break;
-                    case 2:
-                        editable = graph->getDataMaps()[entry.m_cat].isEditable() ? MetaGraph::EDITABLE_ON : MetaGraph::EDITABLE_OFF;
-                        break;
-                }
-                switch (editable) {
-                    case MetaGraph::NOT_EDITABLE:
-                        m_indexWidget->setItemReadOnly(key);
-                        break;
-                    case MetaGraph::EDITABLE_OFF:
-                        m_indexWidget->setItemEditability(key, Qt::Unchecked);
-                        break;
-                    case MetaGraph::EDITABLE_ON:
-                        m_indexWidget->setItemEditability(key, Qt::Checked);
+                case 0:
+                    if (graph->getPointMaps()[entry.m_cat].isProcessed()) {
+                        editable = MetaGraph::NOT_EDITABLE;
+                    } else {
+                        editable = MetaGraph::EDITABLE_ON;
+                    }
+                    break;
+                case 1: {
+                    int type = graph->getShapeGraphs()[entry.m_cat]->getMapType();
+                    if (type == ShapeMap::SEGMENTMAP || type == ShapeMap::ALLLINEMAP) {
+                        editable = MetaGraph::NOT_EDITABLE;
+                    } else {
+                        editable = graph->getShapeGraphs()[entry.m_cat]->isEditable() ? MetaGraph::EDITABLE_ON
+                                                                                      : MetaGraph::EDITABLE_OFF;
+                    }
+                } break;
+                case 2:
+                    editable = graph->getDataMaps()[entry.m_cat].isEditable() ? MetaGraph::EDITABLE_ON
+                                                                              : MetaGraph::EDITABLE_OFF;
                     break;
                 }
-            }
-            else {
+                switch (editable) {
+                case MetaGraph::NOT_EDITABLE:
+                    m_indexWidget->setItemReadOnly(key);
+                    break;
+                case MetaGraph::EDITABLE_OFF:
+                    m_indexWidget->setItemEditability(key, Qt::Unchecked);
+                    break;
+                case MetaGraph::EDITABLE_ON:
+                    m_indexWidget->setItemEditability(key, Qt::Checked);
+                    break;
+                }
+            } else {
                 // the displayed layers (note that VGA graphs (type 0)
                 // do not currently have layers supported
                 bool show = false;
                 if (entry.m_type == 1) {
                     show = graph->getShapeGraphs()[entry.m_cat]->isLayerVisible(entry.m_subcat);
-                }
-                else if (entry.m_type == 2) {
+                } else if (entry.m_type == 2) {
                     show = graph->getDataMaps()[entry.m_cat].isLayerVisible(entry.m_subcat);
                 }
                 if (show) {
-                      m_indexWidget->setItemVisibility(key, Qt::Checked);
-                }
-                else {
-                      m_indexWidget->setItemVisibility(key, Qt::Unchecked);
+                    m_indexWidget->setItemVisibility(key, Qt::Checked);
+                } else {
+                    m_indexWidget->setItemVisibility(key, Qt::Unchecked);
                 }
             }
         }
@@ -1551,18 +1388,16 @@ void MainWindow::SetGraphTreeChecks()
     in_FocusGraph = false;
 }
 
-void MainWindow::SetDrawingTreeChecks()
-{
+void MainWindow::SetDrawingTreeChecks() {
     MetaGraph *graph = m_treeDoc->m_meta_graph;
     int viewclass = graph->getViewClass();
-    for (auto iter: m_treedrawingmap) {
+    for (auto iter : m_treedrawingmap) {
         ItemTreeEntry entry = iter.second;
         if (entry.m_subcat != -1) {
-            if (graph->getLineLayer(entry.m_cat,entry.m_subcat).isShown()) {
-                  iter.first->setIcon(0, m_tree_icon[12]);
-            }
-            else {
-                  iter.first->setIcon(0, m_tree_icon[13]);
+            if (graph->getLineLayer(entry.m_cat, entry.m_subcat).isShown()) {
+                iter.first->setIcon(0, m_tree_icon[12]);
+            } else {
+                iter.first->setIcon(0, m_tree_icon[13]);
             }
         }
     }
@@ -1570,8 +1405,7 @@ void MainWindow::SetDrawingTreeChecks()
 
 // clear the graph tree (not the drawing tree) but also clear the attribute list
 
-void MainWindow::ClearGraphTree()
-{
+void MainWindow::ClearGraphTree() {
     m_attribute_locked.clear();
 
     for (int i = 2; i >= 0; i--) {
@@ -1582,35 +1416,33 @@ void MainWindow::ClearGraphTree()
     m_treegraphmap.clear();
 }
 
-void MainWindow::MakeGraphTree()
-{
+void MainWindow::MakeGraphTree() {
     MetaGraph *graph = m_treeDoc->m_meta_graph;
 
     int state = graph->getState();
 
     if (state & MetaGraph::POINTMAPS) {
         if (!m_treeroots[0]) {
-            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(tr("Visibility Graphs"));
+            QTreeWidgetItem *hItem = m_indexWidget->addNewItem(tr("Visibility Graphs"));
             hItem->setIcon(0, m_tree_icon[0]);
-            ItemTreeEntry entry(0,-1,-1);
+            ItemTreeEntry entry(0, -1, -1);
             m_treegraphmap[hItem] = entry;
             m_treeroots[0] = hItem;
         }
         int i = 0;
-        for (auto& pointmap: m_treeDoc->m_meta_graph->getPointMaps()) {
+        for (auto &pointmap : m_treeDoc->m_meta_graph->getPointMaps()) {
             QString name = QString(pointmap.getName().c_str());
-            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(name, m_treeroots[0]);
+            QTreeWidgetItem *hItem = m_indexWidget->addNewItem(name, m_treeroots[0]);
             m_indexWidget->setItemVisibility(hItem, Qt::Unchecked);
             m_indexWidget->setItemEditability(hItem, Qt::Unchecked);
-            ItemTreeEntry entry(0,(short)i,-1);
-            m_treegraphmap.insert(std::make_pair(hItem,entry));
+            ItemTreeEntry entry(0, (short)i, -1);
+            m_treegraphmap.insert(std::make_pair(hItem, entry));
             i++;
         }
-    }
-    else if (m_treeroots[0]) {
+    } else if (m_treeroots[0]) {
         m_treeroots[0]->removeChild(m_treeroots[0]);
         auto iter = m_treegraphmap.find(m_treeroots[0]);
-        if(iter != m_treegraphmap.end()) {
+        if (iter != m_treegraphmap.end()) {
             m_treegraphmap.erase(iter);
         }
         m_treeroots[0] = NULL;
@@ -1618,34 +1450,33 @@ void MainWindow::MakeGraphTree()
 
     if (state & MetaGraph::SHAPEGRAPHS) {
         if (!m_treeroots[1]) {
-            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(tr("Shape Graphs"));
+            QTreeWidgetItem *hItem = m_indexWidget->addNewItem(tr("Shape Graphs"));
             hItem->setIcon(0, m_tree_icon[1]);
-            ItemTreeEntry entry(1,-1,-1);
+            ItemTreeEntry entry(1, -1, -1);
             m_treegraphmap[hItem] = entry;
             m_treeroots[1] = hItem;
         }
         for (size_t i = 0; i < m_treeDoc->m_meta_graph->getShapeGraphs().size(); i++) {
             QString name = QString(m_treeDoc->m_meta_graph->getShapeGraphs()[i]->getName().c_str());
-            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(name, m_treeroots[1]);
+            QTreeWidgetItem *hItem = m_indexWidget->addNewItem(name, m_treeroots[1]);
             m_indexWidget->setItemVisibility(hItem, Qt::Unchecked);
             m_indexWidget->setItemEditability(hItem, Qt::Unchecked);
-            ItemTreeEntry entry(1,(short)i,-1);
-            m_treegraphmap.insert(std::make_pair(hItem,entry));
-            LayerManagerImpl& layers = m_treeDoc->m_meta_graph->getShapeGraphs()[i]->getLayers();
-            if(layers.getNumLayers() > 1) {
+            ItemTreeEntry entry(1, (short)i, -1);
+            m_treegraphmap.insert(std::make_pair(hItem, entry));
+            LayerManagerImpl &layers = m_treeDoc->m_meta_graph->getShapeGraphs()[i]->getLayers();
+            if (layers.getNumLayers() > 1) {
                 for (int j = 0; j < layers.getNumLayers(); j++) {
                     QString name = QString(layers.getLayerName(j).c_str());
-                    QTreeWidgetItem* hNewItem = m_indexWidget->addNewItem(name, hItem);
-                    ItemTreeEntry entry(1,(short)i,j);
+                    QTreeWidgetItem *hNewItem = m_indexWidget->addNewItem(name, hItem);
+                    ItemTreeEntry entry(1, (short)i, j);
                     m_treegraphmap[hNewItem] = entry;
                 }
             }
         }
-    }
-    else if (m_treeroots[1]) {
+    } else if (m_treeroots[1]) {
         m_treeroots[1]->removeChild(m_treeroots[1]);
         auto iter = m_treegraphmap.find(m_treeroots[1]);
-        if(iter != m_treegraphmap.end()) {
+        if (iter != m_treegraphmap.end()) {
             m_treegraphmap.erase(iter);
         }
         m_treeroots[1] = NULL;
@@ -1653,36 +1484,35 @@ void MainWindow::MakeGraphTree()
 
     if (state & MetaGraph::DATAMAPS) {
         if (!m_treeroots[2]) {
-            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(tr("Data Maps"));
+            QTreeWidgetItem *hItem = m_indexWidget->addNewItem(tr("Data Maps"));
             hItem->setIcon(0, m_tree_icon[2]);
-            ItemTreeEntry entry(2,-1,-1);
+            ItemTreeEntry entry(2, -1, -1);
             m_treegraphmap[hItem] = entry;
             m_treeroots[2] = hItem;
         }
         for (size_t i = 0; i < m_treeDoc->m_meta_graph->getDataMaps().size(); i++) {
             QString name = QString(m_treeDoc->m_meta_graph->getDataMaps()[i].getName().c_str());
-            QTreeWidgetItem* hItem = m_indexWidget->addNewItem(name, m_treeroots[2]);
+            QTreeWidgetItem *hItem = m_indexWidget->addNewItem(name, m_treeroots[2]);
             m_indexWidget->setItemVisibility(hItem, Qt::Unchecked);
             m_indexWidget->setItemEditability(hItem, Qt::Unchecked);
-            ItemTreeEntry entry(2,(short)i,-1);
+            ItemTreeEntry entry(2, (short)i, -1);
             m_treegraphmap[hItem] = entry;
 
             LayerManagerImpl layers = m_treeDoc->m_meta_graph->getDataMaps()[i].getLayers();
-            if(layers.getNumLayers() > 1) {
+            if (layers.getNumLayers() > 1) {
                 for (int j = 0; j < layers.getNumLayers(); j++) {
                     QString name = QString(layers.getLayerName(j).c_str());
-                    QTreeWidgetItem* hNewItem = m_indexWidget->addNewItem(name, hItem);
+                    QTreeWidgetItem *hNewItem = m_indexWidget->addNewItem(name, hItem);
                     m_indexWidget->setItemVisibility(hNewItem, Qt::Unchecked);
-                    ItemTreeEntry entry(2,(short)i,j);
-                    m_treegraphmap.insert(std::make_pair(hNewItem,entry));
+                    ItemTreeEntry entry(2, (short)i, j);
+                    m_treegraphmap.insert(std::make_pair(hNewItem, entry));
                 }
             }
         }
-    }
-    else if (m_treeroots[2]) {
+    } else if (m_treeroots[2]) {
         m_treeroots[2]->removeChild(m_treeroots[2]);
         auto iter = m_treegraphmap.find(m_treeroots[2]);
-        if(iter != m_treegraphmap.end()) {
+        if (iter != m_treegraphmap.end()) {
             m_treegraphmap.erase(iter);
         }
         m_treeroots[2] = NULL;
@@ -1691,8 +1521,7 @@ void MainWindow::MakeGraphTree()
     SetGraphTreeChecks();
 }
 
-void MainWindow::MakeDrawingTree()
-{
+void MainWindow::MakeDrawingTree() {
     MetaGraph *graph = m_treeDoc->m_meta_graph;
 
     int state = graph->getState();
@@ -1703,36 +1532,35 @@ void MainWindow::MakeDrawingTree()
             m_treedrawingmap.clear();
         }
         // we'll do all of these if it works...
-        QTreeWidgetItem* root = m_indexWidget->addNewItem(tr("Drawing Layers"));
+        QTreeWidgetItem *root = m_indexWidget->addNewItem(tr("Drawing Layers"));
         root->setIcon(0, m_tree_icon[4]);
-        ItemTreeEntry entry(4,0,-1);
-        m_treedrawingmap.insert(std::make_pair(root,entry));
+        ItemTreeEntry entry(4, 0, -1);
+        m_treedrawingmap.insert(std::make_pair(root, entry));
         m_treeroots[4] = root;
         for (int i = 0; i < m_treeDoc->m_meta_graph->getLineFileCount(); i++) {
 
-            QTreeWidgetItem* subroot = m_indexWidget->addNewItem(QString(m_treeDoc->m_meta_graph->getLineFileName(i).c_str()), m_treeroots[4]);
+            QTreeWidgetItem *subroot = m_indexWidget->addNewItem(
+                QString(m_treeDoc->m_meta_graph->getLineFileName(i).c_str()), m_treeroots[4]);
             subroot->setIcon(0, m_tree_icon[8]);
-            ItemTreeEntry entry(4,i,-1);
-            m_treedrawingmap.insert(std::make_pair(subroot,entry));
+            ItemTreeEntry entry(4, i, -1);
+            m_treedrawingmap.insert(std::make_pair(subroot, entry));
 
             for (int j = 0; j < m_treeDoc->m_meta_graph->getLineLayerCount(i); j++) {
-                QString name(m_treeDoc->m_meta_graph->getLineLayer(i,j).getName().c_str());
-                QTreeWidgetItem* hItem = m_indexWidget->addNewItem(name, subroot);
-                if (m_treeDoc->m_meta_graph->getLineLayer(i,j).isShown()) {
+                QString name(m_treeDoc->m_meta_graph->getLineLayer(i, j).getName().c_str());
+                QTreeWidgetItem *hItem = m_indexWidget->addNewItem(name, subroot);
+                if (m_treeDoc->m_meta_graph->getLineLayer(i, j).isShown()) {
                     m_indexWidget->setItemVisibility(hItem, Qt::Checked);
-                }
-                else {
+                } else {
                     m_indexWidget->setItemVisibility(hItem, Qt::Unchecked);
                 }
-                ItemTreeEntry entry(4,i,j);
-                m_treedrawingmap.insert(std::make_pair(hItem,entry));
+                ItemTreeEntry entry(4, i, j);
+                m_treedrawingmap.insert(std::make_pair(hItem, entry));
             }
         }
     }
 }
 
-void MainWindow::MakeAttributeList()
-{
+void MainWindow::MakeAttributeList() {
     MetaGraph *graph = m_treeDoc->m_meta_graph;
     if (graph == NULL) {
         return;
@@ -1748,14 +1576,14 @@ void MainWindow::MakeAttributeList()
         int cx = 0;
         QString name;
         if (graph->viewingProcessed()) {
-            const AttributeTable& table = graph->getAttributeTable();
+            const AttributeTable &table = graph->getAttributeTable();
             m_attrWindow->addItem(tr("Ref Number"));
             m_attribute_locked.push_back(true);
 
             for (int i = 0; i < table.getNumColumns(); i++) {
                 name = QString(table.getColumnName(i).c_str());
-                    m_attrWindow->addItem(name);
-                    m_attribute_locked.push_back(table.getColumn(i).isLocked());
+                m_attrWindow->addItem(name);
+                m_attribute_locked.push_back(table.getColumn(i).isLocked());
                 //}
             }
         }
@@ -1764,30 +1592,28 @@ void MainWindow::MakeAttributeList()
     SetAttributeChecks();
 }
 
-void MainWindow::SetAttributeChecks()
-{
+void MainWindow::SetAttributeChecks() {
     MetaGraph *graph = m_treeDoc->m_meta_graph;
-    if (graph == NULL) return;
+    if (graph == NULL)
+        return;
 
-    QListWidgetItem * it;
+    QListWidgetItem *it;
     if (graph->viewingProcessed()) {
         int image, displayed_attribute = graph->getDisplayedAttribute();
-        for (int i = 0; ; i++) {
+        for (int i = 0;; i++) {
             it = m_attrWindow->item(i);
-            if(!it) break;
-            if ((i-1) == displayed_attribute) {
+            if (!it)
+                break;
+            if ((i - 1) == displayed_attribute) {
                 if (!m_attribute_locked[i]) {
                     image = 9;
-                }
-                else {
+                } else {
                     image = 17;
                 }
-            }
-            else {
+            } else {
                 if (!m_attribute_locked[i]) {
                     image = 10;
-                }
-                else {
+                } else {
                     image = 18;
                 }
             }
@@ -1801,137 +1627,102 @@ void MainWindow::chooseAttributeOnIndex(int attributeIdx) {
     m_attrWindow->setCurrentRow(attributeIdx);
 }
 
-void MainWindow::OninvertColor()
-{
-    activeMapDoc()->OnSwapColours();
-}
+void MainWindow::OninvertColor() { activeMapDoc()->OnSwapColours(); }
 
-void MainWindow::OnzoomTo()
-{
-    activeMapView()->OnViewZoomsel();
-}
+void MainWindow::OnzoomTo() { activeMapView()->OnViewZoomsel(); }
 
-void MainWindow::SelectButtonTriggered()
-{
+void MainWindow::SelectButtonTriggered() {
     m_selected_mapbar_item = ID_MAPBAR_ITEM_SELECT;
     activeMapView()->OnEditSelect();
 }
 
-void MainWindow::DragButtonTriggered()
-{
+void MainWindow::DragButtonTriggered() {
     m_selected_mapbar_item = ID_MAPBAR_ITEM_MOVE;
     activeMapView()->OnViewPan();
 }
 
-void MainWindow::SelectPenTriggered()
-{
+void MainWindow::SelectPenTriggered() {
     m_selected_mapbar_item = ID_MAPBAR_ITEM_PENCIL;
     activeMapView()->OnEditPencil();
 }
 
-void MainWindow::AxialMapTriggered()
-{
+void MainWindow::AxialMapTriggered() {
     m_selected_mapbar_item = ID_MAPBAR_ITEM_AL2;
     activeMapView()->OnModeSeedAxial();
 }
 
-void MainWindow::StepDepthTriggered()
-{
-    activeMapDoc()->OnToolsPD();
-}
+void MainWindow::StepDepthTriggered() { activeMapDoc()->OnToolsPD(); }
 
-void MainWindow::zoomButtonTriggered()
-{
+void MainWindow::zoomButtonTriggered() {
     int id = zoomInAct->data().value<int>();
-    if(id == ID_MAPBAR_ITEM_ZOOM_IN)
-    {
+    if (id == ID_MAPBAR_ITEM_ZOOM_IN) {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_ZOOM_IN;
         activeMapView()->OnViewZoomIn();
-    }
-    else
-    {
+    } else {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_ZOOM_OUT;
         activeMapView()->OnViewZoomOut();
     }
 }
 
-void MainWindow::FillButtonTriggered()
-{
-    int id;// = qVariantValue<int>(STDFillColorAct->data());
-    if( qobject_cast<QAction *>(sender()) ) { // Not sure // Hack TV
-        QAction* temp = qobject_cast<QAction *>(sender());
+void MainWindow::FillButtonTriggered() {
+    int id;                                  // = qVariantValue<int>(STDFillColorAct->data());
+    if (qobject_cast<QAction *>(sender())) { // Not sure // Hack TV
+        QAction *temp = qobject_cast<QAction *>(sender());
         id = temp->data().value<int>();
         delete temp;
     } else {
         id = STDFillColorAct->data().value<int>();
     }
 
-    if(id == ID_MAPBAR_ITEM_FILL)
-    {
+    if (id == ID_MAPBAR_ITEM_FILL) {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_FILL;
         activeMapView()->OnEditFill();
-    }
-    else if (id == ID_MAPBAR_ITEM_SEMIFILL)         // AV TV
+    } else if (id == ID_MAPBAR_ITEM_SEMIFILL) // AV TV
     {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_SEMIFILL;
         activeMapView()->OnEditSemiFill();
-    }
-    else
-    {
+    } else {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_AUGMENT_FILL;
         activeMapView()->OnEditAugmentFill(); // AV TV
     }
 }
 
-void MainWindow::LineButtonTriggered()
-{
+void MainWindow::LineButtonTriggered() {
     int id = SelectLineAct->data().value<int>();
-    if(id == ID_MAPBAR_ITEM_LINETOOL)
-    {
+    if (id == ID_MAPBAR_ITEM_LINETOOL) {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_LINETOOL;
         activeMapView()->OnEditLineTool();
-    }
-    else
-    {
+    } else {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_POLYGON;
         activeMapView()->OnEditPolygonTool();
     }
 }
 
-void MainWindow::isoButtonTriggered()
-{
+void MainWindow::isoButtonTriggered() {
     int id = MakeIosAct->data().value<int>();
-    if(id == ID_MAPBAR_ITEM_ISOVIST)
-    {
+    if (id == ID_MAPBAR_ITEM_ISOVIST) {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_ISOVIST;
         activeMapView()->OnModeIsovist();
-    }
-    else
-    {
+    } else {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_HALFISOVIST;
         activeMapView()->OnModeTargetedIsovist();
     }
 }
 
-void MainWindow::joinButtonTriggered()
-{
+void MainWindow::joinButtonTriggered() {
     int id = JoinAct->data().value<int>();
-    if(id == ID_MAPBAR_ITEM_JOIN)
-    {
+    if (id == ID_MAPBAR_ITEM_JOIN) {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_JOIN;
         activeMapView()->OnModeJoin();
-    }
-    else
-    {
+    } else {
         m_selected_mapbar_item = ID_MAPBAR_ITEM_UNJOIN;
         activeMapView()->OnModeUnjoin();
     }
 }
 
-void MainWindow::zoomModeTriggered()
-{
+void MainWindow::zoomModeTriggered() {
     zoomInAct = qobject_cast<QAction *>(sender());
-    if(zoomInAct->data() == ID_MAPBAR_ITEM_ZOOM_IN)
+    if (zoomInAct->data() == ID_MAPBAR_ITEM_ZOOM_IN)
         zoomToolButton->setIcon(QIcon(":/images/win/b-5-3.png"));
     else
         zoomToolButton->setIcon(QIcon(":/images/win/b-5-4.png"));
@@ -1940,16 +1731,14 @@ void MainWindow::zoomModeTriggered()
     zoomButtonTriggered();
 }
 
-void MainWindow::FillModeTriggered()
-{
+void MainWindow::FillModeTriggered() {
     fillColorToolButton->setChecked(1);
     FillButtonTriggered();
 }
 
-void MainWindow::LineModeTriggered()
-{
+void MainWindow::LineModeTriggered() {
     SelectLineAct = qobject_cast<QAction *>(sender());
-    if(SelectLineAct->data() == ID_MAPBAR_ITEM_LINETOOL)
+    if (SelectLineAct->data() == ID_MAPBAR_ITEM_LINETOOL)
         lineToolButton->setIcon(QIcon(":/images/win/b-5-10.png"));
     else
         lineToolButton->setIcon(QIcon(":/images/win/b-5-11.png"));
@@ -1957,10 +1746,9 @@ void MainWindow::LineModeTriggered()
     LineButtonTriggered();
 }
 
-void MainWindow::isoModeTriggered()
-{
+void MainWindow::isoModeTriggered() {
     MakeIosAct = qobject_cast<QAction *>(sender());
-    if(MakeIosAct->data() == ID_MAPBAR_ITEM_ISOVIST)
+    if (MakeIosAct->data() == ID_MAPBAR_ITEM_ISOVIST)
         newisoToolButton->setIcon(QIcon(":/images/win/b-5-12.png"));
     else
         newisoToolButton->setIcon(QIcon(":/images/win/b-5-13.png"));
@@ -1969,10 +1757,9 @@ void MainWindow::isoModeTriggered()
     isoButtonTriggered();
 }
 
-void MainWindow::joinTriggered()
-{
+void MainWindow::joinTriggered() {
     JoinAct = qobject_cast<QAction *>(sender());
-    if(JoinAct->data() == ID_MAPBAR_ITEM_JOIN)
+    if (JoinAct->data() == ID_MAPBAR_ITEM_JOIN)
         JoinToolButton->setIcon(QIcon(":/images/win/b-5-16.png"));
     else
         JoinToolButton->setIcon(QIcon(":/images/win/b-5-17.png"));
@@ -1981,129 +1768,111 @@ void MainWindow::joinTriggered()
     joinButtonTriggered();
 }
 
-void MainWindow::OnFileProperties()
-{
-   QGraphDoc* gd = activeMapView()->getGraphDoc();
-   gd->OnFileProperties();
+void MainWindow::OnFileProperties() {
+    QGraphDoc *gd = activeMapView()->getGraphDoc();
+    gd->OnFileProperties();
 }
 
 // PlotView message
-void MainWindow::OntoggleColor()
-{
-   QGraphDoc* gd = activeMapDoc();
-   if(((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER]))
-       ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewColor();
+void MainWindow::OntoggleColor() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER]))
+        ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewColor();
 }
 
-void MainWindow::OntoggleOrg()
-{
-   QGraphDoc* gd = activeMapDoc();
-   if(((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER]))
-     ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewOrigin();
+void MainWindow::OntoggleOrg() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER]))
+        ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewOrigin();
 }
 
-void MainWindow::OnviewTrend()
-{
-   QGraphDoc* gd = activeMapDoc();
-   if(((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER]))
-      ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewTrendLine();
+void MainWindow::OnviewTrend() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER]))
+        ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewTrendLine();
 }
 
-void MainWindow::OnYX()
-{
-   QGraphDoc* gd = activeMapDoc();
-   if(((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER]))
-      ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewEquation();
+void MainWindow::OnYX() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER]))
+        ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewEquation();
 }
 
-void MainWindow::OnRtwo()
-{
-   QGraphDoc* gd = activeMapDoc();
-   if(((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER]))
-        ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewRsquared();
+void MainWindow::OnRtwo() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER]))
+        ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->OnViewRsquared();
 }
 
-void MainWindow::OnToolsImportTraces()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsImportTraces();
+void MainWindow::OnToolsImportTraces() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsImportTraces();
 }
 
-void MainWindow::OnAddAgent()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->OnAddAgent();
+void MainWindow::OnAddAgent() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->OnAddAgent();
 }
 
-void MainWindow::OnToolsAgentsPlay()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentsPlay();
+void MainWindow::OnToolsAgentsPlay() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentsPlay();
 }
 
-void MainWindow::OnToolsAgentsPause()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentsPause();
+void MainWindow::OnToolsAgentsPause() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentsPause();
 }
 
-void MainWindow::OnToolsAgentsStop()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentsStop();
+void MainWindow::OnToolsAgentsStop() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->OnToolsAgentsStop();
     updateActiveWindows();
 }
 
-void MainWindow::OnAgentTrails()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->OnAgentTrails();
+void MainWindow::OnAgentTrails() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->OnAgentTrails();
 }
 
-void MainWindow::On3dRot()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->On3dRot();
+void MainWindow::On3dRot() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->On3dRot();
 }
 
-void MainWindow::On3dPan()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->On3dPan();
+void MainWindow::On3dPan() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->On3dPan();
 }
 
-void MainWindow::On3dZoom()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->On3dZoom();
+void MainWindow::On3dZoom() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->On3dZoom();
 }
 
-void MainWindow::OnPlayLoop()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->OnPlayLoop();
+void MainWindow::OnPlayLoop() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->OnPlayLoop();
 }
 
-void MainWindow::On3dFilled()
-{
-    QGraphDoc* gd = activeMapDoc();
-    if(((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D]))
-        ((Q3DView*)gd->m_view[QGraphDoc::VIEW_3D])->On3dFilled();
+void MainWindow::On3dFilled() {
+    QGraphDoc *gd = activeMapDoc();
+    if (((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D]))
+        ((Q3DView *)gd->m_view[QGraphDoc::VIEW_3D])->On3dFilled();
 }
 
 ///////////////////////////////////////
-void MainWindow::createStatusBar()
-{
+void MainWindow::createStatusBar() {
     statusBar()->showMessage(tr("Ready"));
     g_info_curr = new QLabel;
     g_info_curr->setText("      ");
@@ -2116,35 +1885,30 @@ void MainWindow::createStatusBar()
     statusBar()->addPermanentWidget(g_pos_curr);
 }
 
-void MainWindow::readSettings()
-{
+void MainWindow::readSettings() {
     auto settings = mSettings.getTransaction();
     QPoint pos = settings->readSetting(SettingTag::position, QPoint(200, 200)).toPoint();
     QSize size = settings->readSetting(SettingTag::size, QSize(400, 400)).toSize();
-    m_foreground = settings->readSetting(SettingTag::foregroundColour, qRgb(128,255,128)).toInt();
-    m_background = settings->readSetting(SettingTag::backgroundColour, qRgb(0,0,0)).toInt();
+    m_foreground = settings->readSetting(SettingTag::foregroundColour, qRgb(128, 255, 128)).toInt();
+    m_background = settings->readSetting(SettingTag::backgroundColour, qRgb(0, 0, 0)).toInt();
     m_simpleVersion = settings->readSetting(SettingTag::simpleVersion, true).toBool();
     m_defaultMapWindowIsLegacy = settings->readSetting(SettingTag::legacyMapWindow, false).toBool();
-    if (settings->readSetting(SettingTag::mwMaximised, true).toBool())
-    {
-         setWindowState(Qt::WindowMaximized);
-    }
-    else{
+    if (settings->readSetting(SettingTag::mwMaximised, true).toBool()) {
+        setWindowState(Qt::WindowMaximized);
+    } else {
         move(pos);
         resize(size);
     }
 }
 
-void MainWindow::writeSettings()
-{
+void MainWindow::writeSettings() {
     auto settings = mSettings.getTransaction();
     settings->writeSetting(SettingTag::position, pos());
     settings->writeSetting(SettingTag::size, size());
     settings->writeSetting(SettingTag::mwMaximised, windowState() == Qt::WindowMaximized);
 }
 
-void MainWindow::setCurrentFile(const QString &fileName)
-{
+void MainWindow::setCurrentFile(const QString &fileName) {
 
     auto settings = mSettings.getTransaction();
 
@@ -2159,8 +1923,7 @@ void MainWindow::setCurrentFile(const QString &fileName)
     updateRecentFileActions(files);
 }
 
-void MainWindow::updateRecentFileActions(const QStringList &files)
-{
+void MainWindow::updateRecentFileActions(const QStringList &files) {
     int numRecentFiles = qMin(files.size(), MaxRecentFiles);
 
     for (int i = 0; i < numRecentFiles; ++i) {
@@ -2175,16 +1938,11 @@ void MainWindow::updateRecentFileActions(const QStringList &files)
     separatorAct->setVisible(numRecentFiles > 0);
 }
 
-QString MainWindow::strippedName(const QString &fullFileName)
-{
-    return QFileInfo(fullFileName).fileName();
-}
+QString MainWindow::strippedName(const QString &fullFileName) { return QFileInfo(fullFileName).fileName(); }
 
-void MainWindow::openRecentFile()
-{
+void MainWindow::openRecentFile() {
     QAction *action = qobject_cast<QAction *>(sender());
-    if (action)
-    {
+    if (action) {
         QMdiSubWindow *existing = findMapView(action->data().toString());
         if (existing) {
             mdiArea->setActiveSubWindow(existing);
@@ -2192,8 +1950,8 @@ void MainWindow::openRecentFile()
         }
         MapView *child = createMapView();
         QByteArray ba = action->data().toString().toUtf8(); // quick fix for weird chars (russian filename bug report)
-        char *file = ba.data(); // quick fix for weird chars (russian filename bug report)
-        if(child->getGraphDoc()->OnOpenDocument(file)) // quick fix for weird chars (russian filename bug report)
+        char *file = ba.data();                             // quick fix for weird chars (russian filename bug report)
+        if (child->getGraphDoc()->OnOpenDocument(file))     // quick fix for weird chars (russian filename bug report)
         {
             child->setCurrentFile(action->data().toString());
             child->postLoadFile();
@@ -2201,125 +1959,124 @@ void MainWindow::openRecentFile()
             statusBar()->showMessage(tr("File loaded"), 2000);
             child->show();
             OnFocusGraph(child->getGraphDoc(), QGraphDoc::CONTROLS_LOADALL);
-        }
-        else child->close();
+        } else
+            child->close();
     }
 }
 
-void MainWindow::RedoPlotViewMenu(QGraphDoc* pDoc)
-{
-   if(!pDoc->m_view[QGraphDoc::VIEW_SCATTER]) return;
-   in_FocusGraph = true;
+void MainWindow::RedoPlotViewMenu(QGraphDoc *pDoc) {
+    if (!pDoc->m_view[QGraphDoc::VIEW_SCATTER])
+        return;
+    in_FocusGraph = true;
 
-   // this will be used to distinguish between viewing VGA and axial maps
-   int view_class = pDoc->m_meta_graph->getViewClass() & (MetaGraph::VIEWVGA | MetaGraph::VIEWAXIAL | MetaGraph::VIEWDATA);
-   int curr_j = 0;
+    // this will be used to distinguish between viewing VGA and axial maps
+    int view_class =
+        pDoc->m_meta_graph->getViewClass() & (MetaGraph::VIEWVGA | MetaGraph::VIEWAXIAL | MetaGraph::VIEWDATA);
+    int curr_j = 0;
 
-   {
-       auto lock = pDoc->m_meta_graph->getLockDeferred();
-       if (lock.try_lock()) {
-          m_view_map_entries.clear();
-          if (view_class == MetaGraph::VIEWVGA) {
-             PointMap& map = pDoc->m_meta_graph->getDisplayedPointMap();
-
-             const AttributeTable& table = map.getAttributeTable();
-             m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
-             for (int i = 0; i < table.getNumColumns(); i++) {
-                m_view_map_entries.insert(std::make_pair(i+1, table.getColumnName(i)));
-                if (map.getDisplayedAttribute() == i) {
-                   curr_j = i + 1;
-                }
-             }
-          }
-          else if (view_class == MetaGraph::VIEWAXIAL) {
-             // using attribute tables is very, very simple...
-             const ShapeGraph& map = pDoc->m_meta_graph->getDisplayedShapeGraph();
-             const AttributeTable& table = map.getAttributeTable();
-             m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
-             curr_j = 0;
-             for (int i = 0; i < table.getNumColumns(); i++) {
-                m_view_map_entries.insert(std::make_pair(i+1, table.getColumnName(i)));
-                if (map.getDisplayedAttribute() == i) {
-                   curr_j = i + 1;
-                }
-             }
-          }
-          else if (view_class == MetaGraph::VIEWDATA) {
-             // using attribute tables is very, very simple...
-             const ShapeMap& map = pDoc->m_meta_graph->getDisplayedDataMap();
-             const AttributeTable& table = map.getAttributeTable();
-             m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
-             curr_j = 0;
-             for (int i = 0; i < table.getNumColumns(); i++) {
-                m_view_map_entries.insert(std::make_pair(i+1, table.getColumnName(i)));
-                if (map.getDisplayedAttribute() == i) {
-                   curr_j = i + 1;
-                }
-             }
-          }
-       }
-    }
-
-   int t, cur_sel = 0;
-   x_coord->clear();
-   y_coord->clear();
-
-   int i = 0;
-   for (auto view_map_entry: m_view_map_entries) {
-      if (curr_j == view_map_entry.first) cur_sel = i;
-      x_coord->addItem( QString(view_map_entry.second.c_str()) );
-      y_coord->addItem( QString(view_map_entry.second.c_str()) );
-      i++;
-   }
-
-   t = ((QPlotView*)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->curr_y;
-   if(t != -1) cur_sel = t;
-   ((QPlotView*)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(1, cur_sel - 1, true);
-   y_coord->setCurrentIndex(cur_sel);
-
-   t = ((QPlotView*)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->curr_x;
-   if(t != -1) cur_sel = t;
-   ((QPlotView*)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(0, cur_sel - 1, true);
-   x_coord->setCurrentIndex(cur_sel);
-
-   in_FocusGraph = false;
-}
-
-void MainWindow::OnSelchangeViewSelector_X(const QString &string)
-{
-   if(in_FocusGraph) return;
-
-   int i = x_coord->currentIndex();
-
-   QGraphDoc* gd = activeMapDoc();
-   ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(0, /*m_view_selection*/i - 1, true);
-   ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->curr_x = i;
-
-   // note: this is only attached to a scatter view, and changing the attribute only
-   // affects the scatter view, so only send draw to the map:
-   gd->SetRedrawFlag(QGraphDoc::VIEW_SCATTER, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_COLUMN );
-}
-
-void MainWindow::OnSelchangeViewSelector_Y(const QString &string)
-{
-   if(in_FocusGraph) return;
-   int i = y_coord->currentIndex();
-
-   QGraphDoc* gd = activeMapDoc();
-   ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(1, i - 1, true);
-   ((QPlotView*)gd->m_view[QGraphDoc::VIEW_SCATTER])->curr_y = i;
-
-   // note: this is only attached to a scatter view, and changing the attribute only
-   // affects the scatter view, so only send draw to the map:
-   gd->SetRedrawFlag(QGraphDoc::VIEW_SCATTER, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_COLUMN );
-}
-
-
-void MainWindow::updateViewMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
     {
+        auto lock = pDoc->m_meta_graph->getLockDeferred();
+        if (lock.try_lock()) {
+            m_view_map_entries.clear();
+            if (view_class == MetaGraph::VIEWVGA) {
+                PointMap &map = pDoc->m_meta_graph->getDisplayedPointMap();
+
+                const AttributeTable &table = map.getAttributeTable();
+                m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
+                for (int i = 0; i < table.getNumColumns(); i++) {
+                    m_view_map_entries.insert(std::make_pair(i + 1, table.getColumnName(i)));
+                    if (map.getDisplayedAttribute() == i) {
+                        curr_j = i + 1;
+                    }
+                }
+            } else if (view_class == MetaGraph::VIEWAXIAL) {
+                // using attribute tables is very, very simple...
+                const ShapeGraph &map = pDoc->m_meta_graph->getDisplayedShapeGraph();
+                const AttributeTable &table = map.getAttributeTable();
+                m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
+                curr_j = 0;
+                for (int i = 0; i < table.getNumColumns(); i++) {
+                    m_view_map_entries.insert(std::make_pair(i + 1, table.getColumnName(i)));
+                    if (map.getDisplayedAttribute() == i) {
+                        curr_j = i + 1;
+                    }
+                }
+            } else if (view_class == MetaGraph::VIEWDATA) {
+                // using attribute tables is very, very simple...
+                const ShapeMap &map = pDoc->m_meta_graph->getDisplayedDataMap();
+                const AttributeTable &table = map.getAttributeTable();
+                m_view_map_entries.insert(std::make_pair(0, "Ref Number"));
+                curr_j = 0;
+                for (int i = 0; i < table.getNumColumns(); i++) {
+                    m_view_map_entries.insert(std::make_pair(i + 1, table.getColumnName(i)));
+                    if (map.getDisplayedAttribute() == i) {
+                        curr_j = i + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    int t, cur_sel = 0;
+    x_coord->clear();
+    y_coord->clear();
+
+    int i = 0;
+    for (auto view_map_entry : m_view_map_entries) {
+        if (curr_j == view_map_entry.first)
+            cur_sel = i;
+        x_coord->addItem(QString(view_map_entry.second.c_str()));
+        y_coord->addItem(QString(view_map_entry.second.c_str()));
+        i++;
+    }
+
+    t = ((QPlotView *)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->curr_y;
+    if (t != -1)
+        cur_sel = t;
+    ((QPlotView *)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(1, cur_sel - 1, true);
+    y_coord->setCurrentIndex(cur_sel);
+
+    t = ((QPlotView *)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->curr_x;
+    if (t != -1)
+        cur_sel = t;
+    ((QPlotView *)pDoc->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(0, cur_sel - 1, true);
+    x_coord->setCurrentIndex(cur_sel);
+
+    in_FocusGraph = false;
+}
+
+void MainWindow::OnSelchangeViewSelector_X(const QString &string) {
+    if (in_FocusGraph)
+        return;
+
+    int i = x_coord->currentIndex();
+
+    QGraphDoc *gd = activeMapDoc();
+    ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(0, /*m_view_selection*/ i - 1, true);
+    ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->curr_x = i;
+
+    // note: this is only attached to a scatter view, and changing the attribute only
+    // affects the scatter view, so only send draw to the map:
+    gd->SetRedrawFlag(QGraphDoc::VIEW_SCATTER, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_COLUMN);
+}
+
+void MainWindow::OnSelchangeViewSelector_Y(const QString &string) {
+    if (in_FocusGraph)
+        return;
+    int i = y_coord->currentIndex();
+
+    QGraphDoc *gd = activeMapDoc();
+    ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->SetAxis(1, i - 1, true);
+    ((QPlotView *)gd->m_view[QGraphDoc::VIEW_SCATTER])->curr_y = i;
+
+    // note: this is only attached to a scatter view, and changing the attribute only
+    // affects the scatter view, so only send draw to the map:
+    gd->SetRedrawFlag(QGraphDoc::VIEW_SCATTER, QGraphDoc::REDRAW_GRAPH, QGraphDoc::NEW_COLUMN);
+}
+
+void MainWindow::updateViewMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         RecentAct->setEnabled(0);
         showGridAct->setEnabled(0);
         attributeSummaryAct->setEnabled(0);
@@ -2328,20 +2085,21 @@ void MainWindow::updateViewMenu()
     RecentAct->setEnabled(true);
     showGridAct->setEnabled(true);
 
-    if(m_p->m_meta_graph->m_showgrid) showGridAct->setChecked(true);
-    else showGridAct->setChecked(false);
+    if (m_p->m_meta_graph->m_showgrid)
+        showGridAct->setChecked(true);
+    else
+        showGridAct->setChecked(false);
 
     attributeSummaryAct->setEnabled(true);
     if (!m_p->m_communicator && m_p->m_meta_graph && !m_p->m_meta_graph->viewingNone())
         attributeSummaryAct->setEnabled(true);
-    else attributeSummaryAct->setEnabled(0);
+    else
+        attributeSummaryAct->setEnabled(0);
 }
 
-void MainWindow::updateVisibilitySubMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateVisibilitySubMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         SetGridAct->setEnabled(0);
         makeVisibilityGraphAct->setEnabled(0);
         unmakeVisibilityGraphAct->setEnabled(0);
@@ -2353,7 +2111,8 @@ void MainWindow::updateVisibilitySubMenu()
     }
     if (m_p->m_meta_graph->getState() & MetaGraph::LINEDATA || m_p->m_meta_graph->viewingUnprocessedPoints())
         SetGridAct->setEnabled(true);
-    else SetGridAct->setEnabled(0);
+    else
+        SetGridAct->setEnabled(0);
 
     if (m_p->m_meta_graph->viewingUnprocessedPoints()) {
         makeVisibilityGraphAct->setEnabled(true);
@@ -2366,31 +2125,28 @@ void MainWindow::updateVisibilitySubMenu()
     int state = m_p->m_meta_graph->getState();
     if (state & MetaGraph::LINEDATA)
         makeIsovistPathAct->setEnabled(true);
-    else makeIsovistPathAct->setEnabled(0);
+    else
+        makeIsovistPathAct->setEnabled(0);
 
     if (m_p->m_meta_graph->viewingProcessedPoints()) {
         importVGALinksAct->setEnabled(true);
         runVisibilityGraphAnalysisAct->setEnabled(true);
-    }
-    else
-    {
+    } else {
         importVGALinksAct->setEnabled(0);
         runVisibilityGraphAnalysisAct->setEnabled(0);
     }
 
-    if ( !m_p->m_communicator &&
-         m_p->m_meta_graph->viewingProcessedShapes() &&
+    if (!m_p->m_communicator && m_p->m_meta_graph->viewingProcessedShapes() &&
         (m_p->m_meta_graph->getState() & MetaGraph::POINTMAPS) &&
-         m_p->m_meta_graph->getDisplayedPointMap().isProcessed())
+        m_p->m_meta_graph->getDisplayedPointMap().isProcessed())
         convertDataMapLinesAct->setEnabled(true);
-    else convertDataMapLinesAct->setEnabled(0);
+    else
+        convertDataMapLinesAct->setEnabled(0);
 }
 
-void MainWindow::updateStepDepthSubMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateStepDepthSubMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         visibilityStepAct->setEnabled(0);
         metricStepAct->setEnabled(0);
         angularStepAct->setEnabled(0);
@@ -2398,56 +2154,60 @@ void MainWindow::updateStepDepthSubMenu()
     }
     if (m_p->m_meta_graph->viewingProcessed() && m_p->m_meta_graph->isSelected())
         visibilityStepAct->setEnabled(true);
-    else visibilityStepAct->setEnabled(0);
+    else
+        visibilityStepAct->setEnabled(0);
 
-    if ((m_p->m_meta_graph->viewingProcessedPoints() || (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())) && m_p->m_meta_graph->isSelected())
+    if ((m_p->m_meta_graph->viewingProcessedPoints() ||
+         (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())) &&
+        m_p->m_meta_graph->isSelected())
         metricStepAct->setEnabled(true);
-    else metricStepAct->setEnabled(0);
+    else
+        metricStepAct->setEnabled(0);
 
     if (m_p->m_meta_graph->viewingProcessedPoints() && m_p->m_meta_graph->isSelected())
         angularStepAct->setEnabled(true);
-    else angularStepAct->setEnabled(0);
+    else
+        angularStepAct->setEnabled(0);
 }
 
-void MainWindow::updateAgentToolsSubMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateAgentToolsSubMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         runAgentAnalysisAct->setEnabled(0);
         loadAgentProgramAct->setEnabled(0);
         return;
     }
     if (m_p->m_meta_graph && m_p->m_meta_graph->viewingProcessedPoints() && !m_p->m_communicator)
         runAgentAnalysisAct->setEnabled(true);
-    else runAgentAnalysisAct->setEnabled(0);
-    if(current_view_type == QGraphDoc::VIEW_3D) loadAgentProgramAct->setEnabled(true);
-    else loadAgentProgramAct->setEnabled(0);
+    else
+        runAgentAnalysisAct->setEnabled(0);
+    if (current_view_type == QGraphDoc::VIEW_3D)
+        loadAgentProgramAct->setEnabled(true);
+    else
+        loadAgentProgramAct->setEnabled(0);
 }
 
-void MainWindow::updateSegmentSubMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateSegmentSubMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         runAngularSegmentAnalysisAct->setEnabled(0);
         runTopologicalOrMetricAnalysisAct->setEnabled(0);
         return;
     }
     if (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())
         runAngularSegmentAnalysisAct->setEnabled(true);
-    else runAngularSegmentAnalysisAct->setEnabled(0);
+    else
+        runAngularSegmentAnalysisAct->setEnabled(0);
 
     if (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())
         runTopologicalOrMetricAnalysisAct->setEnabled(true);
-    else runTopologicalOrMetricAnalysisAct->setEnabled(0);
+    else
+        runTopologicalOrMetricAnalysisAct->setEnabled(0);
 }
 
-void MainWindow::updateSegmentStepDepthSubMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateSegmentStepDepthSubMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         segmentAngularStepAct->setEnabled(0);
         topologicalStepAct->setEnabled(0);
         segmentMetricStepAct->setEnabled(0);
@@ -2455,23 +2215,26 @@ void MainWindow::updateSegmentStepDepthSubMenu()
     }
     if (m_p->m_meta_graph->viewingProcessed() && m_p->m_meta_graph->isSelected())
         segmentAngularStepAct->setEnabled(true);
-    else segmentAngularStepAct->setEnabled(0);
+    else
+        segmentAngularStepAct->setEnabled(0);
 
-    if (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap() && m_p->m_meta_graph->isSelected())
+    if (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap() &&
+        m_p->m_meta_graph->isSelected())
         topologicalStepAct->setEnabled(true);
-    else topologicalStepAct->setEnabled(0);
+    else
+        topologicalStepAct->setEnabled(0);
 
-    if ((m_p->m_meta_graph->viewingProcessedPoints() || (m_p->m_meta_graph->viewingProcessedLines() &&
-        m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())) && m_p->m_meta_graph->isSelected())
+    if ((m_p->m_meta_graph->viewingProcessedPoints() ||
+         (m_p->m_meta_graph->viewingProcessedLines() && m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())) &&
+        m_p->m_meta_graph->isSelected())
         segmentMetricStepAct->setEnabled(true);
-    else segmentMetricStepAct->setEnabled(0);
+    else
+        segmentMetricStepAct->setEnabled(0);
 }
 
-void MainWindow::updateAxialSubMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateAxialSubMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         runGraphAnaysisAct->setEnabled(0);
         stepDepthAct->setEnabled(0);
         reduceToFewestLineMapAct->setEnabled(0);
@@ -2482,38 +2245,39 @@ void MainWindow::updateAxialSubMenu()
     int state = m_p->m_meta_graph->getState();
     // non-segment maps only
     if (state & MetaGraph::SHAPEGRAPHS && !m_p->m_communicator &&
-       !m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())
+        !m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())
         runGraphAnaysisAct->setEnabled(true);
-    else runGraphAnaysisAct->setEnabled(0);
+    else
+        runGraphAnaysisAct->setEnabled(0);
 
     if (m_p->m_meta_graph->viewingProcessed() && m_p->m_meta_graph->isSelected())
         stepDepthAct->setEnabled(true);
-    else stepDepthAct->setEnabled(0);
+    else
+        stepDepthAct->setEnabled(0);
 
     state = m_p->m_meta_graph->getState();
     if (state & MetaGraph::SHAPEGRAPHS && !m_p->m_communicator &&
         m_p->m_meta_graph->getDisplayedShapeGraph().isAllLineMap())
         reduceToFewestLineMapAct->setEnabled(true);
-    else reduceToFewestLineMapAct->setEnabled(0);
+    else
+        reduceToFewestLineMapAct->setEnabled(0);
 
-    if ( !m_p->m_communicator && m_p->m_meta_graph &&
-         m_p->m_meta_graph->viewingProcessedLines() &&
-         m_p->m_meta_graph->getDisplayedShapeGraph().getMapType() == ShapeMap::AXIALMAP)
+    if (!m_p->m_communicator && m_p->m_meta_graph && m_p->m_meta_graph->viewingProcessedLines() &&
+        m_p->m_meta_graph->getDisplayedShapeGraph().getMapType() == ShapeMap::AXIALMAP)
         convertDataMapPointsAct->setEnabled(true);
-    else convertDataMapPointsAct->setEnabled(0);
+    else
+        convertDataMapPointsAct->setEnabled(0);
 
-    if ( !m_p->m_communicator && m_p->m_meta_graph &&
-         m_p->m_meta_graph->viewingProcessedLines() &&
-         !m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())
+    if (!m_p->m_communicator && m_p->m_meta_graph && m_p->m_meta_graph->viewingProcessedLines() &&
+        !m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap())
         loadUnlinksFromFileAct->setEnabled(true);
-    else loadUnlinksFromFileAct->setEnabled(0);
+    else
+        loadUnlinksFromFileAct->setEnabled(0);
 }
 
-void MainWindow::updateAttributesMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateAttributesMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         addColumAct->setEnabled(0);
         updateColumAct->setEnabled(0);
         renameColumnAct->setEnabled(0);
@@ -2522,27 +2286,22 @@ void MainWindow::updateAttributesMenu()
         columnPropertiesAct->setEnabled(0);
         return;
     }
-    if (!m_p->m_communicator && m_p->m_meta_graph->viewingProcessed())
-    {
+    if (!m_p->m_communicator && m_p->m_meta_graph->viewingProcessed()) {
         addColumAct->setEnabled(true);
         columnPropertiesAct->setEnabled(true);
         int col = m_p->m_meta_graph->getDisplayedAttribute();
-        if (col == -1 || col == -2 || m_p->m_meta_graph->isAttributeLocked(col))
-        {
+        if (col == -1 || col == -2 || m_p->m_meta_graph->isAttributeLocked(col)) {
             renameColumnAct->setEnabled(0);
             updateColumAct->setEnabled(0);
             removeColumAct->setEnabled(0);
             pushValueAct->setEnabled(0);
-        }
-        else {
+        } else {
             renameColumnAct->setEnabled(true);
             updateColumAct->setEnabled(true);
             removeColumAct->setEnabled(true);
             pushValueAct->setEnabled(true);
         }
-    }
-    else
-    {
+    } else {
         addColumAct->setEnabled(0);
         updateColumAct->setEnabled(0);
         renameColumnAct->setEnabled(0);
@@ -2552,11 +2311,9 @@ void MainWindow::updateAttributesMenu()
     }
 }
 
-void MainWindow::updateMapMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateMapMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         mapNewAct->setEnabled(0);
         deleteAct->setEnabled(0);
         convertActiveMapAct->setEnabled(0);
@@ -2575,31 +2332,33 @@ void MainWindow::updateMapMenu()
     importAct->setEnabled(true);
     if (!m_p->m_meta_graph->viewingNone() && !m_p->m_communicator)
         deleteAct->setEnabled(true);
-    else deleteAct->setEnabled(0);
+    else
+        deleteAct->setEnabled(0);
 
-    if (!m_p->m_communicator && (m_p->m_meta_graph->viewingProcessedLines() || m_p->m_meta_graph->viewingProcessedShapes()))
+    if (!m_p->m_communicator &&
+        (m_p->m_meta_graph->viewingProcessedLines() || m_p->m_meta_graph->viewingProcessedShapes()))
         convertActiveMapAct->setEnabled(true);
-    else convertActiveMapAct->setEnabled(0);
+    else
+        convertActiveMapAct->setEnabled(0);
 
     if (!m_p->m_communicator && (m_p->m_meta_graph->getState() & MetaGraph::LINEDATA) == MetaGraph::LINEDATA)
         convertDrawingMapAct->setEnabled(true);
-    else convertDrawingMapAct->setEnabled(0);
+    else
+        convertDrawingMapAct->setEnabled(0);
 
     if (m_p->m_meta_graph && m_p->m_meta_graph->viewingShapes())
         convertMapShapesAct->setEnabled(true);
-    else convertMapShapesAct->setEnabled(0);
+    else
+        convertMapShapesAct->setEnabled(0);
 
-    if (!m_p->m_meta_graph->viewingNone() && !m_p->m_communicator)
-    {
+    if (!m_p->m_meta_graph->viewingNone() && !m_p->m_communicator) {
         exportAct->setEnabled(true);
         exportGeometryAct->setEnabled(true);
         exportLinksAct->setEnabled(true);
         exportAxialConnectionsDotAct->setEnabled(true);
         exportAxialConnectionsPairAct->setEnabled(true);
         exportSegmentConnectionsPairAct->setEnabled(true);
-    }
-    else
-    {
+    } else {
         exportAct->setEnabled(0);
         exportGeometryAct->setEnabled(false);
         exportLinksAct->setEnabled(0);
@@ -2609,100 +2368,101 @@ void MainWindow::updateMapMenu()
     }
 }
 
-
-void MainWindow::updateEditMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(!m_p)
-    {
+void MainWindow::updateEditMenu() {
+    QGraphDoc *m_p = activeMapDoc();
+    if (!m_p) {
         copyDataAct->setEnabled(0);
         undoAct->setEnabled(0);
         copyScreenAct->setEnabled(0);
         exportScreenAct->setEnabled(0);
         clearAct->setEnabled(0);
         selectByQueryAct->setEnabled(0);
-        //zoomToSelectionAct->setEnabled(0);
+        // zoomToSelectionAct->setEnabled(0);
         selectionToLayerAct->setEnabled(0);
         return;
     }
     copyScreenAct->setEnabled(true);
     exportScreenAct->setEnabled(true);
-    if(m_p->m_meta_graph->isEditable()) clearAct->setEnabled(true);
-    else clearAct->setEnabled(0);
+    if (m_p->m_meta_graph->isEditable())
+        clearAct->setEnabled(true);
+    else
+        clearAct->setEnabled(0);
 
-    if (m_p->m_meta_graph->canUndo()) undoAct->setEnabled(true);
-    else undoAct->setEnabled(0);
+    if (m_p->m_meta_graph->canUndo())
+        undoAct->setEnabled(true);
+    else
+        undoAct->setEnabled(0);
 
     if (m_p->m_meta_graph && !m_p->m_communicator && m_p->m_meta_graph->viewingProcessed())
         selectByQueryAct->setEnabled(true);
-    else selectByQueryAct->setEnabled(0);
-
-    if(m_p->m_meta_graph->isSelected())
-    {
-        //zoomToSelectionAct->setEnabled(true);
-        selectionToLayerAct->setEnabled(true);
-    }
     else
-    {
-        //zoomToSelectionAct->setEnabled(0);
+        selectByQueryAct->setEnabled(0);
+
+    if (m_p->m_meta_graph->isSelected()) {
+        // zoomToSelectionAct->setEnabled(true);
+        selectionToLayerAct->setEnabled(true);
+    } else {
+        // zoomToSelectionAct->setEnabled(0);
         selectionToLayerAct->setEnabled(0);
     }
 }
 
-void MainWindow::updateFileMenu()
-{
-    if(mdiArea->activeSubWindow())
-    {
-        closeAct->setEnabled( true );
-        saveAct->setEnabled( true );
-        saveAsAct->setEnabled( true );
-        propertiesAct->setEnabled( true );
-        if(current_view_type == QGraphDoc::VIEW_3D)
-        {
-            printAct->setEnabled( 0 );
-            printPreviewAct->setEnabled( 0 );
+void MainWindow::updateFileMenu() {
+    if (mdiArea->activeSubWindow()) {
+        closeAct->setEnabled(true);
+        saveAct->setEnabled(true);
+        saveAsAct->setEnabled(true);
+        propertiesAct->setEnabled(true);
+        if (current_view_type == QGraphDoc::VIEW_3D) {
+            printAct->setEnabled(0);
+            printPreviewAct->setEnabled(0);
+        } else {
+            printAct->setEnabled(true);
+            printPreviewAct->setEnabled(true);
         }
-        else
-        {
-            printAct->setEnabled( true );
-            printPreviewAct->setEnabled( true );
-        }
-    }
-    else
-    {
-        closeAct->setEnabled( 0 );
-        saveAct->setEnabled( 0 );
-        saveAsAct->setEnabled( 0 );
-        propertiesAct->setEnabled( 0 );
-        printAct->setEnabled( 0 );
-        printPreviewAct->setEnabled( 0 );
+    } else {
+        closeAct->setEnabled(0);
+        saveAct->setEnabled(0);
+        saveAsAct->setEnabled(0);
+        propertiesAct->setEnabled(0);
+        printAct->setEnabled(0);
+        printPreviewAct->setEnabled(0);
     }
 }
 
-void MainWindow::updateWindowMenu()
-{
-    QGraphDoc* m_p = activeMapDoc();
+void MainWindow::updateWindowMenu() {
+    QGraphDoc *m_p = activeMapDoc();
     windowMenu->clear();
     windowMenu->addAction(mapAct);
 
-    if(m_p && m_p->m_view[QGraphDoc::VIEW_MAP]) mapAct->setChecked(true);
-    else mapAct->setChecked(false);
+    if (m_p && m_p->m_view[QGraphDoc::VIEW_MAP])
+        mapAct->setChecked(true);
+    else
+        mapAct->setChecked(false);
 
     windowMenu->addAction(scatterPlotAct);
-    if(m_p && m_p->m_view[QGraphDoc::VIEW_SCATTER]) scatterPlotAct->setChecked(true);
-    else scatterPlotAct->setChecked(false);
+    if (m_p && m_p->m_view[QGraphDoc::VIEW_SCATTER])
+        scatterPlotAct->setChecked(true);
+    else
+        scatterPlotAct->setChecked(false);
 
     windowMenu->addAction(tableAct);
-    if(m_p && m_p->m_view[QGraphDoc::VIEW_TABLE]) tableAct->setChecked(true);
-    else tableAct->setChecked(false);
+    if (m_p && m_p->m_view[QGraphDoc::VIEW_TABLE])
+        tableAct->setChecked(true);
+    else
+        tableAct->setChecked(false);
 
     windowMenu->addAction(thirdDViewAct);
-    if(m_p && m_p->m_view[QGraphDoc::VIEW_3D]) thirdDViewAct->setChecked(true);
-    else thirdDViewAct->setChecked(false);
+    if (m_p && m_p->m_view[QGraphDoc::VIEW_3D])
+        thirdDViewAct->setChecked(true);
+    else
+        thirdDViewAct->setChecked(false);
 
     windowMenu->addAction(glViewAct);
-    if(m_p && m_p->m_view[QGraphDoc::VIEW_MAP_GL]) glViewAct->setChecked(true);
-    else glViewAct->setChecked(false);
+    if (m_p && m_p->m_view[QGraphDoc::VIEW_MAP_GL])
+        glViewAct->setChecked(true);
+    else
+        glViewAct->setChecked(false);
 
     windowMenu->addSeparator();
     windowMenu->addAction(colourRangeAct);
@@ -2712,25 +2472,20 @@ void MainWindow::updateWindowMenu()
     windowMenu->addAction(arrangeIconsAct);
     windowMenu->addAction(separatorAct);
 
-    if(!m_p)
-    {
+    if (!m_p) {
         mapAct->setEnabled(0);
         scatterPlotAct->setEnabled(0);
         tableAct->setEnabled(0);
         thirdDViewAct->setEnabled(0);
         glViewAct->setEnabled(0);
-    }
-    else
-    {
+    } else {
         thirdDViewAct->setEnabled(true);
         mapAct->setEnabled(true);
         glViewAct->setEnabled(true);
-        if (m_p->m_meta_graph && m_p->m_meta_graph->viewingProcessed())
-        {
+        if (m_p->m_meta_graph && m_p->m_meta_graph->viewingProcessed()) {
             tableAct->setEnabled(true);
             scatterPlotAct->setEnabled(true);
-        }
-        else {
+        } else {
             tableAct->setEnabled(0);
             scatterPlotAct->setEnabled(0);
         }
@@ -2739,21 +2494,21 @@ void MainWindow::updateWindowMenu()
     QList<QMdiSubWindow *> windows = mdiArea->subWindowList();
     int find_count = 1;
     for (int i = 0; i < windows.size(); ++i) {
-        MapView *child = qobject_cast<MapView*>(windows.at(i)->widget());
-        if(!child) continue;
+        MapView *child = qobject_cast<MapView *>(windows.at(i)->widget());
+        if (!child)
+            continue;
 
         QString text;
         text = tr("&%1 %2").arg(find_count++).arg(child->windowTitle());
-        QAction *action  = windowMenu->addAction(text);
+        QAction *action = windowMenu->addAction(text);
         action->setCheckable(true);
-        action ->setChecked(child == activeMapView());
+        action->setChecked(child == activeMapView());
         connect(action, SIGNAL(triggered()), windowMapper, SLOT(map()));
         windowMapper->setMapping(action, windows.at(i)->widget());
     }
 }
 
-void MainWindow::UpdateStatus(QString s1, QString s2, QString s3)
-{
+void MainWindow::UpdateStatus(QString s1, QString s2, QString s3) {
     g_info_curr->setText(s1);
     g_info_curr->update();
     g_size->setText(s2);
@@ -2762,8 +2517,7 @@ void MainWindow::UpdateStatus(QString s1, QString s2, QString s3)
     g_pos_curr->update();
 }
 
-void MainWindow::updateToolbar()
-{
+void MainWindow::updateToolbar() {
     importAct->setEnabled(0);
     saveAct->setEnabled(0);
     addColumAct->setEnabled(0);
@@ -2787,22 +2541,21 @@ void MainWindow::updateToolbar()
     attr_del_button->setEnabled(0);
     attr_add_button->setEnabled(0);
 
-    QGraphDoc* m_p = activeMapDoc();
-    MapView* tmpView = activeMapView();
-    if(m_p)
-    {
+    QGraphDoc *m_p = activeMapDoc();
+    MapView *tmpView = activeMapView();
+    if (m_p) {
         importAct->setEnabled(true);
         saveAct->setEnabled(true);
-        if(m_p->m_meta_graph->getDisplayedMapRef() != -1)
+        if (m_p->m_meta_graph->getDisplayedMapRef() != -1)
             addColumAct->setEnabled(true);
         SelectButton->setEnabled(true);
         DragButton->setEnabled(true);
         RecentAct->setEnabled(true);
 
-        if(m_p->m_meta_graph->isSelected())
+        if (m_p->m_meta_graph->isSelected())
             zoomToAct->setEnabled(true);
 
-        if (m_p->m_meta_graph->isShown())   // zoom bug VGA // TV
+        if (m_p->m_meta_graph->isShown()) // zoom bug VGA // TV
             zoomToolButton->setEnabled(true);
         if (m_p->m_meta_graph->viewingProcessed())
             zoomToolButton->setEnabled(true);
@@ -2810,19 +2563,14 @@ void MainWindow::updateToolbar()
         if (m_p->m_meta_graph->getState() & MetaGraph::LINEDATA || m_p->m_meta_graph->viewingUnprocessedPoints())
             SetGridAct->setEnabled(true);
 
-        if (m_p->m_meta_graph->viewingUnprocessedPoints())
-        {
+        if (m_p->m_meta_graph->viewingUnprocessedPoints()) {
             fillColorToolButton->setEnabled(true);
             SelectPenButton->setEnabled(true);
-        }
-        else
-        {
-            if (tmpView)
-            {
-                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_FILL
-                        || m_selected_mapbar_item == ID_MAPBAR_ITEM_SEMIFILL
-                        || m_selected_mapbar_item == ID_MAPBAR_ITEM_PENCIL)
-                {
+        } else {
+            if (tmpView) {
+                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_FILL ||
+                    m_selected_mapbar_item == ID_MAPBAR_ITEM_SEMIFILL ||
+                    m_selected_mapbar_item == ID_MAPBAR_ITEM_PENCIL) {
                     tmpView->OnEditSelect();
                     SelectButton->setChecked(true);
                 }
@@ -2832,15 +2580,12 @@ void MainWindow::updateToolbar()
         int type = m_p->m_meta_graph->getDisplayedMapType();
         if ((type == ShapeMap::DATAMAP && m_p->m_meta_graph->getDisplayedDataMap().isEditable()) ||
             ((type == ShapeMap::AXIALMAP || type == ShapeMap::CONVEXMAP || type == ShapeMap::PESHMAP) &&
-            m_p->m_meta_graph->getDisplayedShapeGraph().isEditable()))
+             m_p->m_meta_graph->getDisplayedShapeGraph().isEditable()))
             lineToolButton->setEnabled(true);
-        else
-        {
-            if (tmpView)
-            {
-                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_LINETOOL
-                        || m_selected_mapbar_item == ID_MAPBAR_ITEM_POLYGON)
-                {
+        else {
+            if (tmpView) {
+                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_LINETOOL ||
+                    m_selected_mapbar_item == ID_MAPBAR_ITEM_POLYGON) {
                     tmpView->OnEditSelect();
                     SelectButton->setChecked(true);
                 }
@@ -2850,30 +2595,25 @@ void MainWindow::updateToolbar()
         type = m_p->m_meta_graph->getState();
         if (!(~type & MetaGraph::LINEDATA))
             newisoToolButton->setEnabled(true);
-        else
-        {
-            if (tmpView)
-            {
-                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_ISOVIST || m_selected_mapbar_item == ID_MAPBAR_ITEM_HALFISOVIST)
-                {
+        else {
+            if (tmpView) {
+                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_ISOVIST ||
+                    m_selected_mapbar_item == ID_MAPBAR_ITEM_HALFISOVIST) {
                     tmpView->OnEditSelect();
                     SelectButton->setChecked(true);
                 }
             }
         }
 
-        if (( ( (m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWVGA) &&
-               (m_p->m_meta_graph->getDisplayedPointMap().getFilledPointCount() > 1)) ||
+        if ((((m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWVGA) &&
+              (m_p->m_meta_graph->getDisplayedPointMap().getFilledPointCount() > 1)) ||
              (((m_p->m_meta_graph->getViewClass() & MetaGraph::VIEWAXIAL) &&
                (m_p->m_meta_graph->getState() & MetaGraph::SHAPEGRAPHS)) &&
-               (!m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap()) ) ))
+              (!m_p->m_meta_graph->getDisplayedShapeGraph().isSegmentMap()))))
             JoinToolButton->setEnabled(true);
-        else
-        {
-            if (tmpView)
-            {
-                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_JOIN || m_selected_mapbar_item == ID_MAPBAR_ITEM_UNJOIN)
-                {
+        else {
+            if (tmpView) {
+                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_JOIN || m_selected_mapbar_item == ID_MAPBAR_ITEM_UNJOIN) {
                     tmpView->OnEditSelect();
                     SelectButton->setChecked(true);
                 }
@@ -2881,13 +2621,11 @@ void MainWindow::updateToolbar()
         }
 
         type = m_p->m_meta_graph->getState();
-        if (!(~type & MetaGraph::LINEDATA)) AxialMapButton->setEnabled(true);
-        else
-        {
-            if (tmpView)
-            {
-                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_AL2)
-                {
+        if (!(~type & MetaGraph::LINEDATA))
+            AxialMapButton->setEnabled(true);
+        else {
+            if (tmpView) {
+                if (m_selected_mapbar_item == ID_MAPBAR_ITEM_AL2) {
                     tmpView->OnEditSelect();
                     SelectButton->setChecked(true);
                 }
@@ -2897,8 +2635,7 @@ void MainWindow::updateToolbar()
         if (m_p->m_meta_graph->viewingProcessed() && m_p->m_meta_graph->isSelected())
             StepDepthButton->setEnabled(true);
 
-        if (!m_p->m_communicator && m_p->m_meta_graph->viewingProcessed())
-        {
+        if (!m_p->m_communicator && m_p->m_meta_graph->viewingProcessed()) {
             int col = m_p->m_meta_graph->getDisplayedAttribute();
             if (!(col == -1 || col == -2 || m_p->m_meta_graph->isAttributeLocked(col))) {
                 renameColumnAct->setEnabled(true);
@@ -2915,8 +2652,7 @@ void MainWindow::updateToolbar()
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-void MainWindow::createActions()
-{
+void MainWindow::createActions() {
     newAct = new QAction(QIcon(":/images/new.png"), tr("&New"), this);
     newAct->setShortcut(tr("Ctrl+N"));
     newAct->setStatusTip(tr("Create a new graph workspace\nNew Workspace"));
@@ -2960,15 +2696,14 @@ void MainWindow::createActions()
     for (int i = 0; i < MaxRecentFiles; ++i) {
         recentFileActs[i] = new QAction(this);
         recentFileActs[i]->setVisible(false);
-        connect(recentFileActs[i], SIGNAL(triggered()),
-                this, SLOT(openRecentFile()));
+        connect(recentFileActs[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
     }
 
     exitAct = new QAction(tr("E&xit"), this);
     exitAct->setStatusTip(tr("Quit the application; prompts to save documents\nExit"));
     connect(exitAct, SIGNAL(triggered()), this, SLOT(close()));
 
-    //Edit Menu Actions
+    // Edit Menu Actions
     undoAct = new QAction(tr("&Undo"), this);
     undoAct->setShortcut(tr("Ctrl+Z"));
     undoAct->setStatusTip(tr("Undo the last action\nUndo"));
@@ -2996,15 +2731,15 @@ void MainWindow::createActions()
     selectByQueryAct->setShortcut(tr("Ctrl+Q"));
     connect(selectByQueryAct, SIGNAL(triggered()), this, SLOT(OnEditQuery()));
 
-    //zoomToSelectionAct = new QAction(tr("&Zoom to Selection"), this);
-    //zoomToSelectionAct->setStatusTip(tr("Zoom in around current selection\nZoom to Selection"));
-    //connect(zoomToSelectionAct, SIGNAL(triggered()), this, SLOT(OnViewZoomsel()));
+    // zoomToSelectionAct = new QAction(tr("&Zoom to Selection"), this);
+    // zoomToSelectionAct->setStatusTip(tr("Zoom in around current selection\nZoom to Selection"));
+    // connect(zoomToSelectionAct, SIGNAL(triggered()), this, SLOT(OnViewZoomsel()));
 
     selectionToLayerAct = new QAction(tr("Selection to &Layer..."), this);
     selectionToLayerAct->setStatusTip(tr("Convert the current selection to a new map layer"));
     connect(selectionToLayerAct, SIGNAL(triggered()), this, SLOT(OnEditSelectToLayer()));
 
-    //Map Menu Actions
+    // Map Menu Actions
     mapNewAct = new QAction(tr("&New..."), this);
     mapNewAct->setStatusTip(tr("Create a new map"));
     connect(mapNewAct, SIGNAL(triggered()), this, SLOT(OnLayerNew()));
@@ -3056,10 +2791,11 @@ void MainWindow::createActions()
     connect(exportSegmentConnectionsPairAct, SIGNAL(triggered()), this, SLOT(OnSegmentConnectionsExportAsPairCSV()));
 
     exportPointmapConnectionsPairAct = new QAction(tr("Visibility Graph Connections as CSV..."), this);
-    exportPointmapConnectionsPairAct->setStatusTip(tr("Export connections between cells in a visibility graph as an adjacency list"));
+    exportPointmapConnectionsPairAct->setStatusTip(
+        tr("Export connections between cells in a visibility graph as an adjacency list"));
     connect(exportPointmapConnectionsPairAct, SIGNAL(triggered()), this, SLOT(OnPointmapExportConnectionsAsCSV()));
 
-    //Attributes Menu Actions
+    // Attributes Menu Actions
     renameColumnAct = new QAction(tr("&Rename Column..."), this);
     renameColumnAct->setStatusTip(tr("Rename the currently displayed attribute"));
     connect(renameColumnAct, SIGNAL(triggered()), this, SLOT(OnRenameColumn()));
@@ -3068,7 +2804,7 @@ void MainWindow::createActions()
     columnPropertiesAct->setStatusTip(tr("Summary statistics for the active attribute"));
     connect(columnPropertiesAct, SIGNAL(triggered()), this, SLOT(OnColumnProperties()));
 
-    //Tools Menu Actions
+    // Tools Menu Actions
     makeVisibilityGraphAct = new QAction(tr("Make &Visibility Graph..."), this);
     connect(makeVisibilityGraphAct, SIGNAL(triggered()), this, SLOT(OnToolsMakeGraph()));
 
@@ -3100,7 +2836,8 @@ void MainWindow::createActions()
     connect(angularStepAct, SIGNAL(triggered()), this, SLOT(OnToolsAPD()));
 
     convertDataMapLinesAct = new QAction(tr("Convert Data Map Lines to Merge Points"), this);
-    convertDataMapLinesAct->setStatusTip(tr("Convert displayed data map lines to merge points for current visibility graph"));
+    convertDataMapLinesAct->setStatusTip(
+        tr("Convert displayed data map lines to merge points for current visibility graph"));
     connect(convertDataMapLinesAct, SIGNAL(triggered()), this, SLOT(OnToolsPointConvShapeMap()));
 
     runAgentAnalysisAct = new QAction(tr("&Run Agent Analysis"), this);
@@ -3148,7 +2885,7 @@ void MainWindow::createActions()
     optionsAct = new QAction(tr("Options..."), this);
     connect(optionsAct, SIGNAL(triggered()), this, SLOT(OnToolsOptions()));
 
-    //View Menu Actions
+    // View Menu Actions
     showGridAct = new QAction(tr("Show &Grid"), this);
     showGridAct->setStatusTip(tr("Display grid"));
     showGridAct->setCheckable(true);
@@ -3158,7 +2895,7 @@ void MainWindow::createActions()
     attributeSummaryAct->setStatusTip(tr("Show summarised attribute information for selected points"));
     connect(attributeSummaryAct, SIGNAL(triggered()), this, SLOT(OnViewSummary()));
 
-    //Window Menu Actions
+    // Window Menu Actions
     mapAct = new QAction(tr("&Map"), this);
     mapAct->setCheckable(true);
     connect(mapAct, SIGNAL(triggered()), this, SLOT(OnWindowMap()));
@@ -3192,9 +2929,9 @@ void MainWindow::createActions()
 
     arrangeIconsAct = new QAction(tr("A&rrange Icons"), this);
     arrangeIconsAct->setStatusTip(tr("Arrange icons at the bottom of the window\nArrange Icons"));
-//	connect(arrangeIconsAct, SIGNAL(triggered()), mdiArea, SLOT(arrangeSubWindows()));
+    //	connect(arrangeIconsAct, SIGNAL(triggered()), mdiArea, SLOT(arrangeSubWindows()));
 
-    //Help Menu Actions
+    // Help Menu Actions
     onlineBugsAct = new QAction(tr("Submit Problems/Ideas"), this);
     onlineBugsAct->setStatusTip(tr("View or Submit Problems and Ideas online"));
     connect(onlineBugsAct, SIGNAL(triggered()), this, SLOT(OnHelpBugs()));
@@ -3214,7 +2951,7 @@ void MainWindow::createActions()
     aboutDepthMapAct = new QAction(tr("About &depthmapX..."), this);
     aboutDepthMapAct->setStatusTip(tr("Display program information, version number and copyright\nAbout"));
     connect(aboutDepthMapAct, SIGNAL(triggered()), this, SLOT(OnAppAbout()));
-// ToolBar actions
+    // ToolBar actions
 
     invertColorAct = new QAction(QIcon(":/images/win/b-5-18.png"), tr("Invert Colour Range"), this);
     invertColorAct->setStatusTip(tr("Invert the colour range\nInvert Colour Range"));
@@ -3273,8 +3010,8 @@ void MainWindow::createActions()
     Rtwo->setStatusTip(tr(""));
     connect(Rtwo, SIGNAL(triggered()), this, SLOT(OnRtwo()));
 
-///////////////////////////////////////////////////////////
-//Popup toolbar
+    ///////////////////////////////////////////////////////////
+    // Popup toolbar
     {
         zoomToolButton = new QToolButton;
         zoomToolButton->setPopupMode(QToolButton::MenuButtonPopup);
@@ -3298,7 +3035,7 @@ void MainWindow::createActions()
         zoomToolButton->setCheckable(1);
         connect(zoomToolButton, SIGNAL(clicked()), this, SLOT(zoomButtonTriggered()));
 
-        QActionGroup* tGroup = new QActionGroup(this);
+        QActionGroup *tGroup = new QActionGroup(this);
         tGroup->addAction(zoomInAct);
         tGroup->addAction(zoomOutAct);
     }
@@ -3325,18 +3062,18 @@ void MainWindow::createActions()
         AugmentFillColorAct->setStatusTip(tr("Augmented Fill grid spaces with points\nFill"));
         AugmentFillColorAct->setCheckable(1);
         AugmentFillColorAct->setData(ID_MAPBAR_ITEM_AUGMENT_FILL);
-        //connect(AugmentFillColorAct, SIGNAL(triggered()), this, SLOT(FillModeTriggered()));
+        // connect(AugmentFillColorAct, SIGNAL(triggered()), this, SLOT(FillModeTriggered()));
 
         fillColorMenu->addAction(STDFillColorAct);
         fillColorMenu->addAction(ContextFillColorAct);
-        //fillColorMenu->addAction(AugmentFillColorAct); // AV TV
+        // fillColorMenu->addAction(AugmentFillColorAct); // AV TV
         fillColorMenu->setDefaultAction(STDFillColorAct);
         fillColorToolButton->setMenu(fillColorMenu);
         fillColorToolButton->setIcon(QIcon(":/images/win/b-5-8.png"));
         fillColorToolButton->setCheckable(1);
         connect(fillColorToolButton, SIGNAL(clicked()), this, SLOT(FillButtonTriggered()));
 
-        QActionGroup* tGroup = new QActionGroup(this);
+        QActionGroup *tGroup = new QActionGroup(this);
         tGroup->addAction(STDFillColorAct);
         tGroup->addAction(ContextFillColorAct);
         tGroup->addAction(AugmentFillColorAct); // AV TV
@@ -3364,7 +3101,7 @@ void MainWindow::createActions()
         lineToolButton->setCheckable(1);
         connect(lineToolButton, SIGNAL(clicked()), this, SLOT(LineButtonTriggered()));
 
-        QActionGroup* tGroup = new QActionGroup(this);
+        QActionGroup *tGroup = new QActionGroup(this);
         tGroup->addAction(SelectLineAct);
         tGroup->addAction(SelectPolyLineAct);
     }
@@ -3391,7 +3128,7 @@ void MainWindow::createActions()
         newisoToolButton->setCheckable(1);
         connect(newisoToolButton, SIGNAL(clicked()), this, SLOT(isoButtonTriggered()));
 
-        QActionGroup* tGroup = new QActionGroup(this);
+        QActionGroup *tGroup = new QActionGroup(this);
         tGroup->addAction(MakeIosAct);
         tGroup->addAction(PartialMakeIosAct);
     }
@@ -3418,7 +3155,7 @@ void MainWindow::createActions()
         JoinToolButton->setCheckable(1);
         connect(JoinToolButton, SIGNAL(clicked()), this, SLOT(joinButtonTriggered()));
 
-        QActionGroup* tGroup = new QActionGroup(this);
+        QActionGroup *tGroup = new QActionGroup(this);
         tGroup->addAction(JoinAct);
         tGroup->addAction(JoinUnlinkAct);
     }
@@ -3449,7 +3186,7 @@ void MainWindow::createActions()
     StepDepthButton->setCheckable(1);
     connect(StepDepthButton, SIGNAL(clicked()), this, SLOT(StepDepthTriggered()));
 
-    QButtonGroup* pointerTypeGroup = new QButtonGroup;
+    QButtonGroup *pointerTypeGroup = new QButtonGroup;
     pointerTypeGroup->addButton(JoinToolButton, ID_MAPBAR_JOIN_ITEMS);
     pointerTypeGroup->addButton(zoomToolButton, ID_MAPBAR_ZOOM_ITEMS);
     pointerTypeGroup->addButton(fillColorToolButton, ID_MAPBAR_FILL_ITEMS);
@@ -3523,8 +3260,7 @@ void MainWindow::createActions()
     connect(thirdFilledAct, SIGNAL(triggered()), this, SLOT(On3dFilled()));
 }
 
-void MainWindow::createMenus()
-{
+void MainWindow::createMenus() {
     fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(newAct);
     fileMenu->addAction(openAct);
@@ -3554,7 +3290,7 @@ void MainWindow::createMenus()
     editMenu->addAction(clearAct);
     editMenu->addSeparator();
     editMenu->addAction(selectByQueryAct);
-    //editMenu->addAction(zoomToSelectionAct);
+    // editMenu->addAction(zoomToSelectionAct);
     editMenu->addAction(selectionToLayerAct);
 
     mapMenu = menuBar()->addMenu(tr("&Map"));
@@ -3665,8 +3401,7 @@ void MainWindow::createMenus()
     connect(windowMenu, SIGNAL(aboutToShow()), this, SLOT(updateWindowMenu()));
 }
 
-void MainWindow::createToolBars()
-{
+void MainWindow::createToolBars() {
     fileToolBar = addToolBar(tr("File"));
     fileToolBar->addAction(newAct);
     fileToolBar->addAction(openAct);
@@ -3679,7 +3414,7 @@ void MainWindow::createToolBars()
     fileToolBar->addAction(pushValueAct);
     fileToolBar->addSeparator();
     fileToolBar->addAction(invertColorAct);
-    fileToolBar->setIconSize(QSize(16,16));
+    fileToolBar->setIconSize(QSize(16, 16));
     fileToolBar->setMovable(0);
 
     editToolBar = addToolBar(tr("Edit"));
@@ -3687,7 +3422,7 @@ void MainWindow::createToolBars()
     editToolBar->addWidget(DragButton);
     editToolBar->addWidget(zoomToolButton);
     editToolBar->addSeparator();
-    //editToolBar->addAction(zoomToAct);
+    // editToolBar->addAction(zoomToAct);
     editToolBar->addAction(RecentAct);
     editToolBar->addSeparator();
     editToolBar->addAction(SetGridAct);
@@ -3699,7 +3434,7 @@ void MainWindow::createToolBars()
     editToolBar->addWidget(AxialMapButton);
     editToolBar->addWidget(StepDepthButton);
     editToolBar->addWidget(JoinToolButton);
-    editToolBar->setIconSize(QSize(16,16));
+    editToolBar->setIconSize(QSize(16, 16));
     editToolBar->setMovable(0);
 
     x_coord = new QComboBox(this);
@@ -3707,15 +3442,14 @@ void MainWindow::createToolBars()
     y_coord = new QComboBox(this);
     y_coord->setMinimumContentsLength(20);
 
-    connect(x_coord, SIGNAL(currentIndexChanged(const QString &)),
-            this, SLOT(OnSelchangeViewSelector_X(const QString &)));
-    connect(y_coord, SIGNAL(currentIndexChanged(const QString &)),
-            this, SLOT(OnSelchangeViewSelector_Y(const QString &)));
+    connect(x_coord, SIGNAL(currentIndexChanged(const QString &)), this,
+            SLOT(OnSelchangeViewSelector_X(const QString &)));
+    connect(y_coord, SIGNAL(currentIndexChanged(const QString &)), this,
+            SLOT(OnSelchangeViewSelector_Y(const QString &)));
 
-
-    QAction* xx = new QAction(tr("X = "), this);
+    QAction *xx = new QAction(tr("X = "), this);
     xx->setEnabled(0);
-    QAction* yy = new QAction(tr("Y = "), this);
+    QAction *yy = new QAction(tr("Y = "), this);
     yy->setEnabled(0);
 
     plotToolBar = addToolBar(tr("PlotEdit"));
@@ -3730,7 +3464,7 @@ void MainWindow::createToolBars()
     plotToolBar->addAction(viewTrend);
     plotToolBar->addAction(yx);
     plotToolBar->addAction(Rtwo);
-    plotToolBar->setIconSize(QSize(16,16));
+    plotToolBar->setIconSize(QSize(16, 16));
     plotToolBar->setMovable(0);
 
     thirdViewToolBar = addToolBar(tr("3DView"));
@@ -3749,7 +3483,7 @@ void MainWindow::createToolBars()
     thirdViewToolBar->addAction(playLoopAct);
     thirdViewToolBar->addSeparator();
     thirdViewToolBar->addAction(thirdFilledAct);
-    thirdViewToolBar->setIconSize(QSize(16,16));
+    thirdViewToolBar->setIconSize(QSize(16, 16));
     thirdViewToolBar->setMovable(0);
 
     m_tree_icon.push_back(QIcon(tr(":/images/win/b-1-1.png")));

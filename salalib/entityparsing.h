@@ -13,32 +13,27 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef ENTITYPARSING_H
-#define ENTITYPARSING_H
+#pragma once
 
-#include "genlib/p2dpoly.h"
 #include "genlib/exceptions.h"
+#include "genlib/p2dpoly.h"
 #include "isovistdef.h"
-#include <vector>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace EntityParsing {
 
-    class EntityParseException : public depthmapX::BaseException
-    {
-    public:
-        EntityParseException(std::string message) : depthmapX::BaseException(message)
-        {}
+    class EntityParseException : public depthmapX::BaseException {
+      public:
+        EntityParseException(std::string message) : depthmapX::BaseException(message) {}
     };
 
     std::vector<std::string> split(const std::string &s, char delim);
-    std::vector<Line> parseLines(std::istream& stream, char delimiter);
-    std::vector<Point2f> parsePoints(std::istream& stream, char delimiter);
+    std::vector<Line> parseLines(std::istream &stream, char delimiter);
+    std::vector<Point2f> parsePoints(std::istream &stream, char delimiter);
     Point2f parsePoint(const std::string &point, char delimiter = ',');
     std::vector<IsovistDefinition> parseIsovists(std::istream &stream, char delimiter);
     IsovistDefinition parseIsovist(const std::string &isovist);
-    std::vector<std::pair<int, int> > parseRefPairs(std::istream& stream, char delimiter);
-}
-
-#endif // ENTITYPARSING_H
+    std::vector<std::pair<int, int>> parseRefPairs(std::istream &stream, char delimiter);
+} // namespace EntityParsing

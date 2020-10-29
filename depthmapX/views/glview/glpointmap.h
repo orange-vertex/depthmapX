@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -16,38 +15,33 @@
 
 #pragma once
 
-#include "salalib/mgraph.h"
 #include "depthmapX/views/glview/gllinesuniform.h"
 #include "depthmapX/views/glview/glrastertexture.h"
 #include "depthmapX/views/glview/gltrianglesuniform.h"
+#include "salalib/mgraph.h"
 
-class GLPointMap
-{
-public:
-    void initializeGL(bool m_core)
-    {
+class GLPointMap {
+  public:
+    void initializeGL(bool m_core) {
         m_grid.initializeGL(m_core);
         m_pointMap.initializeGL(m_core);
         m_linkLines.initializeGL(m_core);
         m_linkFills.initializeGL(m_core);
     }
-    void updateGL(bool m_core)
-    {
+    void updateGL(bool m_core) {
         m_pointMap.updateGL(m_core);
         m_grid.updateGL(m_core);
         m_linkLines.updateGL(m_core);
         m_linkFills.updateGL(m_core);
     }
-    void cleanup()
-    {
+    void cleanup() {
         m_grid.cleanup();
         m_pointMap.cleanup();
         m_linkLines.cleanup();
         m_linkFills.cleanup();
     }
-    void paintGLOverlay(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel)
-    {
-        if(m_showLinks) {
+    void paintGLOverlay(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel) {
+        if (m_showLinks) {
             QOpenGLFunctions *glFuncs = QOpenGLContext::currentContext()->functions();
             glFuncs->glLineWidth(3);
             m_linkLines.paintGL(m_mProj, m_mView, m_mModel);
@@ -55,24 +49,18 @@ public:
             glFuncs->glLineWidth(1);
         }
     }
-    void paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel)
-    {
+    void paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel) {
         m_pointMap.paintGL(m_mProj, m_mView, m_mModel);
-        if(m_showGrid)
+        if (m_showGrid)
             m_grid.paintGL(m_mProj, m_mView, m_mModel);
     }
-    void setGridColour(QRgb gridColour) {
-        m_gridColour = gridColour;
-    }
-    void showLinks(bool showLinks) {
-        m_showLinks = showLinks;
-    }
-    void showGrid(bool showGrid) {
-        m_showGrid = showGrid;
-    }
-    void loadGLObjects(PointMap& pointMap);
-    void loadGLObjectsRequiringGLContext(const PointMap& currentPointMap);
-private:
+    void setGridColour(QRgb gridColour) { m_gridColour = gridColour; }
+    void showLinks(bool showLinks) { m_showLinks = showLinks; }
+    void showGrid(bool showGrid) { m_showGrid = showGrid; }
+    void loadGLObjects(PointMap &pointMap);
+    void loadGLObjectsRequiringGLContext(const PointMap &currentPointMap);
+
+  private:
     GLLinesUniform m_grid;
     GLRasterTexture m_pointMap;
     GLLinesUniform m_linkLines;

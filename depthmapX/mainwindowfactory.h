@@ -13,17 +13,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MAINWINDOWFACTORY_H
-#define MAINWINDOWFACTORY_H
+#pragma once
 
-#include <mainwindow.h>
 #include <QDialog>
+#include <mainwindow.h>
 #include <memory>
 
 class Settings;
 
-namespace MainWindowFactory{
+namespace MainWindowFactory {
     std::unique_ptr<MainWindow> getMainWindow(const QString &fileToLoad, Settings &settings);
     std::unique_ptr<QDialog> getLicenseDialog();
-}
-#endif // MAINWINDOWFACTORY_H
+} // namespace MainWindowFactory
+

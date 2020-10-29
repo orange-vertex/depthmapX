@@ -14,21 +14,18 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
+
 #include "attributetable.h"
 #include <algorithm>
 
-class ConstAttributeIndexItem
-{
-public:
-    ConstAttributeIndexItem(const AttributeKey &k, double v, const AttributeRow &r) : key(k), value(v), row(&r)
-    {}
+class ConstAttributeIndexItem {
+  public:
+    ConstAttributeIndexItem(const AttributeKey &k, double v, const AttributeRow &r) : key(k), value(v), row(&r) {}
 
-    ConstAttributeIndexItem(const ConstAttributeIndexItem& other) : key(other.key), value(other.value), row(other.row)
-    {}
-    ConstAttributeIndexItem &operator = (const ConstAttributeIndexItem& other)
-    {
-        if ( this == &other)
-        {
+    ConstAttributeIndexItem(const ConstAttributeIndexItem &other)
+        : key(other.key), value(other.value), row(other.row) {}
+    ConstAttributeIndexItem &operator=(const ConstAttributeIndexItem &other) {
+        if (this == &other) {
             return *this;
         }
         key = other.key;
@@ -39,23 +36,20 @@ public:
 
     AttributeKey key;
     double value;
-    const AttributeRow *  row;
+    const AttributeRow *row;
 };
 
-class AttributeIndexItem : public ConstAttributeIndexItem
-{
-public:
-    AttributeIndexItem( const AttributeKey &k, double v, AttributeRow &r) : ConstAttributeIndexItem(k,v,r), mutable_row(&r)
-    {}
-    AttributeIndexItem( const AttributeIndexItem &other) : ConstAttributeIndexItem(other), mutable_row(other.mutable_row)
-    {}
-    AttributeIndexItem &operator = (const AttributeIndexItem &other)
-    {
-        if ( this == &other)
-        {
+class AttributeIndexItem : public ConstAttributeIndexItem {
+  public:
+    AttributeIndexItem(const AttributeKey &k, double v, AttributeRow &r)
+        : ConstAttributeIndexItem(k, v, r), mutable_row(&r) {}
+    AttributeIndexItem(const AttributeIndexItem &other)
+        : ConstAttributeIndexItem(other), mutable_row(other.mutable_row) {}
+    AttributeIndexItem &operator=(const AttributeIndexItem &other) {
+        if (this == &other) {
             return *this;
         }
-        ConstAttributeIndexItem::operator =(other);
+        ConstAttributeIndexItem::operator=(other);
         mutable_row = other.mutable_row;
         return *this;
     }
@@ -63,8 +57,7 @@ public:
     AttributeRow *mutable_row;
 };
 
-inline bool operator < (const ConstAttributeIndexItem &lhs, const ConstAttributeIndexItem &rhs)
-{
+inline bool operator<(const ConstAttributeIndexItem &lhs, const ConstAttributeIndexItem &rhs) {
     return lhs.value < rhs.value;
 }
 

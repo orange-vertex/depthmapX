@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -330,7 +329,7 @@ bool SegmentTulip::run(Communicator *comm, ShapeGraph &map, bool) {
     std::vector<float> lengths;
     if (length_col != -1) {
         for (size_t i = 0; i < map.getConnections().size(); i++) {
-            AttributeRow& row = map.getAttributeRowFromShapeIndex(i);
+            AttributeRow &row = map.getAttributeRowFromShapeIndex(i);
             lengths.push_back(row.getValue(length_col));
         }
     }
@@ -342,8 +341,7 @@ bool SegmentTulip::run(Communicator *comm, ShapeGraph &map, bool) {
     }
 
     for (size_t cursor = 0; cursor < map.getConnections().size(); cursor++) {
-        AttributeRow &row =
-            map.getAttributeRowFromShapeIndex(cursor);
+        AttributeRow &row = map.getAttributeRowFromShapeIndex(cursor);
 
         if (m_sel_only) {
             // could use m_selection_set.searchindex(rowid) to find
@@ -558,7 +556,8 @@ bool SegmentTulip::run(Communicator *comm, ShapeGraph &map, bool) {
                             // EFEF*
                             double choiceweight2 = 0.0;
                             //*EFEF
-                            while (here.ref != static_cast<int>(cursor)) { // not rowid means not the current root for the path
+                            while (here.ref !=
+                                   static_cast<int>(cursor)) { // not rowid means not the current root for the path
                                 int heredir = (here.dir == 1) ? 0 : 1;
                                 // each node has the existing choicecount and choiceweight from previously encountered
                                 // nodes added to it

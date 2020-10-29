@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -17,7 +16,7 @@
 #include "gltrianglesuniform.h"
 #include <qmath.h>
 
-static const char *vertexShaderSourceCore =
+static const char *vertexShaderSourceCore = //
     "#version 150\n"
     "in vec4 vertex;\n"
     "uniform mat4 projMatrix;\n"
@@ -26,7 +25,7 @@ static const char *vertexShaderSourceCore =
     "   gl_Position = projMatrix * mvMatrix * vertex;\n"
     "}\n";
 
-static const char *fragmentShaderSourceCore =
+static const char *fragmentShaderSourceCore = //
     "#version 150\n"
     "uniform vec4 colourVector;\n"
     "out highp vec4 fragColor;\n"
@@ -34,7 +33,7 @@ static const char *fragmentShaderSourceCore =
     "   fragColor = colourVector;\n"
     "}\n";
 
-static const char *vertexShaderSource =
+static const char *vertexShaderSource = //
     "attribute vec4 vertex;\n"
     "uniform mat4 projMatrix;\n"
     "uniform mat4 mvMatrix;\n"
@@ -42,7 +41,7 @@ static const char *vertexShaderSource =
     "   gl_Position = projMatrix * mvMatrix * vertex;\n"
     "}\n";
 
-static const char *fragmentShaderSource =
+static const char *fragmentShaderSource = //
     "uniform highp vec4 colourVector;\n"
     "void main() {\n"
     "   gl_FragColor = colourVector;\n"
@@ -53,31 +52,23 @@ static const char *fragmentShaderSource =
  * This class is an OpenGL representation of a set of triangles of uniform colour
  */
 
-GLTrianglesUniform::GLTrianglesUniform()
-    : m_count(0),
-      m_program(0)
-{
+GLTrianglesUniform::GLTrianglesUniform() : m_count(0), m_program(0) {}
 
-}
-
-void GLTrianglesUniform::loadTriangleData(const std::vector<Point2f>& points, const QRgb &polyColour)
-{
+void GLTrianglesUniform::loadTriangleData(const std::vector<Point2f> &points, const QRgb &polyColour) {
     m_built = false;
 
     m_count = 0;
     m_data.resize(points.size() * DATA_DIMENSIONS);
 
-    for (auto& point: points)
-    {
+    for (auto &point : points) {
         add(QVector3D(point.x, point.y, 0.0f));
     }
-    m_colour.setX(qRed(polyColour)/255.0);
-    m_colour.setY(qGreen(polyColour)/255.0);
-    m_colour.setZ(qBlue(polyColour)/255.0);
+    m_colour.setX(qRed(polyColour) / 255.0);
+    m_colour.setY(qGreen(polyColour) / 255.0);
+    m_colour.setZ(qBlue(polyColour) / 255.0);
 }
 
-void GLTrianglesUniform::setupVertexAttribs()
-{
+void GLTrianglesUniform::setupVertexAttribs() {
     m_vbo.bind();
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     f->glEnableVertexAttribArray(0);
@@ -85,12 +76,13 @@ void GLTrianglesUniform::setupVertexAttribs()
     m_vbo.release();
 }
 
-void GLTrianglesUniform::initializeGL(bool m_core)
-{
-    if(m_data.size() == 0) return;
+void GLTrianglesUniform::initializeGL(bool m_core) {
+    if (m_data.size() == 0)
+        return;
     m_program = new QOpenGLShaderProgram;
     m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, m_core ? vertexShaderSourceCore : vertexShaderSource);
-    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, m_core ? fragmentShaderSourceCore : fragmentShaderSource);
+    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment,
+                                       m_core ? fragmentShaderSourceCore : fragmentShaderSource);
     m_program->bindAttributeLocation("vertex", 0);
     m_program->link();
 
@@ -113,7 +105,7 @@ void GLTrianglesUniform::initializeGL(bool m_core)
 }
 
 void GLTrianglesUniform::updateGL(bool m_core) {
-    if(m_program == 0) {
+    if (m_program == 0) {
         // has not been initialised yet, do that instead
         initializeGL(m_core);
     } else {
@@ -124,27 +116,26 @@ void GLTrianglesUniform::updateGL(bool m_core) {
     }
 }
 
-void GLTrianglesUniform::updateColour(const QRgb &polyColour)
-{
-    m_colour.setX(qRed(polyColour)/255.0);
-    m_colour.setY(qGreen(polyColour)/255.0);
-    m_colour.setZ(qBlue(polyColour)/255.0);
+void GLTrianglesUniform::updateColour(const QRgb &polyColour) {
+    m_colour.setX(qRed(polyColour) / 255.0);
+    m_colour.setY(qGreen(polyColour) / 255.0);
+    m_colour.setZ(qBlue(polyColour) / 255.0);
     m_program->bind();
     m_program->setUniformValue(m_colourVectorLoc, m_colour);
     m_program->release();
 }
 
-void GLTrianglesUniform::cleanup()
-{
-    if(!m_built) return;
+void GLTrianglesUniform::cleanup() {
+    if (!m_built)
+        return;
     m_vbo.destroy();
     delete m_program;
     m_program = 0;
 }
 
-void GLTrianglesUniform::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel)
-{
-    if(!m_built) return;
+void GLTrianglesUniform::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel) {
+    if (!m_built)
+        return;
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
     m_program->bind();
     m_program->setUniformValue(m_projMatrixLoc, m_mProj);
@@ -156,8 +147,7 @@ void GLTrianglesUniform::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_
     m_program->release();
 }
 
-void GLTrianglesUniform::add(const QVector3D &v)
-{
+void GLTrianglesUniform::add(const QVector3D &v) {
     GLfloat *p = m_data.data() + m_count;
     *p++ = v.x();
     *p++ = v.y();

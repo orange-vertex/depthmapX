@@ -13,53 +13,48 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 #pragma once
+
 #include "settings.h"
+#include <memory>
 #include <qsettings.h>
 #include <qstandardpaths.h>
-#include <memory>
 
-class QSettingsFactory
-{
-public:
+class QSettingsFactory {
+  public:
     virtual std::unique_ptr<QSettings> getSettings() const = 0;
     virtual ~QSettingsFactory() {}
 };
 
-class DefaultSettingsFactory : public QSettingsFactory
-{
-public:
-    DefaultSettingsFactory()
-    {
-        m_settingsFile = QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).first() +  "/depthmapXsettings.ini";
+class DefaultSettingsFactory : public QSettingsFactory {
+  public:
+    DefaultSettingsFactory() {
+        m_settingsFile =
+            QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).first() + "/depthmapXsettings.ini";
     }
 
     // QSettingsFactory interface
-public:
-    virtual std::unique_ptr<QSettings> getSettings() const
-    {
+  public:
+    virtual std::unique_ptr<QSettings> getSettings() const {
         return std::unique_ptr<QSettings>(new QSettings(m_settingsFile, QSettings::IniFormat));
     }
 
-private:
+  private:
     QString m_settingsFile;
 };
 
-class SettingsImpl : public Settings
-{
-public:
+class SettingsImpl : public Settings {
+  public:
     SettingsImpl(QSettingsFactory *settingsFactory);
 
     // SettingsTransaction interface
-public:
+  public:
     virtual const QVariant readSetting(const QString &tag, const QVariant &defaultValue) const;
     virtual void writeSetting(const QString &tag, const QVariant &value);
 
     // Settings interface
     virtual std::unique_ptr<SettingsTransaction> getTransaction();
 
-private:
+  private:
     std::unique_ptr<QSettingsFactory> mSettingsFactory;
-
 };

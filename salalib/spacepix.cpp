@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2011-2012, Tasos Varoudis
 
 // This program is free software: you can redistribute it and/or modify
@@ -20,9 +19,9 @@
 
 #include "salalib/spacepix.h"
 
-#include "genlib/stringutils.h"
-#include "genlib/readwritehelpers.h"
 #include "genlib/containerutils.h"
+#include "genlib/readwritehelpers.h"
+#include "genlib/stringutils.h"
 
 #include <float.h>
 #include <math.h>
@@ -495,8 +494,8 @@ int SpacePixel::addLineDynamic(const Line &line) {
 
     for (size_t i = 0; i < list.size(); i++) {
         // note: dynamic lines could be dodgy... only pixelate bits that fall in range
-        if (list[i].x >= 0 && list[i].y >= 0 &&
-                static_cast<size_t>(list[i].x) < m_cols && static_cast<size_t>(list[i].y) < m_rows) {
+        if (list[i].x >= 0 && list[i].y >= 0 && static_cast<size_t>(list[i].x) < m_cols &&
+            static_cast<size_t>(list[i].y) < m_rows) {
             // note, this probably won't be reordered on dynamic
             m_pixel_lines(static_cast<size_t>(list[i].y), static_cast<size_t>(list[i].x)).push_back(m_ref);
         }

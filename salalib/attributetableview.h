@@ -20,47 +20,45 @@
 
 #include <functional>
 
-class AttributeTableView
-{
-public:
-    AttributeTableView(const AttributeTable& table );
+class AttributeTableView {
+  public:
+    AttributeTableView(const AttributeTable &table);
 
     const AttributeTable &m_table;
 
     // columnIndex < 0 -> not set
     virtual void setDisplayColIndex(int columnIndex);
-    int getDisplayColIndex() const{ return m_displayColumn;}
+    int getDisplayColIndex() const { return m_displayColumn; }
 
-    float getNormalisedValue(const AttributeKey& key, const AttributeRow &row) const;
-    const DisplayParams& getDisplayParams() const;
+    float getNormalisedValue(const AttributeKey &key, const AttributeRow &row) const;
+    const DisplayParams &getDisplayParams() const;
 
     typedef std::vector<ConstAttributeIndexItem> ConstIndex;
-    const ConstIndex& getConstTableIndex() const{return m_index;}
+    const ConstIndex &getConstTableIndex() const { return m_index; }
 
-    const AttributeColumn& getDisplayedColumn() const;
+    const AttributeColumn &getDisplayedColumn() const;
 
-private:
+  private:
     ConstIndex m_index;
     int m_displayColumn;
 };
 
-class AttributeTableHandle : public AttributeTableView
-{
-public:
-    AttributeTableHandle(AttributeTable &table) : AttributeTableView(table), m_mutableTable(table){}
-    virtual ~AttributeTableHandle(){}
+class AttributeTableHandle : public AttributeTableView {
+  public:
+    AttributeTableHandle(AttributeTable &table) : AttributeTableView(table), m_mutableTable(table) {}
+    virtual ~AttributeTableHandle() {}
     typedef std::vector<AttributeIndexItem> Index;
-    const Index& getTableIndex() const {return m_mutableIndex;}
+    const Index &getTableIndex() const { return m_mutableIndex; }
     virtual void setDisplayColIndex(int columnIndex);
     int findInIndex(const AttributeKey &key);
-private:
-    AttributeTable& m_mutableTable;
-    Index m_mutableIndex;
 
+  private:
+    AttributeTable &m_mutableTable;
+    Index m_mutableIndex;
 };
 
 struct index_item_key : public std::function<bool(AttributeKey)> {
     explicit index_item_key(const AttributeKey &baseline) : m_baseline(baseline) {}
-    bool operator() (const AttributeIndexItem &arg) { return arg.key.value == m_baseline.value; }
-    const AttributeKey& m_baseline;
+    bool operator()(const AttributeIndexItem &arg) { return arg.key.value == m_baseline.value; }
+    const AttributeKey &m_baseline;
 };

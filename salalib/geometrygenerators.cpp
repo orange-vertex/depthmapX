@@ -17,30 +17,30 @@
 
 std::vector<Point2f> GeometryGenerators::generateDiskTriangles(int sides, float radius, Point2f position) {
     std::vector<Point2f> diskTriangles;
-    for(int i = 0; i < sides; i++) {
+    for (int i = 0; i < sides; i++) {
         diskTriangles.push_back(Point2f(position.x, position.y));
-        diskTriangles.push_back(Point2f(position.x + radius*sin(2*M_PI*(i+1)/sides), position.y + radius*cos(2*M_PI*(i+1)/sides)));
-        diskTriangles.push_back(Point2f(position.x + radius*sin(2*M_PI*i/sides), position.y + radius*cos(2*M_PI*i/sides)));
+        diskTriangles.push_back(Point2f(position.x + radius * sin(2 * M_PI * (i + 1) / sides),
+                                        position.y + radius * cos(2 * M_PI * (i + 1) / sides)));
+        diskTriangles.push_back(
+            Point2f(position.x + radius * sin(2 * M_PI * i / sides), position.y + radius * cos(2 * M_PI * i / sides)));
     }
     return diskTriangles;
 }
 
-std::vector<Point2f> GeometryGenerators::generateMultipleDiskTriangles(int sides, float radius, std::vector<Point2f> positions) {
-    std::vector<Point2f> diskTriangles = generateDiskTriangles(sides , radius);
+std::vector<Point2f> GeometryGenerators::generateMultipleDiskTriangles(int sides, float radius,
+                                                                       std::vector<Point2f> positions) {
+    std::vector<Point2f> diskTriangles = generateDiskTriangles(sides, radius);
 
     std::vector<Point2f> mulitpleDiskTriangles;
 
-    std::vector<Point2f>::const_iterator iter = positions.begin(), end =
-    positions.end();
-    for ( ; iter != end; ++iter )
-    {
+    std::vector<Point2f>::const_iterator iter = positions.begin(), end = positions.end();
+    for (; iter != end; ++iter) {
         Point2f position = *iter;
-        std::vector<Point2f>::const_iterator iterDiskVertices = diskTriangles.begin(), endDiskPoints =
-        diskTriangles.end();
-        for ( ; iterDiskVertices != endDiskPoints; ++iterDiskVertices )
-        {
+        std::vector<Point2f>::const_iterator iterDiskVertices = diskTriangles.begin(),
+                                             endDiskPoints = diskTriangles.end();
+        for (; iterDiskVertices != endDiskPoints; ++iterDiskVertices) {
             Point2f vertex = *iterDiskVertices;
-            mulitpleDiskTriangles.push_back(Point2f(position.x + vertex.x,position.y + vertex.y));
+            mulitpleDiskTriangles.push_back(Point2f(position.x + vertex.x, position.y + vertex.y));
         }
     }
     return mulitpleDiskTriangles;
@@ -48,34 +48,30 @@ std::vector<Point2f> GeometryGenerators::generateMultipleDiskTriangles(int sides
 
 std::vector<SimpleLine> GeometryGenerators::generateCircleLines(int sides, float radius, Point2f position) {
     std::vector<SimpleLine> cirleLines;
-    for(int i = 0; i < sides; i++) {
-        cirleLines.push_back(SimpleLine(
-                    Point2f(position.x + radius*sin(2*M_PI*(i+1)/sides), position.y + radius*cos(2*M_PI*(i+1)/sides)),
-                    Point2f(position.x + radius*sin(2*M_PI*i/sides), position.y + radius*cos(2*M_PI*i/sides))
-                    ));
+    for (int i = 0; i < sides; i++) {
+        cirleLines.push_back(SimpleLine(Point2f(position.x + radius * sin(2 * M_PI * (i + 1) / sides),
+                                                position.y + radius * cos(2 * M_PI * (i + 1) / sides)),
+                                        Point2f(position.x + radius * sin(2 * M_PI * i / sides),
+                                                position.y + radius * cos(2 * M_PI * i / sides))));
     }
     return cirleLines;
 }
 
-std::vector<SimpleLine> GeometryGenerators::generateMultipleCircleLines(int sides, float radius, std::vector<Point2f> positions) {
-    std::vector<SimpleLine> circleLines = generateCircleLines(sides , radius);
+std::vector<SimpleLine> GeometryGenerators::generateMultipleCircleLines(int sides, float radius,
+                                                                        std::vector<Point2f> positions) {
+    std::vector<SimpleLine> circleLines = generateCircleLines(sides, radius);
 
     std::vector<SimpleLine> mulitpleCircleLines;
 
-    std::vector<Point2f>::const_iterator iter = positions.begin(), end =
-    positions.end();
-    for ( ; iter != end; ++iter )
-    {
+    std::vector<Point2f>::const_iterator iter = positions.begin(), end = positions.end();
+    for (; iter != end; ++iter) {
         Point2f position = *iter;
-        std::vector<SimpleLine>::const_iterator iterCircleLines = circleLines.begin(), endCircleLines =
-        circleLines.end();
-        for ( ; iterCircleLines != endCircleLines; ++iterCircleLines )
-        {
+        std::vector<SimpleLine>::const_iterator iterCircleLines = circleLines.begin(),
+                                                endCircleLines = circleLines.end();
+        for (; iterCircleLines != endCircleLines; ++iterCircleLines) {
             SimpleLine line = *iterCircleLines;
-            mulitpleCircleLines.push_back(SimpleLine(
-                                                Point2f(position.x + line.start().x, position.y + line.start().y),
-                                                Point2f(position.x + line.end().x, position.y + line.end().y)
-                                                ));
+            mulitpleCircleLines.push_back(SimpleLine(Point2f(position.x + line.start().x, position.y + line.start().y),
+                                                     Point2f(position.x + line.end().x, position.y + line.end().y)));
         }
     }
     return mulitpleCircleLines;

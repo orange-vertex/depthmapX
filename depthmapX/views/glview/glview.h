@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -18,35 +17,35 @@
 
 #include "depthmapX/GraphDoc.h"
 
-#include "depthmapX/views/mapview.h"
+#include "depthmapX/views/glview/gldynamicline.h"
+#include "depthmapX/views/glview/gldynamicrect.h"
 #include "depthmapX/views/glview/gllines.h"
 #include "depthmapX/views/glview/gllinesuniform.h"
-#include "depthmapX/views/glview/glrastertexture.h"
-#include "depthmapX/views/glview/glpolygons.h"
 #include "depthmapX/views/glview/glpointmap.h"
+#include "depthmapX/views/glview/glpolygons.h"
+#include "depthmapX/views/glview/glrastertexture.h"
 #include "depthmapX/views/glview/glshapegraph.h"
-#include "depthmapX/views/glview/gldynamicrect.h"
-#include "depthmapX/views/glview/gldynamicline.h"
+#include "depthmapX/views/mapview.h"
 
-#include <QOpenGLWidget>
-#include <QOpenGLFunctions>
 #include <QMatrix4x4>
+#include <QOpenGLFunctions>
+#include <QOpenGLWidget>
 
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
-class GLView : public MapView, protected QOpenGLFunctions
-{
+class GLView : public MapView, protected QOpenGLFunctions {
     Q_OBJECT
 
-public:
-    GLView(QGraphDoc &pDoc,
-           Settings &settings,
-           QWidget *parent = Q_NULLPTR);
+  public:
+    GLView(QGraphDoc &pDoc, Settings &settings, QWidget *parent = Q_NULLPTR);
     ~GLView();
 
     QSize minimumSizeHint() const override;
     QSize sizeHint() const override;
-    void notifyDatasetChanged() { m_datasetChanged = true; update(); }
+    void notifyDatasetChanged() {
+        m_datasetChanged = true;
+        update();
+    }
     void matchViewToCurrentMetaGraph();
 
     virtual void OnModeJoin() override;
@@ -71,7 +70,7 @@ public:
     virtual void OnEditSave() override;
     virtual void OnViewZoomToRegion(QtRegion region) override;
 
-protected:
+  protected:
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int width, int height) override;
@@ -82,7 +81,7 @@ protected:
     bool eventFilter(QObject *object, QEvent *e) override;
     void closeEvent(QCloseEvent *event) override;
 
-private:
+  private:
     bool m_perspectiveView = false;
     bool m_core;
     QMatrix4x4 m_mProj;
@@ -162,7 +161,7 @@ private:
 
     int m_mouseMode = MOUSE_MODE_SELECT;
 
-    QRectF m_mouseDragRect = QRectF(0,0,0,0);
+    QRectF m_mouseDragRect = QRectF(0, 0, 0, 0);
 
     Point2f m_tempFirstPoint;
     Point2f m_tempSecondPoint;
@@ -172,9 +171,7 @@ private:
     Point2f m_polyStart;
     int m_polyPoints = 0;
 
-    inline int PixelDist(QPoint a, QPoint b)
-    {
-       return (int)sqrt(double((b.x()-a.x())*(b.x()-a.x())+(b.y()-a.y())*(b.y()-a.y())));
+    inline int PixelDist(QPoint a, QPoint b) {
+        return (int)sqrt(double((b.x() - a.x()) * (b.x() - a.x()) + (b.y() - a.y()) * (b.y() - a.y())));
     }
 };
-

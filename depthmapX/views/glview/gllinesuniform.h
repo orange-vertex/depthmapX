@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -17,30 +16,29 @@
 #pragma once
 
 #include "genlib/p2dpoly.h"
-#include <qopengl.h>
-#include <QVector>
-#include <QVector3D>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
 #include <QRgb>
+#include <QVector3D>
+#include <QVector>
+#include <qopengl.h>
 
-class GLLinesUniform
-{
-public:
+class GLLinesUniform {
+  public:
     GLLinesUniform();
-    void loadLineData(const std::vector<SimpleLine>& lines, const QRgb& lineColour);
+    void loadLineData(const std::vector<SimpleLine> &lines, const QRgb &lineColour);
     void paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel);
     void initializeGL(bool coreProfile);
     void updateGL(bool coreProfile);
     void cleanup();
-    void updateColour(const QRgb& lineColour);
+    void updateColour(const QRgb &lineColour);
     int vertexCount() const { return m_count / DATA_DIMENSIONS; }
-    GLLinesUniform( const GLLinesUniform& ) = delete;
-    GLLinesUniform& operator=(const GLLinesUniform& ) = delete;
+    GLLinesUniform(const GLLinesUniform &) = delete;
+    GLLinesUniform &operator=(const GLLinesUniform &) = delete;
 
-private:
+  private:
     const int DATA_DIMENSIONS = 3;
     void setupVertexAttribs();
     const GLfloat *constData() const { return m_data.constData(); }

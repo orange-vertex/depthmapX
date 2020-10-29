@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -25,7 +24,7 @@ bool VGAIsovist::run(Communicator *comm, PointMap &map, bool simple_version) {
     map.m_hasIsovistAnalysis = false;
 
     // note, BSP tree plays with comm counting...
-    if(comm) {
+    if (comm) {
         comm->CommPostMessage(Communicator::NUM_STEPS, 2);
         comm->CommPostMessage(Communicator::CURRENT_STEP, 1);
     }
@@ -33,7 +32,8 @@ bool VGAIsovist::run(Communicator *comm, PointMap &map, bool simple_version) {
 
     AttributeTable &attributes = map.getAttributeTable();
 
-    if(comm) comm->CommPostMessage(Communicator::CURRENT_STEP, 2);
+    if (comm)
+        comm->CommPostMessage(Communicator::CURRENT_STEP, 2);
 
     time_t atime = 0;
     if (comm) {
@@ -89,7 +89,7 @@ bool VGAIsovist::run(Communicator *comm, PointMap &map, bool simple_version) {
     return true;
 }
 
-BSPNode VGAIsovist::makeBSPtree(Communicator *communicator, const std::vector<SpacePixelFile>& drawingFiles) {
+BSPNode VGAIsovist::makeBSPtree(Communicator *communicator, const std::vector<SpacePixelFile> &drawingFiles) {
     std::vector<TaggedLine> partitionlines;
     for (const auto &pixelGroup : drawingFiles) {
         for (const auto &pixel : pixelGroup.m_spacePixels) {
@@ -117,7 +117,7 @@ BSPNode VGAIsovist::makeBSPtree(Communicator *communicator, const std::vector<Sp
     if (partitionlines.size()) {
 
         time_t atime = 0;
-        if(communicator) {
+        if (communicator) {
             communicator->CommPostMessage(Communicator::NUM_RECORDS, static_cast<int>(partitionlines.size()));
             qtimer(atime, 0);
         }

@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2011-2012, Tasos Varoudis
 
 // This program is free software: you can redistribute it and/or modify
@@ -2172,7 +2171,7 @@ const std::map<int, SalaShape> ShapeMap::getShapesInRegion(const QtRegion &r) co
                 for (const ShapeRef &shapeRef : shapeRefs) {
                     // relies on indices of shapes and attributes being aligned
                     auto shape = m_shapes.find(shapeRef.m_shape_ref);
-                    if(shape != m_shapes.end()) {
+                    if (shape != m_shapes.end()) {
                         shapesInRegion.insert(*shape);
                     }
                 }
@@ -2189,7 +2188,7 @@ bool ShapeMap::setCurSel(QtRegion &r, bool add) {
     }
 
     std::map<int, SalaShape> shapesInRegion = getShapesInRegion(r);
-    for (auto shape: shapesInRegion) {
+    for (auto shape : shapesInRegion) {
         shape.second.m_selected = true;
         if (m_selection_set.insert(shape.first).second) {
             auto &row = m_attributes->getRow(AttributeKey(shape.first));

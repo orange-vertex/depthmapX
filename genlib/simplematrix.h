@@ -1,4 +1,3 @@
-// genlib - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2018, Christian Sailer
 
 // This program is free software: you can redistribute it and/or modify

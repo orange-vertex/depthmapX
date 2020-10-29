@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -41,7 +40,7 @@ bool SegmentMetric::run(Communicator *comm, ShapeGraph &map, bool) {
     std::vector<float> seglengths;
     float maxseglength = 0.0f;
     for (size_t cursor = 0; cursor < map.getShapeCount(); cursor++) {
-        AttributeRow& row = map.getAttributeRowFromShapeIndex(cursor);
+        AttributeRow &row = map.getAttributeRowFromShapeIndex(cursor);
         axialrefs.push_back(row.getValue(attributes.getColumnIndex("Axial Line Ref")));
         seglengths.push_back(row.getValue(attributes.getColumnIndex("Segment Length")));
         if (seglengths.back() > maxseglength) {
@@ -78,7 +77,7 @@ bool SegmentMetric::run(Communicator *comm, ShapeGraph &map, bool) {
     std::vector<TopoMetSegmentRef> audittrail(map.getShapeCount());
     std::vector<TopoMetSegmentChoice> choicevals(map.getShapeCount());
     for (size_t cursor = 0; cursor < map.getShapeCount(); cursor++) {
-        AttributeRow& row = map.getAttributeRowFromShapeIndex(cursor);
+        AttributeRow &row = map.getAttributeRowFromShapeIndex(cursor);
         if (m_sel_only && !row.isSelected()) {
             continue;
         }
@@ -189,7 +188,7 @@ bool SegmentMetric::run(Communicator *comm, ShapeGraph &map, bool) {
     if (!m_sel_only) {
         // note, I've stopped sel only from calculating choice values:
         for (size_t cursor = 0; cursor < map.getShapeCount(); cursor++) {
-            AttributeRow& row = map.getAttributeRowFromShapeIndex(cursor);
+            AttributeRow &row = map.getAttributeRowFromShapeIndex(cursor);
             row.setValue(choicecol.c_str(), choicevals[cursor].choice);
             row.setValue(wchoicecol.c_str(), choicevals[cursor].wchoice);
         }

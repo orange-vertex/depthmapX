@@ -13,19 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#pragma once
 
-#ifndef DEPTHMAPX_VIEWHELPERS_H
-#define DEPTHMAPX_VIEWHELPERS_H
-
-#include <QPoint>
 #include "genlib/p2dpoly.h"
+#include <QPoint>
 #include <string>
 
-namespace ViewHelpers
-{
-    Point2f calculateCenter(const QPoint& point, const QPoint &oldCentre, double factor);
+namespace ViewHelpers {
+    Point2f calculateCenter(const QPoint &point, const QPoint &oldCentre, double factor);
     std::string getCurrentDate();
-}
-
-
-#endif // VIEWHELPERS_H
+} // namespace ViewHelpers

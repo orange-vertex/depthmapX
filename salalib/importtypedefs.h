@@ -16,27 +16,21 @@
 #pragma once
 
 #include "genlib/p2dpoly.h"
-#include <vector>
 #include <map>
+#include <vector>
 
 namespace depthmapX {
     typedef std::vector<std::string> ColumnData;
     typedef std::map<std::string, ColumnData> Table;
 
-    class Polyline : public QtRegion
-    {
-    public:
+    class Polyline : public QtRegion {
+      public:
         std::vector<Point2f> m_vertices;
         bool m_closed = false;
-        Polyline(std::vector<Point2f> vertices, bool closed) : m_vertices(vertices), m_closed(closed) {
-        }
+        Polyline(std::vector<Point2f> vertices, bool closed) : m_vertices(vertices), m_closed(closed) {}
     };
 
-    enum ImportType {
-        DRAWINGMAP, DATAMAP
-    };
+    enum ImportType { DRAWINGMAP, DATAMAP };
 
-    enum ImportFileType {
-        CSV, TSV, DXF
-    };
-}
+    enum ImportFileType { CSV, TSV, DXF };
+} // namespace depthmapX

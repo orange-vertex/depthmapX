@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -16,7 +15,7 @@
 
 #include "gldynamicrect.h"
 
-static const char *vertexShaderSourceCore =
+static const char *vertexShaderSourceCore = //
     "#version 150\n"
     "in float vertexIndex;\n"
     "int idxx;\n"
@@ -30,7 +29,7 @@ static const char *vertexShaderSourceCore =
     "   gl_Position = projMatrix * mvMatrix * vec4(diagVertices2D[0][idxx],diagVertices2D[1][idxy],0,1);\n"
     "}\n";
 
-static const char *fragmentShaderSourceCore =
+static const char *fragmentShaderSourceCore = //
     "#version 150\n"
     "uniform vec4 colourVector;\n"
     "out highp vec4 fragColor;\n"
@@ -38,7 +37,7 @@ static const char *fragmentShaderSourceCore =
     "   fragColor = colourVector;\n"
     "}\n";
 
-static const char *vertexShaderSource =
+static const char *vertexShaderSource = //
     "attribute float vertexIndex;\n"
     "int idxx;\n"
     "int idxy;\n"
@@ -51,7 +50,7 @@ static const char *vertexShaderSource =
     "   gl_Position = projMatrix * mvMatrix * vec4(diagVertices2D[0][idxx],diagVertices2D[1][idxy],0,1);\n"
     "}\n";
 
-static const char *fragmentShaderSource =
+static const char *fragmentShaderSource = //
     "uniform highp vec4 colourVector;\n"
     "void main() {\n"
     "   gl_FragColor = colourVector;\n"
@@ -65,10 +64,7 @@ static const char *fragmentShaderSource =
  * top-right-y)
  */
 
-GLDynamicRect::GLDynamicRect()
-    : m_count(0),
-      m_program(0)
-{
+GLDynamicRect::GLDynamicRect() : m_count(0), m_program(0) {
     m_count = 0;
     m_data.resize(4);
 
@@ -78,8 +74,7 @@ GLDynamicRect::GLDynamicRect()
     add(2);
 }
 
-void GLDynamicRect::setupVertexAttribs()
-{
+void GLDynamicRect::setupVertexAttribs() {
     m_vbo.bind();
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     f->glEnableVertexAttribArray(0);
@@ -87,12 +82,13 @@ void GLDynamicRect::setupVertexAttribs()
     m_vbo.release();
 }
 
-void GLDynamicRect::initializeGL(bool m_core)
-{
-    if(m_data.size() == 0) return;
+void GLDynamicRect::initializeGL(bool m_core) {
+    if (m_data.size() == 0)
+        return;
     m_program = new QOpenGLShaderProgram;
     m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, m_core ? vertexShaderSourceCore : vertexShaderSource);
-    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, m_core ? fragmentShaderSourceCore : fragmentShaderSource);
+    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment,
+                                       m_core ? fragmentShaderSourceCore : fragmentShaderSource);
     m_program->bindAttributeLocation("vertexIndex", 0);
     m_program->link();
 
@@ -116,7 +112,7 @@ void GLDynamicRect::initializeGL(bool m_core)
 }
 
 void GLDynamicRect::updateGL(bool m_core) {
-    if(m_program == 0) {
+    if (m_program == 0) {
         // has not been initialised yet, do that instead
         initializeGL(m_core);
     } else {
@@ -126,30 +122,28 @@ void GLDynamicRect::updateGL(bool m_core) {
     }
 }
 
-void GLDynamicRect::setFillColour(const QRgb &fillColour)
-{
-    m_colour_fill.setX(qRed(fillColour)/255.0);
-    m_colour_fill.setY(qGreen(fillColour)/255.0);
-    m_colour_fill.setZ(qBlue(fillColour)/255.0);
+void GLDynamicRect::setFillColour(const QRgb &fillColour) {
+    m_colour_fill.setX(qRed(fillColour) / 255.0);
+    m_colour_fill.setY(qGreen(fillColour) / 255.0);
+    m_colour_fill.setZ(qBlue(fillColour) / 255.0);
 }
 
-void GLDynamicRect::setStrokeColour(const QRgb &strokeColour)
-{
-    m_colour_stroke.setX(qRed(strokeColour)/255.0);
-    m_colour_stroke.setY(qGreen(strokeColour)/255.0);
-    m_colour_stroke.setZ(qBlue(strokeColour)/255.0);
+void GLDynamicRect::setStrokeColour(const QRgb &strokeColour) {
+    m_colour_stroke.setX(qRed(strokeColour) / 255.0);
+    m_colour_stroke.setY(qGreen(strokeColour) / 255.0);
+    m_colour_stroke.setZ(qBlue(strokeColour) / 255.0);
 }
 
-void GLDynamicRect::cleanup()
-{
+void GLDynamicRect::cleanup() {
     m_vbo.destroy();
     delete m_program;
     m_program = 0;
 }
 
-void GLDynamicRect::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel, const QMatrix2x2 &m_selectionBounds)
-{
-    if(!m_built) return;
+void GLDynamicRect::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel,
+                            const QMatrix2x2 &m_selectionBounds) {
+    if (!m_built)
+        return;
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
     m_program->bind();
     m_program->setUniformValue(m_projMatrixLoc, m_mProj);
@@ -166,8 +160,7 @@ void GLDynamicRect::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView
     m_program->release();
 }
 
-void GLDynamicRect::add(const GLfloat v)
-{
+void GLDynamicRect::add(const GLfloat v) {
     GLfloat *p = m_data.data() + m_count;
     *p++ = v;
     m_count += DATA_DIMENSIONS;

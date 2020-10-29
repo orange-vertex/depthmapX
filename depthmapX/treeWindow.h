@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-#ifndef indexWidget_H
-#define indexWidget_H
+#pragma once
 
 #include <QTreeWidget>
 
@@ -24,53 +22,38 @@ QT_BEGIN_NAMESPACE
 class QEvent;
 class QTreeWidgetItem;
 
-class IndexWidget : public QTreeWidget
-{
+class IndexWidget : public QTreeWidget {
     Q_OBJECT
-private:
-    enum Column {MAP = 0, EDITABLE = 1};
+  private:
+    enum Column { MAP = 0, EDITABLE = 1 };
 
-public:
+  public:
     IndexWidget(QWidget *parent = 0);
 
     QString m_mapColumn = "Map";
     QString m_editableColumn = "Editable";
 
-    void setItemVisibility(QTreeWidgetItem* item, Qt::CheckState checkState) {
+    void setItemVisibility(QTreeWidgetItem *item, Qt::CheckState checkState) {
         item->setCheckState(Column::MAP, checkState);
     }
-    void setItemEditability(QTreeWidgetItem* item, Qt::CheckState checkState) {
+    void setItemEditability(QTreeWidgetItem *item, Qt::CheckState checkState) {
         item->setCheckState(Column::EDITABLE, checkState);
     }
-    void setItemReadOnly(QTreeWidgetItem* item) {
-        item->setData(Column::EDITABLE, Qt::CheckStateRole, QVariant());
-    }
-    bool isItemSetVisible(QTreeWidgetItem* item) {
-        return item->checkState(Column::MAP);
-    }
-    bool isItemSetEditable(QTreeWidgetItem* item) {
-        return item->checkState(Column::EDITABLE);
-    }
-    bool isMapColumn(int col) {
-        return col == Column::MAP;
-    }
-    bool isEditableColumn(int col) {
-        return col == Column::EDITABLE;
-    }
+    void setItemReadOnly(QTreeWidgetItem *item) { item->setData(Column::EDITABLE, Qt::CheckStateRole, QVariant()); }
+    bool isItemSetVisible(QTreeWidgetItem *item) { return item->checkState(Column::MAP); }
+    bool isItemSetEditable(QTreeWidgetItem *item) { return item->checkState(Column::EDITABLE); }
+    bool isMapColumn(int col) { return col == Column::MAP; }
+    bool isEditableColumn(int col) { return col == Column::EDITABLE; }
 
-signals:
-    void requestShowLink(const QUrl& url);
+  signals:
+    void requestShowLink(const QUrl &url);
 
-public slots:
+  public slots:
     void removeAllItem(QTreeWidgetItem *start);
-    QTreeWidgetItem * addNewItem(const QString& title, QTreeWidgetItem *parent = NULL);
+    QTreeWidgetItem *addNewItem(const QString &title, QTreeWidgetItem *parent = NULL);
 
-private:
-    QStringList columnNames = (QStringList()
-                               << m_mapColumn
-                               << m_editableColumn);
+  private:
+    QStringList columnNames = (QStringList() << m_mapColumn << m_editableColumn);
 };
 
 QT_END_NAMESPACE
-
-#endif  // BOOKMARK_WIDGET_H

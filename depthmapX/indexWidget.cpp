@@ -13,46 +13,41 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-#include <QtCore/QEvent>
 #include <QtCore/QDebug>
+#include <QtCore/QEvent>
 
-#include <QtWidgets/QMenu>
-#include <QtWidgets/QLayout>
-#include <QtGui/QKeyEvent>
-#include <QtWidgets/QMessageBox>
-#include <QtWidgets/QHeaderView>
-#include <QtWidgets/QListWidgetItem>
 #include <QtGui/QFocusEvent>
+#include <QtGui/QKeyEvent>
+#include <QtWidgets/QHeaderView>
+#include <QtWidgets/QLayout>
+#include <QtWidgets/QListWidgetItem>
+#include <QtWidgets/QMenu>
+#include <QtWidgets/QMessageBox>
 
 #include "mainwindow.h"
 
 QT_BEGIN_NAMESPACE
 
-AttribWindow::AttribWindow(QWidget *parent, bool custom)
-    : QListWidget(parent)
-{
+AttribWindow::AttribWindow(QWidget *parent, bool custom) : QListWidget(parent) {
     custom = false;
 
-	main_frm = parent;
+    main_frm = parent;
     installEventFilter(this);
     setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(this, SIGNAL(customContextMenuRequested(const QPoint&)), 
-        this, SLOT(showContextMenu(const QPoint&)));
+    connect(this, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(showContextMenu(const QPoint &)));
 
-	connect(this, SIGNAL(itemSelectionChanged()), parent, SLOT(OnSelchangingList()));
+    connect(this, SIGNAL(itemSelectionChanged()), parent, SLOT(OnSelchangingList()));
 }
 
-AttribWindow::~AttribWindow()
-{
+AttribWindow::~AttribWindow() {
     // nothing todo
 }
 
-void AttribWindow::showContextMenu(const QPoint &point)
-{
-	QListWidgetItem *item = itemAt(point);
-    if (!item) return;
+void AttribWindow::showContextMenu(const QPoint &point) {
+    QListWidgetItem *item = itemAt(point);
+    if (!item)
+        return;
 
     QPoint ptt(mapToGlobal(point));
 

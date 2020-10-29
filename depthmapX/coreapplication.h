@@ -16,25 +16,21 @@
 #pragma once
 
 #include "depthmapX/mainwindowfactory.h"
-#include "version.h"
 #include "settingsimpl.h"
+#include "version.h"
 #include <QApplication>
 #include <QFileOpenEvent>
 #include <QtDebug>
 
-class CoreApplication : public QApplication
-{
-private:
+class CoreApplication : public QApplication {
+  private:
     QString mFileToLoad;
     std::unique_ptr<MainWindow> mMainWindow;
-public:
-    CoreApplication(int &argc, char **argv)
-        : QApplication(argc, argv)
-    {
-    }
 
-    bool event(QEvent *event)
-    {
+  public:
+    CoreApplication(int &argc, char **argv) : QApplication(argc, argv) {}
+
+    bool event(QEvent *event) {
         // this event is triggered in macOS, either by calling "Open with..."
         // in Finder, or by dropping a file on the depthmapX icon on the dock
         // more info: http://doc.qt.io/qt-5/qfileopenevent.html

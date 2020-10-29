@@ -264,8 +264,8 @@ class ShapeMap : public PixelBase {
     mutable int m_current;
     mutable bool m_invalidate;
     //
-private:
-    void moveData(ShapeMap& other) {
+  private:
+    void moveData(ShapeMap &other) {
         m_show = other.isShown();
         m_shapes = std::move(other.m_shapes);
         m_hasgraph = other.m_hasgraph;
@@ -326,9 +326,7 @@ private:
     size_t getShapeCount() const { return m_shapes.size(); }
     // num shapes for this object (note, request by object rowid
     // -- on interrogation, this is what you will usually receive)
-    size_t getShapeCount(int rowid) const {
-        return depthmapX::getMapAtIndex(m_shapes, rowid)->second.m_points.size();
-    }
+    size_t getShapeCount(int rowid) const { return depthmapX::getMapAtIndex(m_shapes, rowid)->second.m_points.size(); }
     //
     int getIndex(int rowid) const { return depthmapX::getMapAtIndex(m_shapes, rowid)->first; }
     //

@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -22,28 +21,27 @@
 
 #include "genlib/p2dpoly.h"
 
-#include <qopengl.h>
-#include <QVector>
-#include <QVector3D>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+#include <QVector3D>
+#include <QVector>
 #include <memory>
+#include <qopengl.h>
 
 /**
  * @brief The GLPolygons class is a plain wrapper class for multiple GLPolygon
  * that acts as if it's a single globject
  */
-class GLPolygons
-{
-public:
-    void loadPolygonData(const std::vector<std::pair<std::vector<Point2f>, PafColor> > &colouredPolygons);
+class GLPolygons {
+  public:
+    void loadPolygonData(const std::vector<std::pair<std::vector<Point2f>, PafColor>> &colouredPolygons);
     void paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel);
     void initializeGL(bool m_core);
     void updateGL(bool m_core);
     void cleanup();
 
-private:
+  private:
     std::vector<std::unique_ptr<GLTrianglesUniform>> m_polygons;
 };

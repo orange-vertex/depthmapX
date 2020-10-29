@@ -14,17 +14,16 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
-#include <QString>
-#include <QSettings>
-#include <memory>
 
+#include <QSettings>
+#include <QString>
+#include <memory>
 
 /**
  * Tags for settings to be used when reading writing settings. Don't just use
  * string literals
  */
-namespace SettingTag
-{
+namespace SettingTag {
     const QString position = "pos";
     const QString size = "size";
     const QString foregroundColour = "forColor";
@@ -37,18 +36,17 @@ namespace SettingTag
     const QString depthmapViewSize = "depthmapViewSize";
     const QString legacyMapWindow = "legacyMapWindow";
     const QString highlightOnHover = "highlightOnHover";
-}
+} // namespace SettingTag
 
 /**
  * @brief Class encapsulating one settings transaction
  * This is supposed to use one underlying QSettings object for several reads/writes
  */
-class SettingsTransaction
-{
-public:
-    virtual const QVariant readSetting( const QString& tag, const QVariant& defaultValue = QVariant()) const = 0;
-    virtual void writeSetting( const QString& tag, const QVariant& value) = 0;
-    virtual ~SettingsTransaction(){}
+class SettingsTransaction {
+  public:
+    virtual const QVariant readSetting(const QString &tag, const QVariant &defaultValue = QVariant()) const = 0;
+    virtual void writeSetting(const QString &tag, const QVariant &value) = 0;
+    virtual ~SettingsTransaction() {}
 };
 
 /**
@@ -57,8 +55,7 @@ public:
  * 7 different location. The read/write methods on this class create a temporary QSettings object, so
  * if you want to read/write more than one setting in one go, use a transaction.
  */
-class Settings : public SettingsTransaction
-{
-public:
+class Settings : public SettingsTransaction {
+  public:
     virtual std::unique_ptr<SettingsTransaction> getTransaction() = 0;
 };

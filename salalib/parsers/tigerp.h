@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2018, Petros Koutsolampros
 
@@ -18,43 +17,38 @@
 #pragma once
 
 #include "genlib/p2dpoly.h"
-#include <vector>
 #include <map>
+#include <vector>
 
 // look up is the tiger (major) line category:
 // string is A1, A2, A3 (road types) or B1, B2 (railroad types)
-// C,D etc are not currently parsed, but given the nice file format 
+// C,D etc are not currently parsed, but given the nice file format
 // (thank you US Census Bureau!) they can easily be added
 
-class TigerChain
-{
-public:
-   std::vector<Line> lines;
-   TigerChain() {;}
+class TigerChain {
+  public:
+    std::vector<Line> lines;
+    TigerChain() { ; }
 };
 
-class TigerCategory
-{
-public:
-   std::vector<TigerChain> chains;
-   TigerCategory() {;}
+class TigerCategory {
+  public:
+    std::vector<TigerChain> chains;
+    TigerCategory() { ; }
 };
 
-class TigerMap
-{
-protected:
-   QtRegion m_region;
-   bool m_init;
-public:
-   std::map<std::string,TigerCategory> m_categories;
-   TigerMap() { m_init = false;}
+class TigerMap {
+  protected:
+    QtRegion m_region;
+    bool m_init;
 
-   void parse(const std::vector<std::string> &fileset, Communicator *communicator);
+  public:
+    std::map<std::string, TigerCategory> m_categories;
+    TigerMap() { m_init = false; }
 
-   Point2f getBottomLeft()
-   { return m_region.bottom_left; }
-   Point2f getTopRight()
-   { return m_region.top_right; }
-   QtRegion getRegion()
-   { return m_region; }
+    void parse(const std::vector<std::string> &fileset, Communicator *communicator);
+
+    Point2f getBottomLeft() { return m_region.bottom_left; }
+    Point2f getTopRight() { return m_region.top_right; }
+    QtRegion getRegion() { return m_region; }
 };

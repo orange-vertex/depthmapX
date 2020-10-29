@@ -18,7 +18,7 @@
 
 // Human readable(ish) metagraph version changes
 
-const int VERSION_ALWAYS_RECORD_BINDISTANCES    = 440;
+const int VERSION_ALWAYS_RECORD_BINDISTANCES = 440;
 
 // Current metagraph version
 const int METAGRAPH_VERSION = VERSION_ALWAYS_RECORD_BINDISTANCES;

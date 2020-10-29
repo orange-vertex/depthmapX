@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -69,8 +68,7 @@ bool VGAMetricDepth::run(Communicator *, PointMap &map, bool) {
                 Point &p2 = map.getPoint(p.getMergePixel());
                 if (p2.m_misc != ~0) {
                     p2.m_cumangle = p.m_cumangle;
-                    AttributeRow &mergePixelRow =
-                        map.getAttributeTable().getRow(AttributeKey(p.getMergePixel()));
+                    AttributeRow &mergePixelRow = map.getAttributeTable().getRow(AttributeKey(p.getMergePixel()));
                     mergePixelRow.setValue(path_length_col, float(map.getSpacing() * here.dist));
                     mergePixelRow.setValue(path_angle_col, float(p2.m_cumangle));
                     if (map.getSelSet().size() == 1) {

@@ -13,25 +13,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-#include <QtCore/QEvent>
 #include <QtCore/QDebug>
+#include <QtCore/QEvent>
 
-#include <QtWidgets/QMenu>
-#include <QtWidgets/QLayout>
-#include <QtGui/QKeyEvent>
-#include <QtWidgets/QMessageBox>
-#include <QtWidgets/QHeaderView>
-#include <QtWidgets/QTreeWidgetItem>
 #include <QtGui/QFocusEvent>
+#include <QtGui/QKeyEvent>
+#include <QtWidgets/QHeaderView>
+#include <QtWidgets/QLayout>
+#include <QtWidgets/QMenu>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QTreeWidgetItem>
 
 #include "treeWindow.h"
 
 QT_BEGIN_NAMESPACE
 
-IndexWidget::IndexWidget(QWidget *parent)
-    : QTreeWidget(parent)
-{
+IndexWidget::IndexWidget(QWidget *parent) : QTreeWidget(parent) {
     setColumnCount(2);
     setHeaderLabels(columnNames);
     header()->setSectionResizeMode(Column::MAP, QHeaderView::Stretch);
@@ -42,16 +39,14 @@ IndexWidget::IndexWidget(QWidget *parent)
     installEventFilter(this);
     setContextMenuPolicy(Qt::CustomContextMenu);
 
-    connect(this, SIGNAL(itemChanged(QTreeWidgetItem*, int)), parent,
-        SLOT(OnSelchangingTree(QTreeWidgetItem*, int)));
+    connect(this, SIGNAL(itemChanged(QTreeWidgetItem *, int)), parent,
+            SLOT(OnSelchangingTree(QTreeWidgetItem *, int)));
 }
 
-void IndexWidget::removeAllItem(QTreeWidgetItem *start)
-{
+void IndexWidget::removeAllItem(QTreeWidgetItem *start) {
     int index;
     QTreeWidgetItem *currentItem = start;
-    if(currentItem)
-	{
+    if (currentItem) {
         QTreeWidgetItem *parent = currentItem->parent();
         if (parent) {
             index = parent->indexOfChild(currentItem);
@@ -63,8 +58,7 @@ void IndexWidget::removeAllItem(QTreeWidgetItem *start)
     }
 }
 
-QTreeWidgetItem * IndexWidget::addNewItem(const QString &title, QTreeWidgetItem* parent)
-{
+QTreeWidgetItem *IndexWidget::addNewItem(const QString &title, QTreeWidgetItem *parent) {
     QTreeWidgetItem *newItem = 0;
 
     QStringList columnStrings(title);
@@ -75,9 +69,8 @@ QTreeWidgetItem * IndexWidget::addNewItem(const QString &title, QTreeWidgetItem*
     }
 
     setCurrentItem(newItem);
-    newItem->setFlags(newItem->flags() &~ (Qt::ItemIsEditable | Qt::ItemIsSelectable));
-	return newItem;
+    newItem->setFlags(newItem->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsSelectable));
+    return newItem;
 }
-
 
 QT_END_NAMESPACE

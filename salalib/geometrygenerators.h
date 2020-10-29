@@ -18,12 +18,12 @@
 #include "genlib/p2dpoly.h"
 #include <vector>
 
-class GeometryGenerators
-{
-public:
-    static std::vector<Point2f> generateDiskTriangles(int sides, float radius, Point2f position = Point2f(0,0));
+class GeometryGenerators {
+  public:
+    static std::vector<Point2f> generateDiskTriangles(int sides, float radius, Point2f position = Point2f(0, 0));
     static std::vector<Point2f> generateMultipleDiskTriangles(int sides, float radius, std::vector<Point2f> positions);
 
-    static std::vector<SimpleLine> generateCircleLines(int sides, float radius, Point2f position = Point2f(0,0));
-    static std::vector<SimpleLine> generateMultipleCircleLines(int sides, float radius, std::vector<Point2f> positions);
+    static std::vector<SimpleLine> generateCircleLines(int sides, float radius, Point2f position = Point2f(0, 0));
+    static std::vector<SimpleLine> generateMultipleCircleLines(int sides, float radius,
+                                                               std::vector<Point2f> positions);
 };

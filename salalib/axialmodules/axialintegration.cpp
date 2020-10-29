@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -233,7 +232,7 @@ bool AxialIntegration::run(Communicator *comm, ShapeGraph &map, bool simple_vers
     bool *covered = new bool[map.getShapeCount()];
 
     size_t i = -1;
-    for (auto & iter : attributes) {
+    for (auto &iter : attributes) {
         i++;
         AttributeRow &row = iter.getRow();
         for (size_t j = 0; j < map.getShapeCount(); j++) {
@@ -316,8 +315,8 @@ bool AxialIntegration::run(Communicator *comm, ShapeGraph &map, bool simple_vers
                         if (m_choice && previous != -1) {
                             // both directional paths are now recorded for choice
                             // (coincidentally fixes choice problem which was completely wrong)
-                            size_t here = index;   // note: start counting from index as actually looking ahead here
-                            while (here != i) { // not i means not the current root for the path
+                            size_t here = index; // note: start counting from index as actually looking ahead here
+                            while (here != i) {  // not i means not the current root for the path
                                 audittrail[here][r].choice += 1;
                                 audittrail[here][r].weighted_choice += weight * rootweight;
                                 here =
@@ -474,7 +473,7 @@ bool AxialIntegration::run(Communicator *comm, ShapeGraph &map, bool simple_vers
     delete[] covered;
     if (m_choice) {
         i = -1;
-        for (auto & iter: attributes) {
+        for (auto &iter : attributes) {
             i++;
             AttributeRow &row = iter.getRow();
             double total_choice = 0.0, w_total_choice = 0.0;

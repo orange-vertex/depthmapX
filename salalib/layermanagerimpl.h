@@ -14,38 +14,34 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
+
 #include "layermanager.h"
 #include <map>
 #include <vector>
 
-class LayerManagerImpl : public LayerManager
-{
-
+class LayerManagerImpl : public LayerManager {
 
     // LayerManager interface
-public:
+  public:
     LayerManagerImpl();
     virtual size_t addLayer(const std::string &layerName);
-    virtual const std::string& getLayerName(size_t index) const;
+    virtual const std::string &getLayerName(size_t index) const;
     virtual size_t getLayerIndex(const std::string &layerName) const;
     virtual void setLayerVisible(size_t layerIndex, bool visible);
     virtual bool isLayerVisible(size_t layerIndex) const;
-    virtual size_t getNumLayers() const {return m_layers.size();}
+    virtual size_t getNumLayers() const { return m_layers.size(); }
 
     virtual KeyType getKey(size_t layerIndex) const;
     virtual bool isVisible(const KeyType &key) const;
 
-    virtual void read(std::istream& stream);
-    virtual void write(std::ostream& stream ) const;
+    virtual void read(std::istream &stream);
+    virtual void write(std::ostream &stream) const;
 
-private:
+  private:
     void checkIndex(size_t index) const;
 
-private:
+  private:
     int64_t m_visibleLayers;
     std::vector<std::string> m_layers;
     std::map<std::string, size_t> m_layerLookup;
-
-
 };
-

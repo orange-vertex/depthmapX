@@ -14,18 +14,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mainwindowfactory.h"
-#include "mainwindow.h"
 #include "dialogs/licenseagreement.h"
+#include "mainwindow.h"
 #include <memory>
 
-namespace MainWindowFactory{
-    std::unique_ptr<MainWindow> getMainWindow(const QString& fileToLoad, Settings &settings)
-    {
+namespace MainWindowFactory {
+    std::unique_ptr<MainWindow> getMainWindow(const QString &fileToLoad, Settings &settings) {
         return std::unique_ptr<MainWindow>(new MainWindow(fileToLoad, settings));
     }
 
-    std::unique_ptr<QDialog> getLicenseDialog()
-    {
-        return std::unique_ptr<QDialog>(new LicenseAgreement);
-    }
-}
+    std::unique_ptr<QDialog> getLicenseDialog() { return std::unique_ptr<QDialog>(new LicenseAgreement); }
+} // namespace MainWindowFactory

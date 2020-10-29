@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -15,10 +14,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "glrastertexture.h"
-#include <qmath.h>
 #include <QOpenGLFunctions>
+#include <qmath.h>
 
-static const char *vertexShaderSourceCore =
+static const char *vertexShaderSourceCore = //
     "#version 150\n"
     "in vec4 vertex;\n"
     "in vec4 texCoord;\n"
@@ -30,7 +29,7 @@ static const char *vertexShaderSourceCore =
     "    texc = texCoord;\n"
     "}\n";
 
-static const char *fragmentShaderSourceCore =
+static const char *fragmentShaderSourceCore = //
     "#version 150\n"
     "uniform sampler2D texture;\n"
     "in mediump vec4 texc;\n"
@@ -39,7 +38,7 @@ static const char *fragmentShaderSourceCore =
     "    gl_FragColor = texture2D(texture, texc.st);\n"
     "}\n";
 
-static const char *vertexShaderSource =
+static const char *vertexShaderSource = //
     "attribute highp vec4 vertex;\n"
     "attribute mediump vec4 texCoord;\n"
     "varying mediump vec4 texc;\n"
@@ -51,7 +50,7 @@ static const char *vertexShaderSource =
     "   texc = texCoord;\n"
     "}\n";
 
-static const char *fragmentShaderSource =
+static const char *fragmentShaderSource = //
     "uniform sampler2D texture;\n"
     "varying mediump vec4 texc;\n"
     "void main(void)\n"
@@ -59,44 +58,38 @@ static const char *fragmentShaderSource =
     "    gl_FragColor = texture2D(texture, texc.st);\n"
     "}\n";
 
-GLRasterTexture::GLRasterTexture()
-    : m_count(0),
-      m_program(0),
-      m_texture(QOpenGLTexture::Target2D)
-{
-
-}
-void GLRasterTexture::loadRegionData(float minX, float minY, float maxX, float maxY)
-{
+GLRasterTexture::GLRasterTexture() : m_count(0), m_program(0), m_texture(QOpenGLTexture::Target2D) {}
+void GLRasterTexture::loadRegionData(float minX, float minY, float maxX, float maxY) {
     m_built = false;
 
     m_count = 0;
     m_data.resize(4 * DATA_DIMENSIONS);
 
-    add(QVector3D(minX,minY,0),QVector2D(0, 0));
-    add(QVector3D(maxX,minY,0),QVector2D(1, 0));
-    add(QVector3D(maxX,maxY,0),QVector2D(1, 1));
-    add(QVector3D(minX,maxY,0),QVector2D(0, 1));
+    add(QVector3D(minX, minY, 0), QVector2D(0, 0));
+    add(QVector3D(maxX, minY, 0), QVector2D(1, 0));
+    add(QVector3D(maxX, maxY, 0), QVector2D(1, 1));
+    add(QVector3D(minX, maxY, 0), QVector2D(0, 1));
 }
 
-void GLRasterTexture::setupVertexAttribs()
-{
+void GLRasterTexture::setupVertexAttribs() {
     m_vbo.bind();
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     f->glEnableVertexAttribArray(0);
     f->glEnableVertexAttribArray(1);
-    f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, DATA_DIMENSIONS * sizeof(GLfloat),
-                             0);
+    f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, DATA_DIMENSIONS * sizeof(GLfloat), 0);
     f->glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, DATA_DIMENSIONS * sizeof(GLfloat),
                              reinterpret_cast<void *>(3 * sizeof(GLfloat)));
     m_vbo.release();
 }
 
 void GLRasterTexture::initializeGL(bool coreProfile) {
-    if(m_data.size() == 0) return;
+    if (m_data.size() == 0)
+        return;
     m_program = new QOpenGLShaderProgram;
-    m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, coreProfile ? vertexShaderSourceCore : vertexShaderSource);
-    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, coreProfile ? fragmentShaderSourceCore : fragmentShaderSource);
+    m_program->addShaderFromSourceCode(QOpenGLShader::Vertex,
+                                       coreProfile ? vertexShaderSourceCore : vertexShaderSource);
+    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment,
+                                       coreProfile ? fragmentShaderSourceCore : fragmentShaderSource);
     m_program->bindAttributeLocation("vertex", 0);
     m_program->bindAttributeLocation("texCoord", 1);
     m_program->link();
@@ -124,7 +117,7 @@ void GLRasterTexture::initializeGL(bool coreProfile) {
 }
 
 void GLRasterTexture::updateGL(bool coreProfile) {
-    if(m_program == 0) {
+    if (m_program == 0) {
         // has not been initialised yet, do that instead
         initializeGL(coreProfile);
     } else {
@@ -135,30 +128,29 @@ void GLRasterTexture::updateGL(bool coreProfile) {
     }
 }
 
-void GLRasterTexture::loadPixelData(QImage &data)
-{
-    if(!m_built) return;
+void GLRasterTexture::loadPixelData(QImage &data) {
+    if (!m_built)
+        return;
     m_program->bind();
-    if(m_texture.isCreated())
-    {
+    if (m_texture.isCreated()) {
         m_texture.destroy();
     }
     m_texture.setData(data);
     m_program->release();
 }
 
-void GLRasterTexture::cleanup()
-{
-    if(!m_built) return;
+void GLRasterTexture::cleanup() {
+    if (!m_built)
+        return;
     m_vbo.destroy();
     m_texture.destroy();
     delete m_program;
     m_program = 0;
 }
 
-void GLRasterTexture::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel)
-{
-    if(!m_built) return;
+void GLRasterTexture::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel) {
+    if (!m_built)
+        return;
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
     m_program->bind();
     m_program->setUniformValue(m_projMatrixLoc, m_mProj);
@@ -174,8 +166,7 @@ void GLRasterTexture::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mVi
     m_program->release();
 }
 
-void GLRasterTexture::add(const QVector3D &v, const QVector2D &tc)
-{
+void GLRasterTexture::add(const QVector3D &v, const QVector2D &tc) {
     GLfloat *p = m_data.data() + m_count;
     *p++ = v.x();
     *p++ = v.y();

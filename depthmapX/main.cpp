@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <QPixmap>
-#include <QDir>
 #include <QDateTime>
+#include <QDir>
+#include <QPixmap>
 
 #include "coreapplication.h"
 
@@ -24,9 +24,7 @@
 #include <windows.h>
 #endif
 
-
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     Q_INIT_RESOURCE(resource);
     Q_INIT_RESOURCE(settingsdialog);
 

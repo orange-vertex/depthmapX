@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -20,11 +19,8 @@
 
 #include "salalib/isegment.h"
 
-class SegmentTulipDepth : ISegment
-{
-public:
-    std::string getAnalysisName() const override {
-        return "Tulip Analysis";
-    }
+class SegmentTulipDepth : ISegment {
+  public:
+    std::string getAnalysisName() const override { return "Tulip Analysis"; }
     bool run(Communicator *, ShapeGraph &map, bool) override;
 };

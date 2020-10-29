@@ -1,4 +1,3 @@
-// sala - a component of the depthmapX - spatial network analysis platform
 // Copyright (C) 2000-2010, University College London, Alasdair Turner
 // Copyright (C) 2011-2012, Tasos Varoudis
 // Copyright (C) 2017-2018, Petros Koutsolampros
@@ -106,8 +105,7 @@ bool VGAVisualGlobal::run(Communicator *comm, PointMap &map, bool simple_version
                             total_nodes += 1;
                             distribution.back() += 1;
                             if ((int)m_radius == -1 ||
-                                (level < (int)m_radius &&
-                                    (!p.contextfilled() || currLvlIter->iseven()))) {
+                                (level < (int)m_radius && (!p.contextfilled() || currLvlIter->iseven()))) {
                                 extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
                                 pmisc = ~0;
                                 if (!p.getMergePixel().empty()) {

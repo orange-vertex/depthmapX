@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -16,17 +15,16 @@
 
 #pragma once
 
-#include <qopengl.h>
-#include <QVector>
-#include <QVector3D>
-#include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QVector3D>
+#include <QVector>
+#include <qopengl.h>
 
-class GLRasterTexture
-{
-public:
+class GLRasterTexture {
+  public:
     GLRasterTexture();
     void loadRegionData(float minX, float minY, float maxX, float maxY);
     void loadPixelData(QImage &data);
@@ -35,10 +33,10 @@ public:
     void updateGL(bool coreProfile);
     void cleanup();
     int vertexCount() const { return m_count / DATA_DIMENSIONS; }
-    GLRasterTexture( const GLRasterTexture& ) = delete;
-    GLRasterTexture& operator=(const GLRasterTexture& ) = delete;
+    GLRasterTexture(const GLRasterTexture &) = delete;
+    GLRasterTexture &operator=(const GLRasterTexture &) = delete;
 
-private:
+  private:
     int DATA_DIMENSIONS = 5;
 
     void setupVertexAttribs();

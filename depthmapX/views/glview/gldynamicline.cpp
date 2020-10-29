@@ -1,4 +1,3 @@
-// depthmapX - spatial network analysis platform
 // Copyright (C) 2017, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
@@ -22,8 +21,7 @@
  * diagonal points of the GLDynamicRect to make a line
  */
 
-GLDynamicLine::GLDynamicLine()
-{
+GLDynamicLine::GLDynamicLine() {
     m_count = 0;
     m_program = 0;
     m_data.resize(2);
@@ -32,9 +30,10 @@ GLDynamicLine::GLDynamicLine()
     add(3);
 }
 
-void GLDynamicLine::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel, const QMatrix2x2 &m_selectionBounds)
-{
-    if(!m_built) return;
+void GLDynamicLine::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView, const QMatrix4x4 &m_mModel,
+                            const QMatrix2x2 &m_selectionBounds) {
+    if (!m_built)
+        return;
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
     m_program->bind();
     m_program->setUniformValue(m_projMatrixLoc, m_mProj);
@@ -47,4 +46,3 @@ void GLDynamicLine::paintGL(const QMatrix4x4 &m_mProj, const QMatrix4x4 &m_mView
 
     m_program->release();
 }
-
