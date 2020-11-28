@@ -148,8 +148,6 @@ ShapeMap::ShapeMap(const std::string &name, int type)
     // data (MUST be set before use)
     m_tolerance = 0.0;
 
-    m_selection = false;
-
     // note show is
     m_show = true;
     m_editable = false;
@@ -908,7 +906,6 @@ bool ShapeMap::removeSelected() {
         removeShape(shapeRef);
     }
     m_selection_set.clear();
-    m_selection = false;
 
     invalidateDisplayedAttribute();
     setDisplayedAttribute(m_displayed_attribute);
@@ -927,10 +924,6 @@ void ShapeMap::removeShape(int shaperef, bool undoing) {
         m_undobuffer.back().m_geometry = shapeIter->second;
         m_undobuffer.back().m_geometry.m_selected =
             false; // <- this m_selected really shouldn't be used -- should use attributes, but for some reason it is!
-    }
-
-    if (shapeIter != m_shapes.end()) {
-        shapeIter = m_shapes.erase(shapeIter);
     }
 
     if (m_hasgraph) {
@@ -983,6 +976,9 @@ void ShapeMap::removeShape(int shaperef, bool undoing) {
         }
     }
 
+    if (shapeIter != m_shapes.end()) {
+        shapeIter = m_shapes.erase(shapeIter);
+    }
     // n.b., shaperef should have been used to create the row in the first place:
     const AttributeKey shapeRefKey(shaperef);
     m_attributes->removeRow(shapeRefKey);
@@ -1720,8 +1716,8 @@ int ShapeMap::testPointInPoly(const Point2f &p, const ShapeRef &shape) const {
     }
     // check not an open shape (cannot be inside)
     else if ((shape.m_tags & ShapeRef::SHAPE_OPEN) == 0) {
-        shapeIter = m_shapes.find(shape.m_shape_ref);
-        const SalaShape &poly = shapeIter->second;
+        auto tempShapeIter = m_shapes.find(shape.m_shape_ref);
+        const SalaShape &poly = tempShapeIter->second;
         if (poly.m_region.contains_touch(p)) {
             // next simplest, on the outside border:
             int alpha = 0;
@@ -1793,7 +1789,7 @@ int ShapeMap::testPointInPoly(const Point2f &p, const ShapeRef &shape) const {
                     }
                 }
                 if (counter % 2 != 0 && alpha == 0) {
-                    shapeIter = m_shapes.find(shape.m_shape_ref);
+                    shapeIter = tempShapeIter;
                 }
             }
             // and now the pig -- it's somewhere in the middle of the poly:
@@ -1804,25 +1800,27 @@ int ShapeMap::testPointInPoly(const Point2f &p, const ShapeRef &shape) const {
                     depthmapX::addIfNotExists(testnodes, int(shape.m_polyrefs[j]));
                 }
                 PixelRef pix2 = pixelate(p);
-                const std::vector<ShapeRef> &pixelShapes =
-                    m_pixel_shapes(static_cast<size_t>(pix2.y), static_cast<size_t>(pix2.x));
-                // bit of code duplication like this, but easier on params to this function:
                 pix2.move(PixelRef::NEGVERTICAL); // move pix2 down, search for this shape...
-                auto iter = std::find(pixelShapes.begin(), pixelShapes.end(), shape.m_shape_ref);
-                while (iter != pixelShapes.end()) {
+                const std::vector<ShapeRef> *pixelShapes =
+                    &m_pixel_shapes(static_cast<size_t>(pix2.y), static_cast<size_t>(pix2.x));
+                // bit of code duplication like this, but easier on params to this function:
+                auto iter = std::find(pixelShapes->begin(), pixelShapes->end(), shape.m_shape_ref);
+                while (iter != pixelShapes->end()) {
                     for (size_t k = 0; k < iter->m_polyrefs.size(); k++) {
                         depthmapX::addIfNotExists(testnodes, int(iter->m_polyrefs[k]));
                     }
                     pix2.move(PixelRef::NEGVERTICAL); // move pix2 down, search for this shape...
+                    pixelShapes = &m_pixel_shapes(static_cast<size_t>(pix2.y), static_cast<size_t>(pix2.x));
                     if (includes(pix2)) {
-                        iter = std::find(pixelShapes.begin(), pixelShapes.end(), shape.m_shape_ref);
+                        iter = std::find(pixelShapes->begin(), pixelShapes->end(), shape.m_shape_ref);
                     } else {
-                        iter = pixelShapes.end();
+                        iter = pixelShapes->end();
                     }
                 }
                 int alpha = 0;
                 int counter = 0;
                 int parity = -1;
+
                 for (j = 0; j < testnodes.size(); j++) {
                     Line lineb =
                         Line(poly.m_points[testnodes[j]], poly.m_points[((testnodes[j] + 1) % poly.m_points.size())]);
@@ -2214,9 +2212,8 @@ bool ShapeMap::setCurSel(const std::vector<int> &selset, bool add) {
             row.setSelection(true);
         }
         m_shapes.at(shapeRef).m_selected = true;
-        m_selection = true;
     }
-    return m_selection;
+    return !m_selection_set.empty();
 }
 
 // this version is used when setting a selection set via the scripting language
@@ -2231,9 +2228,8 @@ bool ShapeMap::setCurSelDirect(const std::vector<int> &selset, bool add) {
             row.setSelection(true);
         }
         m_shapes.at(shapeRef).m_selected = true;
-        m_selection = true;
     }
-    return m_selection;
+    return !m_selection_set.empty();
 }
 
 float ShapeMap::getDisplayedSelectedAvg() { return (m_attributes->getSelAvg(m_displayed_attribute)); }
@@ -2242,7 +2238,6 @@ bool ShapeMap::clearSel() {
     // note, only clear if need be, as m_attributes->deselectAll is slow
     if (m_selection_set.size()) {
         m_attributes->deselectAllRows();
-        m_selection = false;
         for (auto &shapeRef : m_selection_set) {
             m_shapes.at(shapeRef).m_selected = false;
         }
@@ -2277,7 +2272,6 @@ bool ShapeMap::selectionToLayer(const std::string &name) {
 
 bool ShapeMap::read(std::istream &stream) {
     // turn off selection / editable etc
-    m_selection = false;
     m_editable = false;
     m_show = true; // <- by default show
     m_map_type = ShapeMap::EMPTYMAP;

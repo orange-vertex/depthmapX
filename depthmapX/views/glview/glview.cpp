@@ -425,7 +425,7 @@ void GLView::mouseReleaseEvent(QMouseEvent *event)
                         int axRef2 = *it;
                         // axial is only joined one-by-one
                         m_pDoc.modifiedFlag = true;
-                        m_pDoc.m_meta_graph->getDisplayedShapeGraph().linkShapes(axRef1, axRef2, true);
+                        m_pDoc.m_meta_graph->getDisplayedShapeGraph().linkShapesFromRefs(axRef1, axRef2, true);
                         m_pDoc.m_meta_graph->clearSel();
                     }
                 }
@@ -468,7 +468,7 @@ void GLView::mouseReleaseEvent(QMouseEvent *event)
                         int axRef2 = *it;
                         // axial is only joined one-by-one
                         m_pDoc.modifiedFlag = true;
-                        m_pDoc.m_meta_graph->getDisplayedShapeGraph().unlinkShapes(axRef1, axRef2, true);
+                        m_pDoc.m_meta_graph->getDisplayedShapeGraph().unlinkShapesFromRefs(axRef1, axRef2, true);
                         m_pDoc.m_meta_graph->clearSel();
                     }
                 }

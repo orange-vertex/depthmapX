@@ -33,7 +33,10 @@ set(depthmapX_SRCS
 	treeWindow.h
 	main.cpp
 	coreapplication.cpp
-	coreapplication.h)
+        coreapplication.h
+        mainwindowhelpers.cpp
+        mainwindowmoduleregistry.cpp
+        imainwindowmodulefactory.h)
 
 qt5_wrap_ui(UI_HDRS
     UI/TopoMetDlg.ui
@@ -73,6 +76,9 @@ if (MSVC)
 endif(MSVC)
 if(UNIX AND NOT APPLE)
         add_executable(${depthmapX} ${depthmapX_SRCS} ${UI_HDRS} ${DM_RSRC})
+        if (Qt5_POSITION_INDEPENDENT_CODE)
+            SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+        endif()
 endif()
 if(APPLE)
         set(MACOSX_BUNDLE_ICON_FILE depthmapX.icns)
@@ -91,8 +97,17 @@ endif(APPLE)
 
 find_package(OpenGL REQUIRED)
 
+set(modules_gui "" CACHE INTERNAL "modules_gui" FORCE)
+set(MODULES_GUI TRUE)
+set(MODULES_CLI FALSE)
+set(MODULES_CLI_TEST FALSE)
+set(MODULES_CORE FALSE)
+set(MODULES_CORE_TEST FALSE)
+add_subdirectory(../modules modules)
+
 target_link_libraries(${depthmapX} salalib genlib mgraph440 Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
-    OpenGL::GL OpenGL::GLU)
+    OpenGL::GL OpenGL::GLU ${modules_gui} ${modules_core})
 
 add_subdirectory(dialogs)
 add_subdirectory(views)
+

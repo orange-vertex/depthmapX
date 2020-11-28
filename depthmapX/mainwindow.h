@@ -22,6 +22,7 @@
 #include "depthmapX/GraphDoc.h"
 #include "depthmapX/compatibilitydefines.h"
 #include "depthmapX/settings.h"
+#include "depthmapX/mainwindowmoduleregistry.hpp"
 
 #include "depthmapX/dialogs/ColourScaleDlg.h"
 #include "depthmapX/views/glview/glview.h"
@@ -79,6 +80,10 @@ public:
     Options m_options;
     QRgb m_foreground;
     QRgb m_background;
+
+    MainWindowModuleRegistry mainWindowPluginRegistry;
+
+    QGraphDoc *activeMapDoc();
 
     bool m_simpleVersion;  // bool that replaces compile defines
 
@@ -145,6 +150,7 @@ private slots:
     void OnToolsMakeGraph();
     void OnToolsUnmakeGraph();
     void OnToolsImportVGALinks();
+    void OnToolsGenerateIsovistsFromFile();
     void OnToolsIsovistpath();
     void OnToolsAgentLoadProgram();
     void OnToolsRunAxa();
@@ -247,7 +253,6 @@ private:
     QWidget * setupAttributesListWidget();
     MapView *createMapView();
     MapView *activeMapView();
-    QGraphDoc *activeMapDoc();
     QMdiSubWindow *findMapView(const QString &fileName);
 //////////////////////////////////////////////////////
 //	treeContorl
@@ -362,6 +367,7 @@ private:
     QAction *makeVisibilityGraphAct;
     QAction *unmakeVisibilityGraphAct;
     QAction *importVGALinksAct;
+    QAction *generateIsovistsAct;
     QAction *makeIsovistPathAct;
     QAction *runVisibilityGraphAnalysisAct;
     QAction *visibilityStepAct;

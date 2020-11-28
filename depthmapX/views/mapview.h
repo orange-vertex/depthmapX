@@ -1,8 +1,8 @@
 #pragma once
 
 #include <QOpenGLWidget>
-#include "GraphDoc.h"
-#include "settings.h"
+#include "depthmapX/GraphDoc.h"
+#include "depthmapX/settings.h"
 
 class MapView : public QOpenGLWidget
 {

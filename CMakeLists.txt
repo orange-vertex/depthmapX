@@ -40,9 +40,17 @@ string(TIMESTAMP APP_DATE %Y-%m-%d)
 
 include(CMakeOpenMP.txt)
 
+set(modules_core "" CACHE INTERNAL "modules_core" FORCE)
+set(MODULES_GUI FALSE)
+set(MODULES_CLI FALSE)
+set(MODULES_CLI_TEST FALSE)
+set(MODULES_CORE TRUE)
+set(MODULES_CORE_TEST FALSE)
+
 add_subdirectory(genlib)
 add_subdirectory(genlibTest)
 add_subdirectory(salalib)
+add_subdirectory(modules) # only the core modules are loaded here
 add_subdirectory(mgraph440)
 add_subdirectory(mgraph440Test)
 add_subdirectory(salaTest)
@@ -51,3 +59,5 @@ add_subdirectory(cliTest)
 add_subdirectory(depthmapXTest)
 add_subdirectory(depthmapX)
 add_subdirectory(GuiUnitTest)
+add_subdirectory(moduleTest)
+

@@ -1,6 +1,7 @@
 set(cliTest cliTest)
 set(cliTest_SRCS 
     main.cpp
+    ../depthmapXcli/printcommunicator.cpp
     ../depthmapXcli/commandlineparser.cpp
     testcommandlineparser.cpp
     testradiusconverter.cpp
@@ -42,6 +43,14 @@ include_directories("../ThirdParty/Catch" "../ThirdParty/FakeIt")
 
 set(LINK_LIBS salalib genlib mgraph440)
 
+set(modules_cliTest "" CACHE INTERNAL "modules_cliTest" FORCE)
+set(MODULES_GUI FALSE)
+set(MODULES_CLI FALSE)
+set(MODULES_CLI_TEST TRUE)
+set(MODULES_CORE FALSE)
+set(MODULES_CORE_TEST FALSE)
+add_subdirectory(../modules modules)
+
 add_executable(${cliTest} ${cliTest_SRCS})
-target_link_libraries(${cliTest} ${LINK_LIBS})
+target_link_libraries(${cliTest} ${LINK_LIBS} ${modules_cli} ${modules_cliTest} ${modules_core})
 
