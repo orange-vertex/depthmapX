@@ -18,30 +18,22 @@
 
 #pragma once
 
-#include "salalib/ivga.h"
+#include "salalib/ianalysis.h"
 #include "salalib/options.h"
 #include "salalib/pixelref.h"
 #include "salalib/pointdata.h"
 
-#include "genlib/simplematrix.h"
-
-class VGAMetricOpenMP : IVGA {
+class VGAVisualLocalOpenMP : public IAnalysis {
   private:
-    double m_radius;
-    bool m_gates_only;
-
-  private:
+    PointMap &m_map;
     struct DataPoint {
-        float mspa, mspl, dist, count;
+        float cluster, control, controllability;
     };
 
-    private : void
-              extractMetric(Node &node, std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple &curs,
-                            depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &dists,
-                            depthmapX::RowMatrix<float> &cumangles);
+    void dumpNeighbourhood(Node &node, std::set<PixelRef> &hood) const;
 
   public:
-    std::string getAnalysisName() const override { return "Metric Analysis (OpenMP)"; }
-    bool run(Communicator *comm, PointMap &map, bool simple_version) override;
-    VGAMetricOpenMP(double radius, bool gates_only) : m_radius(radius), m_gates_only(gates_only) {}
+    VGAVisualLocalOpenMP(PointMap &map) : m_map(map) {}
+    std::string getAnalysisName() const override { return "Local Visibility Analysis (OpenMP)"; }
+    bool run(Communicator *comm) override;
 };

@@ -16,29 +16,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgavisualglobalopenmp.h"
+#include "vgavisualglobalopenmp.h"
 
 #include "genlib/stringutils.h"
 
 #include <omp.h>
 
-bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_version) {
+bool VGAVisualGlobalOpenMP::run(Communicator *comm) {
     time_t atime = 0;
 
     if (comm) {
         qtimer(atime, 0);
-        comm->CommPostMessage(Communicator::NUM_RECORDS, map.getFilledPointCount());
+        comm->CommPostMessage(Communicator::NUM_RECORDS, m_map.getFilledPointCount());
     }
 
-    AttributeTable &attributes = map.getAttributeTable();
+    AttributeTable &attributes = m_map.getAttributeTable();
 
     std::vector<PixelRef> filled;
     std::vector<AttributeRow *> rows;
 
-    for (int i = 0; i < map.getCols(); i++) {
-        for (int j = 0; j < map.getRows(); j++) {
+    for (int i = 0; i < m_map.getCols(); i++) {
+        for (int j = 0; j < m_map.getRows(); j++) {
             PixelRef curs = PixelRef(i, j);
-            if (map.getPoint(curs).filled()) {
+            if (m_map.getPoint(curs).filled()) {
                 filled.push_back(curs);
                 rows.push_back(attributes.getRowPtr(AttributeKey(curs)));
             }
@@ -58,17 +58,17 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
 #pragma omp parallel for
     for (int i = 0; i < filled.size(); i++) {
 
-        if ((map.getPoint(filled[i]).contextfilled() && !filled[i].iseven()) || (m_gates_only)) {
+        if ((m_map.getPoint(filled[i]).contextfilled() && !filled[i].iseven()) || (m_gatesOnly)) {
             count++;
             continue;
         }
         DataPoint &dp = col_data[i];
 
-        depthmapX::RowMatrix<int> miscs(map.getRows(), map.getCols());
-        depthmapX::RowMatrix<PixelRef> extents(map.getRows(), map.getCols());
+        depthmapX::RowMatrix<int> miscs(m_map.getRows(), m_map.getCols());
+        depthmapX::RowMatrix<PixelRef> extents(m_map.getRows(), m_map.getCols());
 
-        for (int ii = 0; ii < map.getCols(); ii++) {
-            for (int jj = 0; jj < map.getRows(); jj++) {
+        for (int ii = 0; ii < m_map.getCols(); ii++) {
+            for (int jj = 0; jj < m_map.getRows(); jj++) {
                 miscs(jj, ii) = 0;
                 extents(jj, ii) = PixelRef(ii, jj);
             }
@@ -88,7 +88,7 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
             distribution.push_back(0);
             for (size_t n = search_tree[level].size() - 1; n != -1; n--) {
                 PixelRef curr = search_tree[level][n];
-                Point &p = map.getPoint(curr);
+                Point &p = m_map.getPoint(curr);
                 int &p1misc = miscs(curr.y, curr.x);
                 if (p.filled() && p1misc != ~0) {
                     total_depth += level;
@@ -99,7 +99,7 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
                         extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
                         p1misc = ~0;
                         if (!p.getMergePixel().empty()) {
-                            Point &p2 = map.getPoint(p.getMergePixel());
+                            Point &p2 = m_map.getPoint(p.getMergePixel());
                             int &p2misc = miscs(p.getMergePixel().y, p.getMergePixel().x);
                             if (p2misc != ~0) {
                                 extractUnseen(p2.getNode(), search_tree[level + 1], miscs, extents);
@@ -177,9 +177,9 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
 
         // kept to achieve parity in binary comparison with old versions
         // TODO: Remove at next version of .graph file
-        size_t filledIdx = size_t(filled[i].y * map.getCols() + filled[i].x);
-        map.getPoint(filled[i]).m_misc = miscs(filled[i].y, filled[i].x);
-        map.getPoint(filled[i]).m_extent = extents(filled[i].y, filled[i].x);
+        size_t filledIdx = size_t(filled[i].y * m_map.getCols() + filled[i].x);
+        m_map.getPoint(filled[i]).m_misc = miscs(filled[i].y, filled[i].x);
+        m_map.getPoint(filled[i]).m_extent = extents(filled[i].y, filled[i].x);
     }
 
     int entropy_col, rel_entropy_col, integ_dv_col, integ_pv_col, integ_tk_col, depth_col, count_col;
@@ -201,41 +201,35 @@ bool VGAVisualGlobalOpenMP::run(Communicator *comm, PointMap &map, bool simple_v
 
     attributes.insertOrResetColumn(integ_dv_col_text.c_str());
 
-    if (!simple_version) {
-        attributes.insertOrResetColumn(entropy_col_text.c_str());
-        attributes.insertOrResetColumn(integ_pv_col_text.c_str());
-        attributes.insertOrResetColumn(integ_tk_col_text.c_str());
-        attributes.insertOrResetColumn(depth_col_text.c_str());
-        attributes.insertOrResetColumn(count_col_text.c_str());
-        attributes.insertOrResetColumn(rel_entropy_col_text.c_str());
-    }
+    attributes.insertOrResetColumn(entropy_col_text.c_str());
+    attributes.insertOrResetColumn(integ_pv_col_text.c_str());
+    attributes.insertOrResetColumn(integ_tk_col_text.c_str());
+    attributes.insertOrResetColumn(depth_col_text.c_str());
+    attributes.insertOrResetColumn(count_col_text.c_str());
+    attributes.insertOrResetColumn(rel_entropy_col_text.c_str());
 
     integ_dv_col = attributes.getOrInsertColumn(integ_dv_col_text.c_str());
 
-    if (!simple_version) {
-        entropy_col = attributes.getOrInsertColumn(entropy_col_text.c_str());
-        integ_pv_col = attributes.getOrInsertColumn(integ_pv_col_text.c_str());
-        integ_tk_col = attributes.getOrInsertColumn(integ_tk_col_text.c_str());
-        depth_col = attributes.getOrInsertColumn(depth_col_text.c_str());
-        count_col = attributes.getOrInsertColumn(count_col_text.c_str());
-        rel_entropy_col = attributes.getOrInsertColumn(rel_entropy_col_text.c_str());
-    }
+    entropy_col = attributes.getOrInsertColumn(entropy_col_text.c_str());
+    integ_pv_col = attributes.getOrInsertColumn(integ_pv_col_text.c_str());
+    integ_tk_col = attributes.getOrInsertColumn(integ_tk_col_text.c_str());
+    depth_col = attributes.getOrInsertColumn(depth_col_text.c_str());
+    count_col = attributes.getOrInsertColumn(count_col_text.c_str());
+    rel_entropy_col = attributes.getOrInsertColumn(rel_entropy_col_text.c_str());
 
     auto dataIter = col_data.begin();
     for (auto row : rows) {
         row->setValue(integ_dv_col, dataIter->integ_dv);
         row->setValue(integ_pv_col, dataIter->integ_pv);
         row->setValue(integ_tk_col, dataIter->integ_tk);
-        if (!simple_version) {
-            row->setValue(count_col, dataIter->count);
-            row->setValue(depth_col, dataIter->depth);
-            row->setValue(entropy_col, dataIter->entropy);
-            row->setValue(rel_entropy_col, dataIter->rel_entropy);
-        }
+        row->setValue(count_col, dataIter->count);
+        row->setValue(depth_col, dataIter->depth);
+        row->setValue(entropy_col, dataIter->entropy);
+        row->setValue(rel_entropy_col, dataIter->rel_entropy);
         dataIter++;
     }
 
-    map.setDisplayedAttribute(integ_dv_col);
+    m_map.setDisplayedAttribute(integ_dv_col);
 
     return true;
 }

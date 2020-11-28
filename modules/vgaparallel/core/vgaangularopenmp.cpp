@@ -16,29 +16,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgaangularopenmp.h"
+#include "vgaangularopenmp.h"
 
 #include "genlib/stringutils.h"
 
 #include <omp.h>
 
-bool VGAAngularOpenMP::run(Communicator *comm, PointMap &map, bool simple_version) {
+bool VGAAngularOpenMP::run(Communicator *comm) {
     time_t atime = 0;
 
     if (comm) {
         qtimer(atime, 0);
-        comm->CommPostMessage(Communicator::NUM_RECORDS, map.getFilledPointCount());
+        comm->CommPostMessage(Communicator::NUM_RECORDS, m_map.getFilledPointCount());
     }
 
-    AttributeTable &attributes = map.getAttributeTable();
+    AttributeTable &attributes = m_map.getAttributeTable();
 
     std::vector<PixelRef> filled;
     std::vector<AttributeRow *> rows;
 
-    for (int i = 0; i < map.getCols(); i++) {
-        for (int j = 0; j < map.getRows(); j++) {
+    for (int i = 0; i < m_map.getCols(); i++) {
+        for (int j = 0; j < m_map.getRows(); j++) {
             PixelRef curs = PixelRef(static_cast<short>(i), static_cast<short>(j));
-            if (map.getPoint(curs).filled()) {
+            if (m_map.getPoint(curs).filled()) {
                 filled.push_back(curs);
                 rows.push_back(attributes.getRowPtr(AttributeKey(curs)));
             }
@@ -57,10 +57,10 @@ bool VGAAngularOpenMP::run(Communicator *comm, PointMap &map, bool simple_versio
             continue;
         }
 
-        DataPoint& dp = col_data[i];
+        DataPoint &dp = col_data[i];
 
-        depthmapX::RowMatrix<int> miscs(map.getRows(), map.getCols());
-        depthmapX::RowMatrix<float> cumangles(map.getRows(), map.getCols());
+        depthmapX::RowMatrix<int> miscs(m_map.getRows(), m_map.getCols());
+        depthmapX::RowMatrix<float> cumangles(m_map.getRows(), m_map.getCols());
 
         miscs.initialiseValues(0);
         cumangles.initialiseValues(-1.0f);
@@ -82,20 +82,20 @@ bool VGAAngularOpenMP::run(Communicator *comm, PointMap &map, bool simple_versio
             if (int(m_radius) != -1 && double(here.angle) > m_radius) {
                 break;
             }
-            Point &p = map.getPoint(here.pixel);
+            Point &p = m_map.getPoint(here.pixel);
             int &p1misc = miscs(here.pixel.y, here.pixel.x);
             float &p1cumangle = cumangles(here.pixel.y, here.pixel.x);
             // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
             if (p.filled() && p1misc != ~0) {
-                extractAngular(p.getNode(), search_list, &map, here, miscs, cumangles);
+                extractAngular(p.getNode(), search_list, &m_map, here, miscs, cumangles);
                 p1misc = ~0;
                 if (!p.getMergePixel().empty()) {
-                    Point &p2 = map.getPoint(p.getMergePixel());
+                    Point &p2 = m_map.getPoint(p.getMergePixel());
                     int &p2misc = miscs(p.getMergePixel().y, p.getMergePixel().x);
                     float &p2cumangle = cumangles(p.getMergePixel().y, p.getMergePixel().x);
                     if (p2misc != ~0) {
                         p2cumangle = p1cumangle;
-                        extractAngular(p2.getNode(), search_list, &map,
+                        extractAngular(p2.getNode(), search_list, &m_map,
                                        AngularTriple(here.angle, p.getMergePixel(), NoPixel), miscs, cumangles);
                         p2misc = ~0;
                     }
@@ -124,15 +124,15 @@ bool VGAAngularOpenMP::run(Communicator *comm, PointMap &map, bool simple_versio
 
         // kept to achieve parity in binary comparison with old versions
         // TODO: Remove at next version of .graph file
-        map.getPoint(filled[size_t(i)]).m_misc = miscs(filled[size_t(i)].y, filled[size_t(i)].x);
-        map.getPoint(filled[size_t(i)]).m_cumangle = cumangles(filled[size_t(i)].y, filled[size_t(i)].x);
+        m_map.getPoint(filled[size_t(i)]).m_misc = miscs(filled[size_t(i)].y, filled[size_t(i)].x);
+        m_map.getPoint(filled[size_t(i)]).m_cumangle = cumangles(filled[size_t(i)].y, filled[size_t(i)].x);
     }
 
     std::string radius_text;
     if (int(m_radius) != -1) {
-        if (map.getRegion().width() > 100.0) {
+        if (m_map.getRegion().width() > 100.0) {
             radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.f");
-        } else if (map.getRegion().width() < 1.0) {
+        } else if (m_map.getRegion().width() < 1.0) {
             radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.4f");
         } else {
             radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.2f");
@@ -154,8 +154,8 @@ bool VGAAngularOpenMP::run(Communicator *comm, PointMap &map, bool simple_versio
         dataIter++;
     }
 
-    map.overrideDisplayedAttribute(-2);
-    map.setDisplayedAttribute(mean_depth_col);
+    m_map.overrideDisplayedAttribute(-2);
+    m_map.setDisplayedAttribute(mean_depth_col);
 
     return true;
 }

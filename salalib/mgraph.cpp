@@ -48,11 +48,6 @@
 #include "salalib/vgamodules/vgathroughvision.h"
 #include "salalib/agents/agenthelpers.h"
 
-#include "salalib/vgamodules/vgavisuallocaladjmatrix.h"
-#include "salalib/vgamodules/vgavisualglobalopenmp.h"
-#include "salalib/vgamodules/vgametricopenmp.h"
-#include "salalib/vgamodules/vgaangularopenmp.h"
-
 #include "mgraph440/mgraph.h"
 
 #include "genlib/pafmath.h"
@@ -355,18 +350,18 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
           bool localResult = true;
           bool globalResult = true;
           if (options.local) {
-              localResult = VGAVisualLocalAdjMatrix(options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
+              localResult = VGAVisualLocal(options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
           }
           if (options.global) {
-              globalResult = VGAVisualGlobalOpenMP(options.radius, options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
+              globalResult = VGAVisualGlobal(options.radius, options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
           }
           analysisCompleted = globalResult & localResult;
       }
       else if (options.output_type == Options::OUTPUT_METRIC) {
-          analysisCompleted = VGAMetricOpenMP(options.radius, options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
+          analysisCompleted = VGAMetric(options.radius, options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_ANGULAR) {
-          analysisCompleted = VGAAngularOpenMP(options.radius, options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
+          analysisCompleted = VGAAngular(options.radius, options.gates_only).run(communicator, getDisplayedPointMap(), simple_version);
       }
       else if (options.output_type == Options::OUTPUT_THRU_VISION) {
           analysisCompleted = VGAThroughVision().run(communicator, getDisplayedPointMap(), simple_version);

@@ -18,29 +18,29 @@
 
 #pragma once
 
-#include "salalib/ivga.h"
+#include "salalib/ianalysis.h"
 #include "salalib/options.h"
 #include "salalib/pixelref.h"
 #include "salalib/pointdata.h"
 
 #include "genlib/simplematrix.h"
 
-class VGAAngularOpenMP : IVGA {
+class VGAVisualGlobalOpenMP : public IAnalysis {
   private:
+    PointMap &m_map;
     double m_radius;
-    bool m_gates_only;
+    bool m_gatesOnly;
 
-  private:
     struct DataPoint {
-        float total_depth, mean_depth, count;
+        float count, depth, integ_dv, integ_pv;
+        float integ_tk, entropy, rel_entropy;
     };
-
-  private:
-    void extractAngular(Node &node, std::set<AngularTriple> &pixels, PointMap *pointdata, const AngularTriple &curs,
-                        depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &cumangles);
+    void extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,
+                       depthmapX::RowMatrix<PixelRef> &extents);
 
   public:
-    std::string getAnalysisName() const override { return "Angular Analysis (OpenMP)"; }
-    bool run(Communicator *comm, PointMap &map, bool simple_version) override;
-    VGAAngularOpenMP(double radius, bool gates_only) : m_radius(radius), m_gates_only(gates_only) {}
+    VGAVisualGlobalOpenMP(PointMap &map, double radius, bool gatesOnly)
+        : m_map(map), m_radius(radius), m_gatesOnly(gatesOnly) {}
+    std::string getAnalysisName() const override { return "Global Visibility Analysis (OpenMP)"; }
+    bool run(Communicator *) override;
 };

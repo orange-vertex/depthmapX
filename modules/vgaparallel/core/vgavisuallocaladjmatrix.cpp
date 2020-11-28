@@ -16,29 +16,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgavisuallocalopenmp.h"
+#include "vgavisuallocaladjmatrix.h"
 
 #include "genlib/stringutils.h"
 
 #include <omp.h>
 
-bool VGAVisualLocalOpenMP::run(Communicator *comm, PointMap &map, bool simple_version) {
+bool VGAVisualLocalAdjMatrix::run(Communicator *comm) {
     time_t atime = 0;
 
     if (comm) {
         qtimer(atime, 0);
-        comm->CommPostMessage(Communicator::NUM_RECORDS, map.getFilledPointCount());
+        comm->CommPostMessage(Communicator::NUM_RECORDS, m_map.getFilledPointCount());
     }
 
-    AttributeTable &attributes = map.getAttributeTable();
+    AttributeTable &attributes = m_map.getAttributeTable();
 
     std::vector<PixelRef> filled;
     std::vector<AttributeRow *> rows;
 
-    for (int i = 0; i < map.getCols(); i++) {
-        for (int j = 0; j < map.getRows(); j++) {
+    for (int i = 0; i < m_map.getCols(); i++) {
+        for (int j = 0; j < m_map.getRows(); j++) {
             PixelRef curs = PixelRef(static_cast<short>(i), static_cast<short>(j));
-            if (map.getPoint(curs).filled()) {
+            if (m_map.getPoint(curs).filled()) {
                 filled.push_back(curs);
                 rows.push_back(attributes.getRowPtr(AttributeKey(curs)));
             }
@@ -51,28 +51,25 @@ bool VGAVisualLocalOpenMP::run(Communicator *comm, PointMap &map, bool simple_ve
 
     std::vector<DataPoint> col_data(filled.size());
 
-    if (comm) {
-        qtimer(atime, 0);
-        comm->CommPostMessage(Communicator::NUM_STEPS, 1);
-        comm->CommPostMessage(Communicator::CURRENT_STEP, 1);
-        comm->CommPostMessage(Communicator::NUM_RECORDS, filled.size());
-    }
-    std::vector<std::set<int>> hoods(filled.size());
+    int i;
+    const long N = long(filled.size());
 
-    int i, N = int(filled.size());
     std::map<PixelRef, int> refToFilled;
     for (i = 0; i < N; ++i) {
         refToFilled.insert(std::make_pair(filled[size_t(i)], i));
     }
+
+    std::vector<bool> hoods(N * N);
+
 #pragma omp parallel for default(shared) private(i) schedule(dynamic)
     for (i = 0; i < N; ++i) {
-        Point &p = map.getPoint(filled[size_t(i)]);
+        Point &p = m_map.getPoint(filled[size_t(i)]);
         std::set<PixelRef> neighbourhood;
 #pragma omp critical(dumpNeighbourhood)
         { dumpNeighbourhood(p.getNode(), neighbourhood); }
         for (auto &neighbour : neighbourhood) {
-            if (map.getPoint(neighbour).hasNode()) {
-                hoods[size_t(i)].insert(refToFilled[neighbour]);
+            if (m_map.getPoint(neighbour).hasNode()) {
+                hoods[long(i * N + refToFilled[neighbour])] = true;
             }
         }
     }
@@ -80,41 +77,50 @@ bool VGAVisualLocalOpenMP::run(Communicator *comm, PointMap &map, bool simple_ve
 #pragma omp parallel for default(shared) private(i) schedule(dynamic)
     for (i = 0; i < N; ++i) {
 
-        DataPoint& dp = col_data[i];
+        DataPoint &dp = col_data[i];
 
-        Point &p = map.getPoint(filled[size_t(i)]);
-        if ((p.contextfilled() && !filled[size_t(i)].iseven())) {
+        Point &p = m_map.getPoint(filled[size_t(i)]);
+        if ((p.contextfilled() && !filled[size_t(i)].iseven()) || (m_gates_only)) {
             count++;
             continue;
         }
 
-        // This is much easier to do with a straight forward list:
-        std::set<int> &neighbourhood = hoods[size_t(i)];
-        std::set<int> totalneighbourhood;
+        std::vector<bool> totalHood(N);
+
         int cluster = 0;
         float control = 0.0f;
 
-        for (auto &neighbour : neighbourhood) {
-            std::set<int> &retneighbourhood = hoods[size_t(neighbour)];
-            std::set<int> intersect;
-            std::set_intersection(neighbourhood.begin(), neighbourhood.end(), retneighbourhood.begin(),
-                                  retneighbourhood.end(), std::inserter(intersect, intersect.begin()));
-            totalneighbourhood.insert(retneighbourhood.begin(), retneighbourhood.end());
-            control += 1.0f / float(retneighbourhood.size());
-            cluster += intersect.size();
+        int hoodSize = 0;
+        for (int j = 0; j < N; j++) {
+            if (hoods[i * N + j]) {
+                hoodSize++;
+                int retHood = 0;
+                for (int k = 0; k < N; k++) {
+                    if (hoods[j * N + k]) {
+                        totalHood[k] = true;
+                        retHood++;
+                        if (hoods[i * N + k])
+                            cluster++;
+                    }
+                }
+                control += 1.0f / float(retHood);
+            }
+        }
+        int totalReach = 0;
+        for (int j = 0; j < N; j++) {
+            if (totalHood[j])
+                totalReach++;
         }
 #pragma omp critical(add_to_col)
         {
-            if (neighbourhood.size() > 1) {
-                dp.cluster =
-                    float(cluster / double(neighbourhood.size() * (neighbourhood.size() - 1.0)));
+            if (hoodSize > 1) {
+                dp.cluster = float(cluster / double(hoodSize * (hoodSize - 1.0)));
                 dp.control = float(control);
-                dp.controllability =
-                    float(double(neighbourhood.size()) / double(totalneighbourhood.size()));
+                dp.controllability = float(double(hoodSize) / double(totalReach));
             } else {
                 dp.cluster = -1.0f;
                 dp.control = -1.0f;
-                dp.controllability = -1.0f;
+                dp.controllability = -1;
             }
         }
 
@@ -137,18 +143,18 @@ bool VGAVisualLocalOpenMP::run(Communicator *comm, PointMap &map, bool simple_ve
     int controllability_col = attributes.insertOrResetColumn("Visual Controllability");
 
     auto dataIter = col_data.begin();
-    for (auto row: rows) {
+    for (auto row : rows) {
         row->setValue(cluster_col, dataIter->cluster);
         row->setValue(control_col, dataIter->control);
         row->setValue(controllability_col, dataIter->controllability);
         dataIter++;
     }
-    map.setDisplayedAttribute(cluster_col);
+    m_map.setDisplayedAttribute(cluster_col);
 
     return true;
 }
 
-void VGAVisualLocalOpenMP::dumpNeighbourhood(Node &node, std::set<PixelRef> &hood) const {
+void VGAVisualLocalAdjMatrix::dumpNeighbourhood(Node &node, std::set<PixelRef> &hood) const {
     for (int i = 0; i < 32; i++) {
         Bin &bin = node.bin(i);
         for (auto pixVec : bin.m_pixel_vecs) {

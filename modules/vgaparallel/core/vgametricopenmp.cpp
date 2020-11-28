@@ -16,29 +16,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgametricopenmp.h"
+#include "vgametricopenmp.h"
 
 #include "genlib/stringutils.h"
 
 #include <omp.h>
 
-bool VGAMetricOpenMP::run(Communicator *comm, PointMap &map, bool simple_version) {
+bool VGAMetricOpenMP::run(Communicator *comm) {
     time_t atime = 0;
 
     if (comm) {
         qtimer(atime, 0);
-        comm->CommPostMessage(Communicator::NUM_RECORDS, map.getFilledPointCount());
+        comm->CommPostMessage(Communicator::NUM_RECORDS, m_map.getFilledPointCount());
     }
 
-    AttributeTable &attributes = map.getAttributeTable();
+    AttributeTable &attributes = m_map.getAttributeTable();
 
     std::vector<PixelRef> filled;
     std::vector<AttributeRow *> rows;
 
-    for (int i = 0; i < map.getCols(); i++) {
-        for (int j = 0; j < map.getRows(); j++) {
+    for (int i = 0; i < m_map.getCols(); i++) {
+        for (int j = 0; j < m_map.getRows(); j++) {
             PixelRef curs = PixelRef(static_cast<short>(i), static_cast<short>(j));
-            if (map.getPoint(curs).filled()) {
+            if (m_map.getPoint(curs).filled()) {
                 filled.push_back(curs);
                 rows.push_back(attributes.getRowPtr(AttributeKey(curs)));
             }
@@ -57,11 +57,11 @@ bool VGAMetricOpenMP::run(Communicator *comm, PointMap &map, bool simple_version
             continue;
         }
 
-        DataPoint& dp = col_data[i];
+        DataPoint &dp = col_data[i];
 
-        depthmapX::RowMatrix<int> miscs(map.getRows(), map.getCols());
-        depthmapX::RowMatrix<float> dists(map.getRows(), map.getCols());
-        depthmapX::RowMatrix<float> cumangles(map.getRows(), map.getCols());
+        depthmapX::RowMatrix<int> miscs(m_map.getRows(), m_map.getCols());
+        depthmapX::RowMatrix<float> dists(m_map.getRows(), m_map.getCols());
+        depthmapX::RowMatrix<float> cumangles(m_map.getRows(), m_map.getCols());
 
         miscs.initialiseValues(0);
         dists.initialiseValues(-1.0f);
@@ -81,39 +81,39 @@ bool VGAMetricOpenMP::run(Communicator *comm, PointMap &map, bool simple_version
             std::set<MetricTriple>::iterator it = search_list.begin();
             MetricTriple here = *it;
             search_list.erase(it);
-            if (int(m_radius) != -1 && double(here.dist) * map.getSpacing() > m_radius) {
+            if (int(m_radius) != -1 && double(here.dist) * m_map.getSpacing() > m_radius) {
                 break;
             }
-            Point &p = map.getPoint(here.pixel);
-            int& p1misc = miscs(here.pixel.y, here.pixel.x);
-            float& p1cumangle = cumangles(here.pixel.y, here.pixel.x);
+            Point &p = m_map.getPoint(here.pixel);
+            int &p1misc = miscs(here.pixel.y, here.pixel.x);
+            float &p1cumangle = cumangles(here.pixel.y, here.pixel.x);
             // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
             if (p.filled() && p1misc != ~0) {
-                extractMetric(p.getNode(), search_list, &map, here, miscs, dists, cumangles);
+                extractMetric(p.getNode(), search_list, &m_map, here, miscs, dists, cumangles);
                 p1misc = ~0;
                 if (!p.getMergePixel().empty()) {
-                    Point &p2 = map.getPoint(p.getMergePixel());
-                    int& p2misc = miscs(p.getMergePixel().y, p.getMergePixel().x);
-                    float& p2cumangle = cumangles(p.getMergePixel().y, p.getMergePixel().x);
+                    Point &p2 = m_map.getPoint(p.getMergePixel());
+                    int &p2misc = miscs(p.getMergePixel().y, p.getMergePixel().x);
+                    float &p2cumangle = cumangles(p.getMergePixel().y, p.getMergePixel().x);
                     if (p2misc != ~0) {
                         p2cumangle = p1cumangle;
-                        extractMetric(p2.getNode(), search_list, &map, MetricTriple(here.dist, p.getMergePixel(), NoPixel), miscs,
-                                                 dists, cumangles);
+                        extractMetric(p2.getNode(), search_list, &m_map,
+                                      MetricTriple(here.dist, p.getMergePixel(), NoPixel), miscs, dists, cumangles);
                         p2misc = ~0;
                     }
                 }
-                total_depth += here.dist * float(map.getSpacing());
+                total_depth += here.dist * float(m_map.getSpacing());
                 total_angle += p1cumangle;
-                euclid_depth += float(map.getSpacing() * dist(here.pixel, filled[size_t(i)]));
+                euclid_depth += float(m_map.getSpacing() * dist(here.pixel, filled[size_t(i)]));
                 total_nodes += 1;
             }
         }
 
         // kept to achieve parity in binary comparison with old versions
         // TODO: Remove at next version of .graph file
-        map.getPoint(filled[size_t(i)]).m_misc = miscs(filled[size_t(i)].y, filled[size_t(i)].x);
-        map.getPoint(filled[size_t(i)]).m_dist = dists(filled[size_t(i)].y, filled[size_t(i)].x);
-        map.getPoint(filled[size_t(i)]).m_cumangle = cumangles(filled[size_t(i)].y, filled[size_t(i)].x);
+        m_map.getPoint(filled[size_t(i)]).m_misc = miscs(filled[size_t(i)].y, filled[size_t(i)].x);
+        m_map.getPoint(filled[size_t(i)]).m_dist = dists(filled[size_t(i)].y, filled[size_t(i)].x);
+        m_map.getPoint(filled[size_t(i)]).m_cumangle = cumangles(filled[size_t(i)].y, filled[size_t(i)].x);
 
         dp.mspa = float(double(total_angle) / double(total_nodes));
         dp.mspl = float(double(total_depth) / double(total_nodes));
@@ -136,7 +136,7 @@ bool VGAMetricOpenMP::run(Communicator *comm, PointMap &map, bool simple_version
     if (int(m_radius) != -1) {
         if (m_radius > 100.0) {
             radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.f");
-        } else if (map.getRegion().width() < 1.0) {
+        } else if (m_map.getRegion().width() < 1.0) {
             radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.4f");
         } else {
             radius_text = std::string(" R") + dXstring::formatString(m_radius, "%.2f");
@@ -153,7 +153,7 @@ bool VGAMetricOpenMP::run(Communicator *comm, PointMap &map, bool simple_version
     int count_col = attributes.insertOrResetColumn(count_col_text.c_str());
 
     auto dataIter = col_data.begin();
-    for (auto row: rows) {
+    for (auto row : rows) {
         row->setValue(mspa_col, dataIter->mspa);
         row->setValue(mspl_col, dataIter->mspl);
         row->setValue(dist_col, dataIter->dist);
@@ -161,13 +161,15 @@ bool VGAMetricOpenMP::run(Communicator *comm, PointMap &map, bool simple_version
         dataIter++;
     }
 
-    map.overrideDisplayedAttribute(-2);
-    map.setDisplayedAttribute(mspl_col);
+    m_map.overrideDisplayedAttribute(-2);
+    m_map.setDisplayedAttribute(mspl_col);
 
     return true;
 }
 
-void VGAMetricOpenMP::extractMetric(Node &node, std::set<MetricTriple> &pixels, PointMap *pointdata, const MetricTriple &curs, depthmapX::RowMatrix<int> &miscs, depthmapX::RowMatrix<float> &dists, depthmapX::RowMatrix<float> &cumangles) {
+void VGAMetricOpenMP::extractMetric(Node &node, std::set<MetricTriple> &pixels, PointMap *pointdata,
+                                    const MetricTriple &curs, depthmapX::RowMatrix<int> &miscs,
+                                    depthmapX::RowMatrix<float> &dists, depthmapX::RowMatrix<float> &cumangles) {
     if (curs.dist == 0.0f || pointdata->getPoint(curs.pixel).blocked() || pointdata->blockedAdjacent(curs.pixel)) {
         for (int i = 0; i < 32; i++) {
             Bin &bin = node.bin(i);
@@ -175,12 +177,12 @@ void VGAMetricOpenMP::extractMetric(Node &node, std::set<MetricTriple> &pixels, 
                 for (PixelRef pix = pixVec.start(); pix.col(bin.m_dir) <= pixVec.end().col(bin.m_dir);) {
                     float &pixdist = dists(pix.y, pix.x);
                     if (miscs(pix.y, pix.x) == 0 &&
-                            (pixdist == -1.0 || (curs.dist + dist(pix, curs.pixel) < pixdist))) {
+                        (pixdist == -1.0 || (curs.dist + dist(pix, curs.pixel) < pixdist))) {
                         pixdist = curs.dist + (float)dist(pix, curs.pixel);
                         // n.b. dmap v4.06r now sets angle in range 0 to 4 (1 = 90 degrees)
                         cumangles(pix.y, pix.x) =
-                                cumangles(curs.pixel.y, curs.pixel.x) +
-                                (curs.lastpixel == NoPixel
+                            cumangles(curs.pixel.y, curs.pixel.x) +
+                            (curs.lastpixel == NoPixel
                                  ? 0.0f
                                  : (float)(angle(pix, curs.pixel, curs.lastpixel) / (M_PI * 0.5)));
                         pixels.insert(MetricTriple(pixdist, pix, curs.pixel));

@@ -38,6 +38,9 @@ configure_file("${CMAKE_SOURCE_DIR}/version_defs.h.in" "${CMAKE_BINARY_DIR}/vers
 
 string(TIMESTAMP APP_DATE %Y-%m-%d)
 
+#if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#    add_compile_options("-Xpreprocessor")
+#endif()
 include(CMakeOpenMP.txt)
 
 set(modules_core "" CACHE INTERNAL "modules_core" FORCE)
