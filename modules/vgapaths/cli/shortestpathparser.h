@@ -15,37 +15,26 @@
 
 #pragma once
 
-#include "imodeparser.h"
+#include "depthmapXcli/imodeparser.h"
 #include "genlib/p2dpoly.h"
 #include <vector>
 
-class ShortestPathParser : public IModeParser
-{
-public:
-    ShortestPathParser() : m_shortestPathType(ShortestPathType::NONE)
-    {}
+class ShortestPathParser : public IModeParser {
+  public:
+    ShortestPathParser() : m_shortestPathType(ShortestPathType::NONE) {}
 
-    virtual std::string getModeName() const
-    {
-        return "SHORTESTPATH";
-    }
+    virtual std::string getModeName() const { return "SHORTESTPATH"; }
 
-    virtual std::string getHelp() const
-    {
-        return "Mode options for pointmap SHORTESTPATH are:\n" \
-               "  -spo <point> Origin point\n" \
-               "  -spd <point> Destination point (can be given multiple times)\n" \
+    virtual std::string getHelp() const {
+        return "Mode options for pointmap SHORTESTPATH are:\n"
+               "  -spo <point> Origin point\n"
+               "  -spd <point> Destination point (can be given multiple times)\n"
                "  -spt <type> Shortest Path type. One of metric, angular or visual\n";
     }
 
-    enum class ShortestPathType {
-        NONE,
-        ANGULAR,
-        METRIC,
-        VISUAL
-    };
+    enum class ShortestPathType { NONE, ANGULAR, METRIC, VISUAL };
 
-    virtual void parse(int argc, char** argv);
+    virtual void parse(int argc, char **argv);
 
     virtual void run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const;
 
@@ -53,10 +42,8 @@ public:
     std::vector<Point2f> getDestinations() const { return m_destinations; }
     ShortestPathType getShortestPathType() const { return m_shortestPathType; }
 
-private:
+  private:
     std::vector<Point2f> m_origins;
     std::vector<Point2f> m_destinations;
     ShortestPathType m_shortestPathType;
 };
-
-

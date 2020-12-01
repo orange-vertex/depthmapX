@@ -1,7 +1,4 @@
-// sala - a component of the depthmapX - spatial network analysis platform
-// Copyright (C) 2000-2010, University College London, Alasdair Turner
-// Copyright (C) 2011-2012, Tasos Varoudis
-// Copyright (C) 2017-2018, Petros Koutsolampros
+// Copyright (C) 2020 Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,15 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#include "catch.hpp"
 
-#include "salalib/ivga.h"
-#include "salalib/options.h"
-#include "salalib/pixelref.h"
-#include "salalib/pointdata.h"
-
-class ExtractLinkData : IVGA {
-  public:
-    std::string getAnalysisName() const override { return "Extract Link Data"; }
-    bool run(Communicator *comm, PointMap &map, bool) override;
-};
+TEST_CASE("Shortest paths examples", "") {}

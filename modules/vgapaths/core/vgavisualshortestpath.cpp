@@ -16,13 +16,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgavisualshortestpath.h"
+#include "vgavisualshortestpath.h"
 
 #include "genlib/stringutils.h"
 
-bool VGAVisualShortestPath::run(Communicator *comm, PointMap &map, bool simple_version) {
+bool VGAVisualShortestPath::run(Communicator *) {
 
-    auto &attributes = map.getAttributeTable();
+    auto &attributes = m_map.getAttributeTable();
 
     int path_col = attributes.insertOrResetColumn("Visual Shortest Path");
     int linked_col = attributes.insertOrResetColumn("Visual Shortest Path Linked");
@@ -30,9 +30,9 @@ bool VGAVisualShortestPath::run(Communicator *comm, PointMap &map, bool simple_v
     int zone_col = attributes.insertOrResetColumn("Visual Shortest Path Zone");
     int zone_3m_col = attributes.insertOrResetColumn("Visual Shortest Path Zone 3m");
 
-    for (auto& row: attributes) {
+    for (auto &row : attributes) {
         PixelRef pix = PixelRef(row.getKey().value);
-        Point &p = map.getPoint(pix);
+        Point &p = m_map.getPoint(pix);
         p.m_misc = 0;
         p.m_extent = pix;
     }
@@ -51,16 +51,16 @@ bool VGAVisualShortestPath::run(Communicator *comm, PointMap &map, bool simple_v
         for (auto iter = currLevelPix.rbegin(); iter != currLevelPix.rend(); ++iter) {
             PixelRefVector newPixels;
             PixelRefVector mergePixels;
-            Point &p = map.getPoint(*iter);
+            Point &p = m_map.getPoint(*iter);
             if (p.filled() && p.m_misc != ~0) {
                 if (!p.contextfilled() || iter->iseven() || level == 0) {
-                    p.getNode().extractUnseen(newPixels, &map, p.m_misc);
+//                    p.getNode().extractUnseen(newPixels, &m_map, p.m_misc);
                     p.m_misc = ~0;
                     if (!p.getMergePixel().empty()) {
-                        Point &p2 = map.getPoint(p.getMergePixel());
+                        Point &p2 = m_map.getPoint(p.getMergePixel());
                         if (p2.m_misc != ~0) {
                             newPixels.push_back(p.getMergePixel());
-                            p2.getNode().extractUnseen(mergePixels, &map, p2.m_misc);
+//                            p2.getNode().extractUnseen(mergePixels, &m_map, p2.m_misc);
                             for (auto &pixel : mergePixels) {
                                 parents[pixel] = p.getMergePixel();
                             }
@@ -82,23 +82,23 @@ bool VGAVisualShortestPath::run(Communicator *comm, PointMap &map, bool simple_v
         for (auto iter = nextLevelPix.rbegin(); iter != nextLevelPix.rend(); ++iter) {
             if (*iter == m_pixelTo) {
 
-                for (auto& row: attributes) {
+                for (auto &row : attributes) {
                     PixelRef pix = PixelRef(row.getKey().value);
-                    Point &p = map.getPoint(pix);
+                    Point &p = m_map.getPoint(pix);
                     p.m_misc = 0;
                     p.m_extent = pix;
                 }
 
                 int counter = 0;
-                AttributeRow& lastPixelRow = attributes.getRow(AttributeKey(*iter));
+                AttributeRow &lastPixelRow = attributes.getRow(AttributeKey(*iter));
                 lastPixelRow.setValue(order_col, counter);
                 lastPixelRow.setValue(linked_col, 0);
                 counter++;
                 auto currParent = parents.find(*iter);
 
                 while (currParent != parents.end()) {
-                    Point &p = map.getPoint(currParent->second);
-                    AttributeRow& row = attributes.getRow(AttributeKey(currParent->second));
+                    Point &p = m_map.getPoint(currParent->second);
+                    AttributeRow &row = attributes.getRow(AttributeKey(currParent->second));
                     row.setValue(order_col, counter);
 
                     if (!p.getMergePixel().empty() && p.getMergePixel() == currParent->first) {
@@ -107,30 +107,29 @@ bool VGAVisualShortestPath::run(Communicator *comm, PointMap &map, bool simple_v
                     } else {
                         // apparently we can't just have 1 number in the whole column
                         row.setValue(linked_col, 0);
-                        auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                        auto pixelated = m_map.quickPixelateLine(currParent->first, currParent->second);
                         for (auto &linePixel : pixelated) {
-                            auto* linePixelRow = attributes.getRowPtr(AttributeKey(linePixel));
+                            auto *linePixelRow = attributes.getRowPtr(AttributeKey(linePixel));
                             if (linePixelRow != 0) {
                                 linePixelRow->setValue(path_col, linePixelCounter++);
 
                                 PixelRefVector newPixels;
-                                Point &p = map.getPoint(linePixel);
-                                p.getNode().extractUnseen(newPixels, &map, p.m_misc);
-                                for (auto &zonePixel: newPixels) {
-                                    auto* zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel));
+                                Point &p = m_map.getPoint(linePixel);
+//                                p.getNode().extractUnseen(newPixels, &m_map, p.m_misc);
+                                for (auto &zonePixel : newPixels) {
+                                    auto *zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel));
                                     if (zonePixelRow != 0) {
-                                        if(zonePixelRow->getValue(zone_col) == -1) {
+                                        if (zonePixelRow->getValue(zone_col) == -1) {
                                             zonePixelRow->setValue(zone_col, linePixelCounter);
                                         }
-                                        if(dist(linePixel, zonePixel)*map.getSpacing() < 3000) {
+                                        if (dist(linePixel, zonePixel) * m_map.getSpacing() < 3000) {
                                             zonePixelRow->setValue(zone_3m_col, linePixelCounter);
                                         } else {
-                                            map.getPoint(zonePixel).m_misc = 0;
-                                            map.getPoint(zonePixel).m_extent = zonePixel;
+                                            m_map.getPoint(zonePixel).m_misc = 0;
+                                            m_map.getPoint(zonePixel).m_extent = zonePixel;
                                         }
                                     }
                                 }
-
                             }
                         }
                     }
@@ -141,8 +140,8 @@ bool VGAVisualShortestPath::run(Communicator *comm, PointMap &map, bool simple_v
                     counter++;
                 }
 
-                map.overrideDisplayedAttribute(-2);
-                map.setDisplayedAttribute(order_col);
+                m_map.overrideDisplayedAttribute(-2);
+                m_map.setDisplayedAttribute(order_col);
 
                 return true;
             }

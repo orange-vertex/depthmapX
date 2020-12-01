@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgaisovistzone.h"
+#include "vgaisovistzone.h"
 
 #include "salalib/salaprogram.h"
 
@@ -22,15 +22,15 @@
 
 #include <iomanip>
 
-bool VGAIsovistZone::run(Communicator *comm, PointMap &map, bool) {
+bool VGAIsovistZone::run(Communicator *) {
 
-    auto &attributes = map.getAttributeTable();
+    auto &attributes = m_map.getAttributeTable();
 
     if (m_originPointSets.empty()) {
         return false;
     }
     int zoneColumnIndex = -1;
-    for (auto originPointSet: m_originPointSets) {
+    for (auto originPointSet : m_originPointSets) {
         std::string zoneColumnName = "Isovist Zone Distance";
         std::string inverseZoneColumnName = "Isovist Zone Inverse Square Distance";
 
@@ -52,16 +52,16 @@ bool VGAIsovistZone::run(Communicator *comm, PointMap &map, bool) {
         }
         zoneColumnIndex = attributes.insertOrResetColumn(zoneColumnName);
 
-        for (PixelRef ref: originPoints) {
-            AttributeRow& row = attributes.getRow(AttributeKey(ref));
+        for (PixelRef ref : originPoints) {
+            AttributeRow &row = attributes.getRow(AttributeKey(ref));
             row.setValue(zoneColumnIndex, 0);
-            Point &lp = map.getPoint(ref);
+            Point &lp = m_map.getPoint(ref);
             std::set<MetricTriple> newPixels;
-            extractMetric(lp.getNode(), newPixels, map, MetricTriple(0.0f, ref, NoPixel));
+            extractMetric(lp.getNode(), newPixels, m_map, MetricTriple(0.0f, ref, NoPixel));
             for (auto &zonePixel : newPixels) {
                 auto *zonePixelRow = attributes.getRowPtr(AttributeKey(zonePixel.pixel));
                 if (zonePixelRow != 0) {
-                    double zoneLineDist = dist(ref, zonePixel.pixel) * map.getSpacing();
+                    double zoneLineDist = dist(ref, zonePixel.pixel) * m_map.getSpacing();
                     float currZonePixelVal = zonePixelRow->getValue(zoneColumnIndex);
                     if ((currZonePixelVal == -1 || zoneLineDist < currZonePixelVal) &&
                         (m_restrictDistance <= 0 || (m_restrictDistance > 0 && zoneLineDist < m_restrictDistance))) {
@@ -71,10 +71,11 @@ bool VGAIsovistZone::run(Communicator *comm, PointMap &map, bool) {
             }
         }
         int inverseZoneColumnIndex = attributes.insertOrResetColumn(inverseZoneColumnName);
-        setColumnFormulaAndUpdate(map, inverseZoneColumnIndex, "1/((value(\"" + zoneColumnName + "\") + 1) ^ 2)", false);
+        setColumnFormulaAndUpdate(m_map, inverseZoneColumnIndex, "1/((value(\"" + zoneColumnName + "\") + 1) ^ 2)",
+                                  false);
     }
-    map.overrideDisplayedAttribute(-2);
-    map.setDisplayedAttribute(zoneColumnIndex);
+    m_map.overrideDisplayedAttribute(-2);
+    m_map.setDisplayedAttribute(zoneColumnIndex);
 
     return true;
 }
@@ -95,7 +96,7 @@ void VGAIsovistZone::extractMetric(Node n, std::set<MetricTriple> &pixels, Point
 }
 
 void VGAIsovistZone::setColumnFormulaAndUpdate(PointMap &pointmap, int columnIndex, std::string formula,
-                                            bool selectionOnly) {
+                                               bool selectionOnly) {
     SalaObj program_context;
     SalaGrf graph;
     graph.map.point = &pointmap;

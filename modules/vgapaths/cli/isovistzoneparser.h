@@ -15,8 +15,8 @@
 
 #pragma once
 
+#include "depthmapXcli/imodeparser.h"
 #include "genlib/p2dpoly.h"
-#include "imodeparser.h"
 #include <vector>
 
 class IsovistZoneParser : public IModeParser {
@@ -29,9 +29,9 @@ class IsovistZoneParser : public IModeParser {
         return "Mode options for pointmap ISOVISTZONE are:\n"
                "  -izo <point> Origin point (can be given multiple times)\n"
                "  -izn <name> Set of an origin. Either not provided or provided for every origin\n"
-               "  -izf <file path> load origins from a file (csv)\n"\
-               "    the relevant headers must be called x, y and set\n"\
-               "    the last one is optional.\n"\
+               "  -izf <file path> load origins from a file (csv)\n"
+               "    the relevant headers must be called x, y and set\n"
+               "    the last one is optional.\n"
                "  -izr <distance> Restrict distance of isovist zone from origins\n";
     }
 

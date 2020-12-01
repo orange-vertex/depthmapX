@@ -14,9 +14,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "isovistzoneparser.h"
-#include "exceptions.h"
-#include "parsingutils.h"
-#include "runmethods.h"
+#include "depthmapXcli/exceptions.h"
+#include "depthmapXcli/parsingutils.h"
+#include "depthmapXcli/runmethods.h"
+#include "depthmapXcli/simpletimer.h"
+#include "modules/vgapaths/core/vgaisovistzone.h"
 #include "salalib/entityparsing.h"
 #include <cstring>
 #include <sstream>
@@ -55,11 +57,9 @@ void IsovistZoneParser::parse(int argc, char **argv) {
         }
     }
 
-    if (!originsFile.empty())
-    {
+    if (!originsFile.empty()) {
         std::ifstream file(originsFile);
-        if ( !file.good())
-        {
+        if (!file.good()) {
             std::stringstream message;
             message << "Failed to find file " << originsFile;
             throw depthmapX::CommandLineException(message.str());
@@ -69,14 +69,14 @@ void IsovistZoneParser::parse(int argc, char **argv) {
         m_origins = pointSets.second;
     } else if (origins.empty()) {
         throw CommandLineException("At least one origin point (-izo) or a file (-izf) must be provided");
-    } else if(m_originSets.size() > 0 & origins.size() != m_originSets.size()) {
+    } else if (m_originSets.size() > 0 & origins.size() != m_originSets.size()) {
         throw CommandLineException("Origin sets must either not be provided or be provided for every origin");
     } else {
         for (const auto &origin : origins) {
             m_origins.push_back(EntityParsing::parsePoint(origin));
         }
-        if(m_originSets.size() == 0) {
-            for (const auto &origin: origins) {
+        if (m_originSets.size() == 0) {
+            for (const auto &origin : origins) {
                 m_originSets.push_back("");
             }
         }
@@ -84,5 +84,34 @@ void IsovistZoneParser::parse(int argc, char **argv) {
 }
 
 void IsovistZoneParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
-    dm_runmethods::runIsovistZone(clp, m_origins, m_originSets, m_restrictDistance, perfWriter);
+    auto mGraph = dm_runmethods::loadGraph(clp.getFileName().c_str(), perfWriter);
+
+    auto &graphRegion = mGraph->getRegion();
+    PointMap &map = mGraph->getDisplayedPointMap();
+
+    std::map<std::string, std::set<PixelRef>> pixelsFrom;
+    auto namesIter = m_originSets.begin();
+    for (const Point2f &origin : m_origins) {
+        if (!graphRegion.contains(origin) || !map.getRegion().contains(origin)) {
+            throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                              std::to_string(origin.y) + " outside of target region");
+        }
+        PixelRef pixelFrom = map.pixelate(origin);
+        if (!map.getPoint(pixelFrom).filled()) {
+            throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                              std::to_string(origin.y) + " not filled in target pointmap");
+        }
+        pixelsFrom[*namesIter].insert(pixelFrom);
+        namesIter++;
+    }
+
+    std::cout << "ok\nCalculating isovist zone... " << std::flush;
+
+    std::unique_ptr<Communicator> comm(new ICommunicator());
+
+    DO_TIMED("Calculating isovist zone", VGAIsovistZone(map, pixelsFrom, m_restrictDistance).run(comm.get()));
+
+    std::cout << " ok\nWriting out result..." << std::flush;
+    DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
+    std::cout << " ok" << std::endl;
 }

@@ -16,25 +16,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgametricdepthlinkcost.h"
+#include "vgametricdepthlinkcost.h"
 
 #include "genlib/stringutils.h"
 
-bool VGAMetricDepthLinkCost::run(Communicator *comm, PointMap &map, bool) {
+bool VGAMetricDepthLinkCost::run(Communicator *) {
 
-    AttributeTable &attributes = map.getAttributeTable();
+    AttributeTable &attributes = m_map.getAttributeTable();
 
     // custom linking costs from the attribute table
     int link_metric_cost_col = attributes.getOrInsertColumn("Link Metric Cost");
 
     int path_length_col = attributes.insertOrResetColumn("Metric Step Depth");
 
-    depthmapX::ColumnMatrix<MetricPoint> metricPoints(map.getRows(), map.getCols());
+    depthmapX::ColumnMatrix<MetricPoint> metricPoints(m_map.getRows(), m_map.getCols());
 
     for (auto &row : attributes) {
         PixelRef pix = PixelRef(row.getKey().value);
         MetricPoint &pnt = getMetricPoint(metricPoints, pix);
-        pnt.m_point = &(map.getPoint(pix));
+        pnt.m_point = &(m_map.getPoint(pix));
         if (link_metric_cost_col != -1) {
             float linkCost = row.getRow().getValue(link_metric_cost_col);
             if (linkCost > 0)
@@ -56,7 +56,7 @@ bool VGAMetricDepthLinkCost::run(Communicator *comm, PointMap &map, bool) {
         MetricPoint &mp = getMetricPoint(metricPoints, here.pixel);
         // nb, the filled check is necessary as diagonals seem to be stored with 'gaps' left in
         if (mp.m_point->filled() && (mp.m_unseen || (here.dist < mp.m_dist))) {
-            extractMetric(mp.m_point->getNode(), metricPoints, search_list, &map, here);
+            extractMetric(mp.m_point->getNode(), metricPoints, search_list, &m_map, here);
             mp.m_dist = here.dist;
             mp.m_unseen = false;
             if (!mp.m_point->getMergePixel().empty()) {
@@ -64,7 +64,7 @@ bool VGAMetricDepthLinkCost::run(Communicator *comm, PointMap &map, bool) {
                 if (mp2.m_unseen || (here.dist + mp2.m_linkCost < mp2.m_dist)) {
                     mp2.m_dist = here.dist + mp2.m_linkCost;
                     mp2.m_unseen = false;
-                    extractMetric(mp2.m_point->getNode(), metricPoints, search_list, &map,
+                    extractMetric(mp2.m_point->getNode(), metricPoints, search_list, &m_map,
                                   MetricTriple(mp2.m_dist, mp.m_point->getMergePixel(), NoPixel));
                 }
             }
@@ -76,8 +76,8 @@ bool VGAMetricDepthLinkCost::run(Communicator *comm, PointMap &map, bool) {
         MetricPoint &pnt = getMetricPoint(metricPoints, pix);
         row.getRow().setValue(path_length_col, float(pnt.m_dist));
     }
-    map.setDisplayedAttribute(-2);
-    map.setDisplayedAttribute(path_length_col);
+    m_map.setDisplayedAttribute(-2);
+    m_map.setDisplayedAttribute(path_length_col);
 
     return true;
 }
@@ -94,7 +94,8 @@ void VGAMetricDepthLinkCost::extractMetric(Node n, depthmapX::ColumnMatrix<Metri
                     MetricPoint &mpt = getMetricPoint(metricPoints, pix);
                     // the nullptr check is unfortunately required because somehow depthmap stores
                     // neighbour pixels that are not really filled..
-                    if (mpt.m_point != nullptr && mpt.m_unseen && (mpt.m_dist == -1 ||
+                    if (mpt.m_point != nullptr && mpt.m_unseen &&
+                        (mpt.m_dist == -1 ||
                          (curs.dist + pointdata->getSpacing() * dist(pix, curs.pixel) < mpt.m_dist))) {
                         mpt.m_dist = curs.dist + pointdata->getSpacing() * (float)dist(pix, curs.pixel);
                         pixels.insert(MetricTriple(mpt.m_dist, pix, curs.pixel));

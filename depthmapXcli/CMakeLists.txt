@@ -20,8 +20,6 @@ set(depthmapXcli_SRCS
     stepdepthparser.cpp
     segmentparser.cpp
     mapconvertparser.cpp
-    shortestpathparser.cpp
-    isovistzoneparser.cpp
     )
 
 set(LINK_LIBS salalib genlib mgraph440)

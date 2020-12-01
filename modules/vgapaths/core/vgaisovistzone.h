@@ -1,7 +1,5 @@
 // sala - a component of the depthmapX - spatial network analysis platform
-// Copyright (C) 2000-2010, University College London, Alasdair Turner
-// Copyright (C) 2011-2012, Tasos Varoudis
-// Copyright (C) 2017-2018, Petros Koutsolampros
+// Copyright (C) 2019, Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,32 +16,29 @@
 
 #pragma once
 
-#include "salalib/ivga.h"
-#include "salalib/options.h"
+#include "salalib/ianalysis.h"
 #include "salalib/pixelref.h"
 #include "salalib/pointdata.h"
 
-class VGAMetricShortestPath : IVGA {
+class VGAIsovistZone : public IAnalysis {
   private:
-    std::set<PixelRef> m_pixelsFrom;
-    PixelRef m_pixelTo;
+    PointMap &m_map;
+    std::map<std::string, std::set<PixelRef>> m_originPointSets;
+    float m_restrictDistance;
 
     struct MetricPoint {
         Point *m_point = nullptr;
-        float m_linkCost = 0;
-        float m_dist = -1.0f;
-        float m_cumdist = -1.0f;
-        bool m_unseen = true;
     };
     MetricPoint &getMetricPoint(depthmapX::ColumnMatrix<MetricPoint> &metricPoints, PixelRef ref) {
         return (metricPoints(static_cast<size_t>(ref.y), static_cast<size_t>(ref.x)));
     }
-    void extractMetric(Node n, depthmapX::ColumnMatrix<MetricPoint> &metricPoints, std::set<MetricTriple> &pixels,
-                       PointMap *pointdata, const MetricTriple &curs);
+    void extractMetric(Node n, std::set<MetricTriple> &pixels, PointMap &map, const MetricTriple &curs);
+    void setColumnFormulaAndUpdate(PointMap &pointmap, int columnIndex, std::string formula, bool selectionOnly);
 
   public:
-    std::string getAnalysisName() const override { return "Metric Shortest Path"; }
-    bool run(Communicator *comm, PointMap &map, bool) override;
-    VGAMetricShortestPath(std::set<PixelRef> pixelsFrom, PixelRef pixelTo) :
-        m_pixelsFrom(pixelsFrom), m_pixelTo(pixelTo) {}
+    std::string getAnalysisName() const override { return "Path Zone"; }
+    bool run(Communicator *) override;
+    VGAIsovistZone(PointMap &map, std::map<std::string, std::set<PixelRef>> originPointSets,
+                   float restrictDistance = -1)
+        : m_map(map), m_originPointSets(originPointSets), m_restrictDistance(restrictDistance) {}
 };

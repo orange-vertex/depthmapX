@@ -30,7 +30,6 @@
 #include "importparser.h"
 #include "stepdepthparser.h"
 #include "salalib/isovistdef.h"
-#include "shortestpathparser.h"
 #include <vector>
 
 #define CONCAT_(x,y) x##y
@@ -56,10 +55,5 @@ namespace dm_runmethods{
     void exportData(const CommandLineParser &cmdP, const ExportParser &exportP, IPerformanceSink &perfWriter );
     void runStepDepth(const CommandLineParser &clp, const StepDepthParser::StepType &stepType,
                       const std::vector<Point2f> &stepDepthPoints, IPerformanceSink &perfWriter);
-    void runShortestPath(const CommandLineParser &clp, const ShortestPathParser::ShortestPathType &shortestPathType,
-                         const std::vector<Point2f> &origins, const std::vector<Point2f> &destinations,
-                         IPerformanceSink &perfWriter);
-    void runIsovistZone(const CommandLineParser &clp, const std::vector<Point2f> &origins, std::vector<std::string> originSets,
-                        float restrictDistance, IPerformanceSink &perfWriter);
     void runMapConversion(const CommandLineParser& clp, const MapConvertParser &mcp, IPerformanceSink &perfWriter);
 }

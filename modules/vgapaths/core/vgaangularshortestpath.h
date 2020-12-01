@@ -18,29 +18,19 @@
 
 #pragma once
 
-#include "salalib/ivga.h"
+#include "salalib/ianalysis.h"
 #include "salalib/options.h"
 #include "salalib/pixelref.h"
 #include "salalib/pointdata.h"
 
-class VGAMetricDepthLinkCost : IVGA {
+class VGAAngularShortestPath : public IAnalysis {
   private:
-    std::set<int> m_pixelsFrom;
-
-    struct MetricPoint {
-        Point *m_point = nullptr;
-        float m_linkCost = 0;
-        float m_dist = -1.0f;
-        bool m_unseen = true;
-    };
-    MetricPoint &getMetricPoint(depthmapX::ColumnMatrix<MetricPoint> &metricPoints, PixelRef ref) {
-        return (metricPoints(static_cast<size_t>(ref.y), static_cast<size_t>(ref.x)));
-    }
-    void extractMetric(Node n, depthmapX::ColumnMatrix<MetricPoint> &metricPoints, std::set<MetricTriple> &pixels,
-                       PointMap *pointdata, const MetricTriple &curs);
+    PointMap &m_map;
+    PixelRef m_pixelFrom, m_pixelTo;
 
   public:
-    std::string getAnalysisName() const override { return "Metric Depth"; }
-    bool run(Communicator *comm, PointMap &map, bool) override;
-    VGAMetricDepthLinkCost(std::set<int> pixelsFrom) : m_pixelsFrom(pixelsFrom) {}
+    std::string getAnalysisName() const override { return "Angular Shortest Path"; }
+    bool run(Communicator *comm) override;
+    VGAAngularShortestPath(PointMap &map, PixelRef pixelFrom, PixelRef pixelTo)
+        : m_map(map), m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };

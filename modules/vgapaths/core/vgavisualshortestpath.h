@@ -18,17 +18,23 @@
 
 #pragma once
 
-#include "salalib/ivga.h"
+#include "salalib/ianalysis.h"
 #include "salalib/options.h"
 #include "salalib/pixelref.h"
 #include "salalib/pointdata.h"
 
-class VGAAngularShortestPath : IVGA {
+#include "genlib/simplematrix.h"
+
+class VGAVisualShortestPath : public IAnalysis {
   private:
+    PointMap &m_map;
     PixelRef m_pixelFrom, m_pixelTo;
+    void extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,
+                       depthmapX::RowMatrix<PixelRef> &extents);
 
   public:
-    std::string getAnalysisName() const override { return "Angular Shortest Path"; }
-    bool run(Communicator *comm, PointMap &map, bool) override;
-    VGAAngularShortestPath(PixelRef pixelFrom, PixelRef pixelTo) : m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
+    std::string getAnalysisName() const override { return "Visibility Shortest Path"; }
+    bool run(Communicator *) override;
+    VGAVisualShortestPath(PointMap &map, PixelRef pixelFrom, PixelRef pixelTo)
+        : m_map(map), m_pixelFrom(pixelFrom), m_pixelTo(pixelTo) {}
 };

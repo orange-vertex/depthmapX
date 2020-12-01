@@ -16,27 +16,27 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/extractlinkdata.h"
+#include "extractlinkdata.h"
 
 #include "genlib/stringutils.h"
 
-bool ExtractLinkData::run(Communicator *, PointMap &map, bool) {
+bool ExtractLinkData::run(Communicator *) {
 
-    auto &attributes = map.getAttributeTable();
+    auto &attributes = m_map.getAttributeTable();
 
     int angular_cost_col = attributes.insertOrResetColumn("Link Angular Cost");
     int metric_cost_col = attributes.insertOrResetColumn("Link Metric Cost");
     int link_to_col = attributes.insertOrResetColumn("Link To");
     int visual_cost_col = attributes.insertOrResetColumn("Link Visual Cost");
 
-    for (auto& row: attributes) {
+    for (auto &row : attributes) {
         PixelRef pix = PixelRef(row.getKey().value);
-        Point &p = map.getPoint(pix);
+        Point &p = m_map.getPoint(pix);
         PixelRef mergePixel = p.getMergePixel();
         if (!mergePixel.empty()) {
             row.getRow().setValue(link_to_col, static_cast<int>(mergePixel));
             row.getRow().setValue(visual_cost_col, 1);
-            row.getRow().setValue(metric_cost_col, dist(pix, mergePixel) * map.getSpacing());
+            row.getRow().setValue(metric_cost_col, dist(pix, mergePixel) * m_map.getSpacing());
             row.getRow().setValue(angular_cost_col, 1);
         }
     }

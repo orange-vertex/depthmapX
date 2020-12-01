@@ -557,42 +557,6 @@ void MainWindow::OnToolsRunAxa()
     }
 }
 
-void MainWindow::OnToolsVSP()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
-        m_p->OnToolsVSP();
-    }
-}
-
-void MainWindow::OnToolsMSP()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
-        m_p->OnToolsMSP();
-    }
-}
-
-void MainWindow::OnToolsASP()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
-        m_p->OnToolsASP();
-    }
-}
-
-void MainWindow::OnToolsELD()
-{
-    QGraphDoc* m_p = activeMapDoc();
-    if(m_p)
-    {
-        m_p->OnToolsELD();
-    }
-}
-
 void MainWindow::OnToolsPD()
 {
     QGraphDoc* m_p = activeMapDoc();
@@ -3135,26 +3099,6 @@ void MainWindow::createActions()
     angularStepAct->setStatusTip(tr("Angular distance from current selection\nAngular Depth"));
     connect(angularStepAct, SIGNAL(triggered()), this, SLOT(OnToolsAPD()));
 
-    visibilityShortestPathAct = new QAction(tr("Visibility Shortest Path"), this);
-    visibilityShortestPathAct->setStatusTip(tr("Shortest visual path between two selected points"));
-    connect(visibilityShortestPathAct, SIGNAL(triggered()), this, SLOT(OnToolsVSP()));
-
-    metricShortestPathAct = new QAction(tr("&Metric Shortest Path"), this);
-    metricShortestPathAct->setStatusTip(tr("Shortest metric path between two selected points"));
-    connect(metricShortestPathAct, SIGNAL(triggered()), this, SLOT(OnToolsMSP()));
-
-    angularShortestPathAct = new QAction(tr("&Angular Shortest Path"), this);
-    angularShortestPathAct->setStatusTip(tr("Shortest angular path between two selected points"));
-    connect(angularShortestPathAct, SIGNAL(triggered()), this, SLOT(OnToolsASP()));
-
-    extractLinkDataAct = new QAction(tr("&Extract Link Data"), this);
-    extractLinkDataAct->setStatusTip(tr("Extracts data from the links and adds them to the attribute table"));
-    connect(extractLinkDataAct, SIGNAL(triggered()), this, SLOT(OnToolsELD()));
-
-    convertDataMapLinesAct = new QAction(tr("Convert Data Map Lines to Merge Points"), this);
-    convertDataMapLinesAct->setStatusTip(tr("Convert displayed data map lines to merge points for current visibility graph"));
-    connect(convertDataMapLinesAct, SIGNAL(triggered()), this, SLOT(OnToolsPointConvShapeMap()));
-
     runAgentAnalysisAct = new QAction(tr("&Run Agent Analysis"), this);
     connect(runAgentAnalysisAct, SIGNAL(triggered()), this, SLOT(OnToolsAgentRun()));
 
@@ -3651,13 +3595,6 @@ void MainWindow::createMenus()
     stepDepthSubMenu->addAction(visibilityStepAct);
     stepDepthSubMenu->addAction(metricStepAct);
     stepDepthSubMenu->addAction(angularStepAct);
-    shortestPathSubMenu = visibilitySubMenu->addMenu(tr("Shortest Path"));
-    shortestPathSubMenu->addAction(visibilityShortestPathAct);
-    shortestPathSubMenu->addAction(metricShortestPathAct);
-    shortestPathSubMenu->addAction(angularShortestPathAct);
-    visibilitySubMenu->addAction(extractLinkDataAct);
-    visibilitySubMenu->addSeparator();
-    visibilitySubMenu->addAction(convertDataMapLinesAct);
     agentToolsSubMenu = toolsMenu->addMenu(tr("&Agent Tools"));
     agentToolsSubMenu->addAction(runAgentAnalysisAct);
     agentToolsSubMenu->addAction(loadAgentProgramAct);

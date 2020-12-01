@@ -13,56 +13,52 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "cliTest/argumentholder.h"
+#include "cliTest/selfcleaningfile.h"
+#include "modules/vgapaths/cli/shortestpathparser.h"
 #include <catch.hpp>
-#include "depthmapXcli/shortestpathparser.h"
-#include "argumentholder.h"
-#include "selfcleaningfile.h"
 
-TEST_CASE("ShortestPathParser Fail", "Error cases")
-{
-    SECTION("Missing argument to -spo")
-    {
+TEST_CASE("ShortestPathParser Fail", "Error cases") {
+    SECTION("Missing argument to -spo") {
         ShortestPathParser parser;
         ArgumentHolder ah{"prog", "-spo"};
         REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-spo requires an argument"));
     }
-    SECTION("Missing argument to -spd")
-    {
+    SECTION("Missing argument to -spd") {
         ShortestPathParser parser;
         ArgumentHolder ah{"prog", "-spd"};
         REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-spd requires an argument"));
     }
-    SECTION("Missing argument to -spt")
-    {
+    SECTION("Missing argument to -spt") {
         ShortestPathParser parser;
         ArgumentHolder ah{"prog", "-spt"};
         REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-spt requires an argument"));
     }
 
-    SECTION("rubbish input to -spo")
-    {
+    SECTION("rubbish input to -spo") {
         ShortestPathParser parser;
         ArgumentHolder ah{"prog", "-spo", "foo"};
-        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("Invalid origin point provided (foo). Should only contain digits dots and commas"));
+        REQUIRE_THROWS_WITH(
+            parser.parse(ah.argc(), ah.argv()),
+            Catch::Contains("Invalid origin point provided (foo). Should only contain digits dots and commas"));
     }
 
-    SECTION("rubbish input to -spd")
-    {
+    SECTION("rubbish input to -spd") {
         ShortestPathParser parser;
         ArgumentHolder ah{"prog", "-spd", "foo"};
-        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("Invalid destination point provided (foo). Should only contain digits dots and commas"));
+        REQUIRE_THROWS_WITH(
+            parser.parse(ah.argc(), ah.argv()),
+            Catch::Contains("Invalid destination point provided (foo). Should only contain digits dots and commas"));
     }
 
-    SECTION("Invalid Shortest Path type")
-    {
+    SECTION("Invalid Shortest Path type") {
         ShortestPathParser parser;
         ArgumentHolder ah{"prog", "-spt", "foo"};
-        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), "Invalid Shortest Path type: foo" );
+        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), "Invalid Shortest Path type: foo");
     }
 }
 
-TEST_CASE("ShortestPathParser Success", "Read successfully")
-{
+TEST_CASE("ShortestPathParser Success", "Read successfully") {
     ShortestPathParser parser;
     double x1 = 1.0;
     double y1 = 2.0;

@@ -18,15 +18,16 @@
 
 #pragma once
 
-#include "salalib/ivga.h"
+#include "salalib/ianalysis.h"
 #include "salalib/options.h"
 #include "salalib/pixelref.h"
 #include "salalib/pointdata.h"
 
-class VGAMetricShortestPathToMany : IVGA {
+class VGAMetricShortestPath : public IAnalysis {
   private:
-    const std::set<PixelRef> m_pixelsFrom;
-    const std::set<PixelRef> m_pixelsTo;
+    PointMap &m_map;
+    std::set<PixelRef> m_pixelsFrom;
+    PixelRef m_pixelTo;
 
     struct MetricPoint {
         Point *m_point = nullptr;
@@ -43,7 +44,7 @@ class VGAMetricShortestPathToMany : IVGA {
 
   public:
     std::string getAnalysisName() const override { return "Metric Shortest Path"; }
-    bool run(Communicator *comm, PointMap &map, bool) override;
-    VGAMetricShortestPathToMany(std::set<PixelRef> pixelsFrom, std::set<PixelRef> pixelsTo)
-        : m_pixelsFrom(pixelsFrom), m_pixelsTo(pixelsTo) {}
+    bool run(Communicator *) override;
+    VGAMetricShortestPath(PointMap &map, std::set<PixelRef> pixelsFrom, PixelRef pixelTo)
+        : m_map(map), m_pixelsFrom(pixelsFrom), m_pixelTo(pixelTo) {}
 };

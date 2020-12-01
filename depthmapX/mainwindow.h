@@ -154,10 +154,6 @@ private slots:
     void OnToolsIsovistpath();
     void OnToolsAgentLoadProgram();
     void OnToolsRunAxa();
-    void OnToolsVSP();
-    void OnToolsMSP();
-    void OnToolsASP();
-    void OnToolsELD();
     void OnToolsPD();
     void OnToolsAPD();
     void OnToolsMakeFewestLineMap();
@@ -299,7 +295,6 @@ private:
     QMenu *toolsMenu;
     QMenu *visibilitySubMenu;
     QMenu *stepDepthSubMenu;
-    QMenu *shortestPathSubMenu;
     QMenu *agentToolsSubMenu;
     QMenu *axialSubMenu;
     QMenu *segmentSubMenu;
@@ -378,10 +373,6 @@ private:
     QAction *visibilityStepAct;
     QAction *metricStepAct;
     QAction *angularStepAct;
-    QAction *visibilityShortestPathAct;
-    QAction *metricShortestPathAct;
-    QAction *angularShortestPathAct;
-    QAction *extractLinkDataAct;
     QAction *convertDataMapLinesAct;
     QAction *runAgentAnalysisAct;
     QAction *loadAgentProgramAct;

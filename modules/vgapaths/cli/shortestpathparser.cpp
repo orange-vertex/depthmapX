@@ -14,9 +14,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "shortestpathparser.h"
-#include "exceptions.h"
-#include "parsingutils.h"
-#include "runmethods.h"
+#include "depthmapXcli/exceptions.h"
+#include "depthmapXcli/parsingutils.h"
+#include "depthmapXcli/runmethods.h"
+#include "depthmapXcli/simpletimer.h"
+#include "modules/vgapaths/core/vgaangularshortestpath.h"
+#include "modules/vgapaths/core/vgametricshortestpath.h"
+#include "modules/vgapaths/core/vgametricshortestpathtomany.h"
+#include "modules/vgapaths/core/vgavisualshortestpath.h"
 #include "salalib/entityparsing.h"
 #include <cstring>
 #include <sstream>
@@ -83,5 +88,66 @@ void ShortestPathParser::parse(int argc, char **argv) {
 }
 
 void ShortestPathParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
-    dm_runmethods::runShortestPath(clp, m_shortestPathType, m_origins, m_destinations, perfWriter);
+    auto mGraph = dm_runmethods::loadGraph(clp.getFileName().c_str(), perfWriter);
+
+    std::cout << "ok\nSelecting cells... " << std::flush;
+
+    auto &graphRegion = mGraph->getRegion();
+    PointMap &map = mGraph->getDisplayedPointMap();
+
+    std::set<PixelRef> pixelsFrom;
+    for (const Point2f &origin : m_origins) {
+        if (!graphRegion.contains(origin) || !map.getRegion().contains(origin)) {
+            throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                              std::to_string(origin.y) + " outside of target region");
+        }
+        PixelRef pixelFrom = map.pixelate(origin);
+        if (!map.getPoint(pixelFrom).filled()) {
+            throw depthmapX::RuntimeException("Origin point " + std::to_string(origin.x) + ", " +
+                                              std::to_string(origin.y) + " not filled in target pointmap");
+        }
+        pixelsFrom.insert(pixelFrom);
+    }
+    std::set<PixelRef> pixelsTo;
+    for (const Point2f &destination : m_destinations) {
+
+        if (!graphRegion.contains(destination) || !map.getRegion().contains(destination)) {
+            throw depthmapX::RuntimeException("Destination point " + std::to_string(destination.x) + ", " +
+                                              std::to_string(destination.y) + " outside of target region");
+        }
+        PixelRef pixelTo = map.pixelate(destination);
+        if (!map.getPoint(pixelTo).filled()) {
+            throw depthmapX::RuntimeException("Destination point " + std::to_string(destination.x) + ", " +
+                                              std::to_string(destination.y) + " not filled in target pointmap");
+        }
+        pixelsTo.insert(pixelTo);
+    }
+
+    std::cout << "ok\nCalculating shortest path... " << std::flush;
+
+    std::unique_ptr<Communicator> comm(new ICommunicator());
+
+    DO_TIMED(
+        "Calculating shortest path", switch (m_shortestPathType) {
+            case ShortestPathParser::ShortestPathType::ANGULAR:
+                VGAAngularShortestPath(map, *pixelsFrom.begin(), *pixelsTo.begin()).run(comm.get());
+                break;
+            case ShortestPathParser::ShortestPathType::METRIC:
+                if (pixelsTo.size() == 1) {
+                    VGAMetricShortestPath(map, pixelsFrom, *pixelsTo.begin()).run(comm.get());
+                } else {
+                    VGAMetricShortestPathToMany(map, pixelsFrom, pixelsTo).run(comm.get());
+                }
+                break;
+            case ShortestPathParser::ShortestPathType::VISUAL:
+                VGAVisualShortestPath(map, *pixelsFrom.begin(), *pixelsTo.begin()).run(comm.get());
+                break;
+            default: {
+                throw depthmapX::SetupCheckException("Error, unsupported shortest path mode");
+            }
+        });
+
+    std::cout << " ok\nWriting out result..." << std::flush;
+    DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
+    std::cout << " ok" << std::endl;
 }

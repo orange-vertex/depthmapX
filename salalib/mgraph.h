@@ -155,16 +155,6 @@ public:
    bool setGrid( double spacing, const Point2f& offset = Point2f() );                 // override of PointMap
    bool makePoints( const Point2f& p, int semifilled, Communicator *communicator = NULL);  // override of PointMap
    bool makeGraph( Communicator *communicator, int algorithm, double maxdist );
-   bool visualShortestPath(Communicator *communicator, PointMap &map, const PixelRef &pixelFrom, const PixelRef &pixelTo);
-   bool metricShortestPath(Communicator *communicator, PointMap &map, const std::set<PixelRef> &pixelsFrom,
-                           const PixelRef &pixelTo);
-   bool metricShortestPath(Communicator *communicator, PointMap &map, const std::set<PixelRef> &pixelsFrom,
-                           const std::set<PixelRef> &pixelsTo);
-   bool angularShortestPath(Communicator *communicator, PointMap &map, const PixelRef &pixelFrom, const PixelRef &pixelTo);
-   bool extractLinkData( Communicator *communicator );
-   bool isovistZone(Communicator *communicator, PointMap &map,
-                    std::map<std::string, std::set<PixelRef> > originPoints,
-                    float restrictDistance);
    bool unmakeGraph(bool removeLinks);
    bool analyseGraph(Communicator *communicator, Options options , bool simple_version); // <- options copied to keep thread safe
    //

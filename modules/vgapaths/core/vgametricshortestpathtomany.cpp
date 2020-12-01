@@ -16,23 +16,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "salalib/vgamodules/vgametricshortestpathtomany.h"
+#include "vgametricshortestpathtomany.h"
 
 #include "genlib/stringutils.h"
 
-bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
+bool VGAMetricShortestPathToMany::run(Communicator *) {
 
-    auto &attributes = map.getAttributeTable();
+    auto &attributes = m_map.getAttributeTable();
 
     // custom linking costs from the attribute table
     int link_metric_cost_col = attributes.getOrInsertColumn("Link Metric Cost");
 
-    depthmapX::ColumnMatrix<MetricPoint> metricPoints(map.getRows(), map.getCols());
+    depthmapX::ColumnMatrix<MetricPoint> metricPoints(m_map.getRows(), m_map.getCols());
 
     for (auto &row : attributes) {
         PixelRef pix = PixelRef(row.getKey().value);
         MetricPoint &pnt = getMetricPoint(metricPoints, pix);
-        pnt.m_point = &(map.getPoint(pix));
+        pnt.m_point = &(m_map.getPoint(pix));
         if (link_metric_cost_col != -1) {
             float linkCost = row.getRow().getValue(link_metric_cost_col);
             if (linkCost > 0)
@@ -43,7 +43,7 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
     // in order to calculate Penn angle, the MetricPair becomes a metric triple...
     std::set<MetricTriple> search_list; // contains root point
 
-    for(const PixelRef &pixelFrom: m_pixelsFrom) {
+    for (const PixelRef &pixelFrom : m_pixelsFrom) {
         search_list.insert(MetricTriple(0.0f, pixelFrom, NoPixel));
     }
 
@@ -59,7 +59,7 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
         std::set<MetricTriple> newPixels;
         std::set<MetricTriple> mergePixels;
         if (mp.m_unseen || (here.dist < mp.m_dist)) {
-            extractMetric(mp.m_point->getNode(), metricPoints, newPixels, &map, here);
+            extractMetric(mp.m_point->getNode(), metricPoints, newPixels, &m_map, here);
             mp.m_dist = here.dist;
             mp.m_unseen = false;
             if (!mp.m_point->getMergePixel().empty()) {
@@ -68,9 +68,9 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
                     mp2.m_dist = here.dist + mp2.m_linkCost;
                     mp2.m_unseen = false;
 
-                    auto newTripleIter = newPixels.insert(
-                        MetricTriple(mp2.m_dist, mp.m_point->getMergePixel(), NoPixel));
-                    extractMetric(mp2.m_point->getNode(), metricPoints, mergePixels, &map, *newTripleIter.first);
+                    auto newTripleIter =
+                        newPixels.insert(MetricTriple(mp2.m_dist, mp.m_point->getMergePixel(), NoPixel));
+                    extractMetric(mp2.m_point->getNode(), metricPoints, mergePixels, &m_map, *newTripleIter.first);
                     for (auto &pixel : mergePixels) {
                         parents[pixel.pixel] = mp.m_point->getMergePixel();
                     }
@@ -91,30 +91,30 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
         }
     }
 
-    for(const PixelRef &pixelFrom: m_pixelsFrom) {
+    for (const PixelRef &pixelFrom : m_pixelsFrom) {
         getMetricPoint(metricPoints, pixelFrom).m_dist = 0;
     }
 
     std::map<PixelRef, std::vector<int>> columns;
-    for(PixelRef ref: m_pixelsTo) {
+    for (PixelRef ref : m_pixelsTo) {
         columns[ref].push_back(attributes.insertOrResetColumn("Metric Shortest Path " + std::to_string(ref)));
     }
-    for(PixelRef ref: m_pixelsTo) {
+    for (PixelRef ref : m_pixelsTo) {
         columns[ref].push_back(attributes.insertOrResetColumn("Metric Shortest Path Distance " + std::to_string(ref)));
     }
-    for(PixelRef ref: m_pixelsTo) {
+    for (PixelRef ref : m_pixelsTo) {
         columns[ref].push_back(attributes.insertOrResetColumn("Metric Shortest Path Linked " + std::to_string(ref)));
     }
-    for(PixelRef ref: m_pixelsTo) {
+    for (PixelRef ref : m_pixelsTo) {
         columns[ref].push_back(attributes.insertOrResetColumn("Metric Shortest Path Order " + std::to_string(ref)));
     }
 
-    for(PixelRef pixelTo: m_pixelsTo) {
-        const std::vector<int>& pixelToCols = columns[pixelTo];
-        int path_col   = pixelToCols[0];
-        int dist_col   = pixelToCols[1];
+    for (PixelRef pixelTo : m_pixelsTo) {
+        const std::vector<int> &pixelToCols = columns[pixelTo];
+        int path_col = pixelToCols[0];
+        int dist_col = pixelToCols[1];
         int linked_col = pixelToCols[2];
-        int order_col  = pixelToCols[3];
+        int order_col = pixelToCols[3];
         auto pixelToParent = parents.find(pixelTo);
         if (pixelToParent != parents.end()) {
 
@@ -139,7 +139,7 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
                     // apparently we can't just have 1 number in the whole column
                     row.setValue(linked_col, 0);
 
-                    auto pixelated = map.quickPixelateLine(currParent->first, currParent->second);
+                    auto pixelated = m_map.quickPixelateLine(currParent->first, currParent->second);
                     for (auto &linePixel : pixelated) {
                         auto *linePixelRow = attributes.getRowPtr(AttributeKey(linePixel));
                         if (linePixelRow != 0) {
@@ -152,12 +152,11 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
                 currParent = parents.find(currParent->second);
                 counter++;
             }
-
         }
     }
-    if(m_pixelsTo.size() > 0) {
-        map.overrideDisplayedAttribute(-2);
-        map.setDisplayedAttribute(columns[*m_pixelsTo.begin()][0]);
+    if (m_pixelsTo.size() > 0) {
+        m_map.overrideDisplayedAttribute(-2);
+        m_map.setDisplayedAttribute(columns[*m_pixelsTo.begin()][0]);
 
         return true;
     }
@@ -165,9 +164,9 @@ bool VGAMetricShortestPathToMany::run(Communicator *comm, PointMap &map, bool) {
     return false;
 }
 
-void VGAMetricShortestPathToMany::extractMetric(Node n, depthmapX::ColumnMatrix<MetricPoint>& metricPoints,
-                                           std::set<MetricTriple> &pixels, PointMap *pointdata,
-                                           const MetricTriple &curs) {
+void VGAMetricShortestPathToMany::extractMetric(Node n, depthmapX::ColumnMatrix<MetricPoint> &metricPoints,
+                                                std::set<MetricTriple> &pixels, PointMap *pointdata,
+                                                const MetricTriple &curs) {
     MetricPoint &cursMP = getMetricPoint(metricPoints, curs.pixel);
     if (curs.dist == 0.0f || cursMP.m_point->blocked() || pointdata->blockedAdjacent(curs.pixel)) {
         for (int i = 0; i < 32; i++) {
@@ -177,8 +176,9 @@ void VGAMetricShortestPathToMany::extractMetric(Node n, depthmapX::ColumnMatrix<
                     MetricPoint &mpt = getMetricPoint(metricPoints, pix);
                     // the nullptr check is unfortunately required because somehow depthmap stores
                     // neighbour pixels that are not really filled..
-                    if ((mpt.m_point != nullptr && mpt.m_unseen && (mpt.m_dist == -1 ||
-                         (curs.dist + pointdata->getSpacing() * dist(pix, curs.pixel) < mpt.m_dist)))) {
+                    if ((mpt.m_point != nullptr && mpt.m_unseen &&
+                         (mpt.m_dist == -1 ||
+                          (curs.dist + pointdata->getSpacing() * dist(pix, curs.pixel) < mpt.m_dist)))) {
                         mpt.m_dist = curs.dist + pointdata->getSpacing() * (float)dist(pix, curs.pixel);
                         pixels.insert(MetricTriple(mpt.m_dist, pix, curs.pixel));
                     }

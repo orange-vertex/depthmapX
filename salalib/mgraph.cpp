@@ -43,16 +43,9 @@
 #include "salalib/vgamodules/vgavisuallocal.h"
 #include "salalib/vgamodules/vgametric.h"
 #include "salalib/vgamodules/vgametricdepth.h"
-#include "salalib/vgamodules/vgametricdepthlinkcost.h"
 #include "salalib/vgamodules/vgaangular.h"
 #include "salalib/vgamodules/vgaangulardepth.h"
 #include "salalib/vgamodules/vgathroughvision.h"
-#include "salalib/vgamodules/vgavisualshortestpath.h"
-#include "salalib/vgamodules/vgametricshortestpath.h"
-#include "salalib/vgamodules/vgametricshortestpathtomany.h"
-#include "salalib/vgamodules/vgaangularshortestpath.h"
-#include "salalib/vgamodules/extractlinkdata.h"
-#include "salalib/vgamodules/vgaisovistzone.h"
 #include "salalib/agents/agenthelpers.h"
 
 #include "mgraph440/mgraph.h"
@@ -290,33 +283,6 @@ bool MetaGraph::makeGraph( Communicator *communicator, int algorithm, double max
    return graphMade;
 }
 
-bool MetaGraph::visualShortestPath(Communicator *communicator, PointMap &map,
-                                   const PixelRef &pixelFrom, const PixelRef &pixelTo) {
-    return VGAVisualShortestPath(pixelFrom, pixelTo).run(communicator, map, false);
-}
-bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map,
-                                   const std::set<PixelRef> &pixelsFrom, const PixelRef &pixelTo) {
-    return VGAMetricShortestPath(pixelsFrom, pixelTo).run(communicator, map, false);
-}
-bool MetaGraph::metricShortestPath(Communicator *communicator, PointMap &map,
-                                   const std::set<PixelRef> &pixelsFrom, const std::set<PixelRef> &pixelsTo) {
-    return VGAMetricShortestPathToMany(pixelsFrom, pixelsTo).run(communicator, map, false);
-}
-bool MetaGraph::angularShortestPath(Communicator *communicator, PointMap &map,
-                                    const PixelRef &pixelFrom, const PixelRef &pixelTo) {
-    return VGAAngularShortestPath(pixelFrom, pixelTo).run(communicator, map, false);
-}
-
-bool MetaGraph::extractLinkData(Communicator *communicator) {
-    return ExtractLinkData().run(communicator, getDisplayedPointMap(), false);
-}
-
-bool MetaGraph::isovistZone(Communicator *communicator, PointMap &map,
-                            std::map<std::string, std::set<PixelRef>> originPoints,
-                            float restrictDistance = -1) {
-    return VGAIsovistZone(originPoints, restrictDistance).run(communicator, map, false);
-}
-
 bool MetaGraph::unmakeGraph(bool removeLinks)
 {
    bool graphUnmade = getDisplayedPointMap().unmake(removeLinks);
@@ -360,7 +326,7 @@ bool MetaGraph::analyseGraph( Communicator *communicator, Options options , bool
       }
       else if (options.point_depth_selection == 2) {
          if (m_view_class & VIEWVGA) {
-             analysisCompleted = VGAMetricDepthLinkCost(getDisplayedPointMap().getSelSet())
+             analysisCompleted = VGAMetricDepth()
                      .run(communicator, getDisplayedPointMap(), false);
          }
          else if (m_view_class & VIEWAXIAL && getDisplayedShapeGraph().isSegmentMap()) {
