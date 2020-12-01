@@ -33,7 +33,10 @@ set(depthmapX_SRCS
 	treeWindow.h
 	main.cpp
 	coreapplication.cpp
-	coreapplication.h)
+        coreapplication.h
+        mainwindowhelpers.cpp
+        mainwindowmoduleregistry.cpp
+        imainwindowmodulefactory.h)
 
 qt5_wrap_ui(UI_HDRS
     UI/TopoMetDlg.ui
@@ -66,27 +69,45 @@ qt5_wrap_ui(UI_HDRS
     UI/AboutDlg.ui
     UI/licenseagreement.ui)
 
-qt5_wrap_cpp(UI_SRCS
-	${UI_HDRS})	
-
 qt5_add_resources(DM_RSRC resource.qrc dialogs/settings/settingsdialog.qrc)
 
 if (MSVC)
-        add_executable(${depthmapX} WIN32 ${depthmapX_SRCS} ${UI_HDRS} ${UI_SRCS} ${DM_RSRC} icons.rc)
+        add_executable(${depthmapX} WIN32 ${depthmapX_SRCS} ${UI_HDRS} ${DM_RSRC} icons.rc)
 endif(MSVC)
 if(UNIX AND NOT APPLE)
-        add_executable(${depthmapX} ${depthmapX_SRCS} ${UI_HDRS} ${UI_SRCS} ${DM_RSRC})
+        add_executable(${depthmapX} ${depthmapX_SRCS} ${UI_HDRS} ${DM_RSRC})
+        if (Qt5_POSITION_INDEPENDENT_CODE)
+            SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+        endif()
 endif()
 if(APPLE)
-        add_executable(${depthmapX} MACOSX_BUNDLE ${depthmapX_SRCS} ${UI_HDRS} ${UI_SRCS} ${DM_RSRC})
+        set(MACOSX_BUNDLE_ICON_FILE depthmapX.icns)
+        set(depthmapX_ICON ${CMAKE_CURRENT_SOURCE_DIR}/icons/depthmapX.icns)
+        set_source_files_properties(${depthmapX_ICON} PROPERTIES
+               MACOSX_PACKAGE_LOCATION "Resources")
+        set(graph_ICON ${CMAKE_CURRENT_SOURCE_DIR}/icons/graph.icns)
+        set_source_files_properties(${graph_ICON} PROPERTIES
+               MACOSX_PACKAGE_LOCATION "Resources")
+        add_definitions(-DGL_SILENCE_DEPRECATION)
+        add_executable(${depthmapX} MACOSX_BUNDLE ${depthmapX_ICON} ${graph_ICON}
+            ${depthmapX_SRCS} ${UI_HDRS} ${DM_RSRC})
         set_target_properties(${depthmapX} PROPERTIES
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist)
 endif(APPLE)
 
 find_package(OpenGL REQUIRED)
 
+set(modules_gui "" CACHE INTERNAL "modules_gui" FORCE)
+set(MODULES_GUI TRUE)
+set(MODULES_CLI FALSE)
+set(MODULES_CLI_TEST FALSE)
+set(MODULES_CORE FALSE)
+set(MODULES_CORE_TEST FALSE)
+add_subdirectory(../modules modules)
+
 target_link_libraries(${depthmapX} salalib genlib mgraph440 Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
-    OpenGL::GL OpenGL::GLU)
+    OpenGL::GL OpenGL::GLU ${modules_gui} ${modules_core})
 
 add_subdirectory(dialogs)
 add_subdirectory(views)
+

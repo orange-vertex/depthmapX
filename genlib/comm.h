@@ -133,8 +133,7 @@ class Communicator {
     bool IsCancelled() const { return m_cancelled; }
     void Cancel() { m_cancelled = true; }
     //
-    operator std::ofstream &() { return *m_outfile; }
-    operator std::ifstream &() { return *m_infile; }
+    std::ifstream &getInFileStream() { return *m_infile; }
     std::ifstream &GetInfile2() { return *m_infile2; }
     //
     const std::vector<std::string> &GetFileSet() const { return m_fileset; }

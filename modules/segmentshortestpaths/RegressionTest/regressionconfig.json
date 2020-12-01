@@ -1,0 +1,37 @@
+{
+    "rundir": "rundir",
+    "basebinlocation": "../../BaselineBinaries",
+    "testbinlocation": "../../../build",
+    "testcases": {
+        "shortest_segment_metric_path": [{
+            "infile": "../../../testdata/barnsbury_extended1_segment.graph",
+            "outfile": "out.graph",
+            "mode": "SEGMENTSHORTESTPATH",
+            "extraArgs": {
+                "-sspo":"531074,185526",
+                "-sspd":"534231,183853",
+                "-sspt":"metric"
+            }
+        }],
+        "shortest_segment_tulip_path": [{
+            "infile": "../../../testdata/barnsbury_extended1_segment.graph",
+            "outfile": "out.graph",
+            "mode": "SEGMENTSHORTESTPATH",
+            "extraArgs": {
+                "-sspo":"531074,185526",
+                "-sspd":"534231,183853",
+                "-sspt":"tulip"
+            }
+        }],
+        "shortest_segment_topological_path": [{
+            "infile": "../../../testdata/barnsbury_extended1_segment.graph",
+            "outfile": "out.graph",
+            "mode": "SEGMENTSHORTESTPATH",
+            "extraArgs": {
+                "-sspo":"531074,185526",
+                "-sspd":"534231,183853",
+                "-sspt":"topological"
+            }
+        }]
+    }
+}

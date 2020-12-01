@@ -37,6 +37,7 @@
 #include "salalib/salaprogram.h"
 #include <salalib/entityparsing.h>
 #include <salalib/linkutils.h>
+#include "salalib/ianalysis.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -70,18 +71,19 @@ private:
     QWaitCondition condition;
 };
 
+class QGraphDoc; // forward declaration required by CMSCommunicator::run(QGraphDoc *)
+
 class CMSCommunicator : public Communicator
 {
 public:
    enum { IMPORT, IMPORTMIF, MAKEPOINTS, MAKEGRAPH, ANALYSEGRAPH,
-          VISUALSHORTESTPATHS, METRICSHORTESTPATHS, ANGULARSHORTESTPATHS,
-          EXTRACTLINKDATA,
           POINTDEPTH, METRICPOINTDEPTH, ANGULARPOINTDEPTH, TOPOLOGICALPOINTDEPTH,
-          MAKEISOVIST, MAKEISOVISTPATH,
+          MAKEISOVIST, MAKEISOVISTPATH, MAKEISOVISTSFROMFILE,
           MAKEALLLINEMAP, MAKEFEWESTLINEMAP, MAKEDRAWING,
           MAKEUSERMAP, MAKEUSERMAPSHAPE, MAKEUSERSEGMAP, MAKEUSERSEGMAPSHAPE, MAKEGATESMAP, MAKEBOUNDARYMAP, MAKESEGMENTMAP,
-          MAKECONVEXMAP, 
-          AXIALANALYSIS, SEGMENTANALYSISTULIP, SEGMENTANALYSISANGULAR, TOPOMETANALYSIS, AGENTANALYSIS };
+          MAKECONVEXMAP,
+          AXIALANALYSIS, SEGMENTANALYSISTULIP, SEGMENTANALYSISANGULAR, TOPOMETANALYSIS, AGENTANALYSIS,
+        FROMCONNECTOR};
 public:
    CMSCommunicator();
    virtual ~CMSCommunicator();
@@ -92,6 +94,7 @@ public:
    bool simple_version; // public is not a good thing but will do for now! // TV
 
    void SetFunction(int function) { m_function = function; }
+   void setAnalysis(int function) { m_function = function; }
    int GetFunction() const { return m_function; }
 
    void SetOption(int option, size_t which = 0)
@@ -100,15 +103,15 @@ public:
    { return (which >= m_options.size()) ? -1 : m_options[which]; }
    void SetSeedPoint(const Point2f& p)
    { m_seed_point = p; }
-   const Point2f& GetSeedPoint() const 
+   const Point2f& GetSeedPoint() const
    { return m_seed_point; }
    void SetSeedAngle(const double angle)
    { m_seed_angle = angle; }
-   double GetSeedAngle() const 
+   double GetSeedAngle() const
    { return m_seed_angle; }
    void SetSeedFoV(const double fov)
    { m_seed_fov = fov; }
-   double GetSeedFoV() const 
+   double GetSeedFoV() const
    { return m_seed_fov; }
    //
 
@@ -117,14 +120,25 @@ public:
    const QString& GetString() const
    { return m_string; }
    void SetFileSet(QStringList strings)
-   { 
+   {
        m_fileset.clear();
        for (int i = 0; i < strings.size(); i++)
        {
            m_fileset.push_back(strings[i].toStdString());
        }
    }
+   void setAnalysis(std::unique_ptr<IAnalysis> analysis) { m_analysis = std::move(analysis); }
+   void setSuccessUpdateFlags(int type, bool modified = true) {
+       m_successUpdateFlagType = type;
+       m_successUpdateFlagModified = modified;
+   }
+   void setSuccessRedrawFlags(int viewtype, int flag, int reason) {
+       m_successRedrawFlagViewType = viewtype;
+       m_successRedrawFlag = flag;
+       m_successRedrawReason = reason;
+   }
 
+   void runAnalysis(QGraphDoc &graphDoc);
 
 protected:
    std::vector<int> m_options;
@@ -134,6 +148,12 @@ protected:
    double m_seed_fov;
    //CImportedModule m_module;
    QString m_string;   // for a generic string
+   std::unique_ptr<IAnalysis> m_analysis;
+   int m_successUpdateFlagType;
+   bool m_successUpdateFlagModified = true;
+   int m_successRedrawFlagViewType;
+   bool m_successRedrawFlag;
+   int m_successRedrawReason;
 };
 
 struct QFilePath {
@@ -270,6 +290,7 @@ public:
 	int OnOpenDocument(char* lpszPathName);
     void OnToolsTPD();
     void OnVGALinksFileImport();
+    void OnGenerateIsovistsFromFile();
     void OnFileImport();
 	void OnFileExport();
     void OnFileExportMapGeometry();

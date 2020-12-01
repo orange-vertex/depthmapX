@@ -25,7 +25,6 @@ AllLineMap::AllLineMap(Communicator *comm,
    // for ease, I'm just going to make a construction line set from all the visible lines...
 
    QtRegion region;
-   int size = 0;
 
    std::vector<Line> lines;
 
@@ -173,16 +172,18 @@ std::tuple<std::unique_ptr<ShapeGraph>, std::unique_ptr<ShapeGraph>> AllLineMap:
    // a little further setting up is still required...
    std::map<RadialKey,RadialSegment> radialsegs;
 
-   // now make radial segments from the radial lines... (note, start at 1)
    auto iter = m_radial_lines.begin();
-   auto prevIter = m_radial_lines.begin();
-   ++iter;
-   for (;iter != m_radial_lines.end();) {
-      if (iter->vertex == prevIter->vertex && iter->ang != prevIter->ang) {
-                radialsegs.insert(std::make_pair( (RadialKey)(*iter), (RadialSegment)(*prevIter)));
-      }
-      ++iter;
-      ++prevIter;
+   if (iter != m_radial_lines.end()) {
+       // now make radial segments from the radial lines... (note, start at 1)
+       auto prevIter = m_radial_lines.begin();
+       ++iter;
+       for (;iter != m_radial_lines.end();) {
+          if (iter->vertex == prevIter->vertex && iter->ang != prevIter->ang) {
+                    radialsegs.insert(std::make_pair( (RadialKey)(*iter), (RadialSegment)(*prevIter)));
+          }
+          ++iter;
+          ++prevIter;
+       }
    }
 
    // and segment divisors from the axial lines...
@@ -190,22 +191,24 @@ std::tuple<std::unique_ptr<ShapeGraph>, std::unique_ptr<ShapeGraph>> AllLineMap:
    auto axIter = ax_radial_cuts.begin();
    auto axSeg = ax_seg_cuts.begin();
    for (i = 0; i < getAllShapes().size(); i++) {
-      auto axRadCutIter = axIter->second.begin();
-      auto axRadCutIterPrev = axIter->second.begin();
-      ++axRadCutIter;
-      for (size_t j = 1; j < axIter->second.size(); ++j) {
-         // note similarity to loop above
-         RadialKey& rk_end = m_radial_lines[size_t(*axRadCutIter)];
-         RadialKey& rk_start = m_radial_lines[size_t(*axRadCutIterPrev)];
-         if (rk_start.vertex == rk_end.vertex) {
-            auto radialSegIter = radialsegs.find(rk_end);
-            if (radialSegIter != radialsegs.end() && rk_start == radialSegIter->second.radial_b) {
-               radialSegIter->second.indices.insert(axIter->first);
-               axSeg->second.insert(std::distance(radialsegs.begin(), radialSegIter));
-            }
-         }
-         ++axRadCutIter;
-         ++axRadCutIterPrev;
+       auto axRadCutIter = axIter->second.begin();
+       if(axRadCutIter != axIter->second.end()) {
+          auto axRadCutIterPrev = axIter->second.begin();
+          ++axRadCutIter;
+          for (size_t j = 1; j < axIter->second.size(); ++j) {
+             // note similarity to loop above
+             RadialKey& rk_end = m_radial_lines[size_t(*axRadCutIter)];
+             RadialKey& rk_start = m_radial_lines[size_t(*axRadCutIterPrev)];
+             if (rk_start.vertex == rk_end.vertex) {
+                auto radialSegIter = radialsegs.find(rk_end);
+                if (radialSegIter != radialsegs.end() && rk_start == radialSegIter->second.radial_b) {
+                   radialSegIter->second.indices.insert(axIter->first);
+                   axSeg->second.insert(std::distance(radialsegs.begin(), radialSegIter));
+                }
+             }
+             ++axRadCutIter;
+             ++axRadCutIterPrev;
+          }
       }
       axIter++;
       axSeg++;
@@ -295,7 +298,7 @@ void AllLineMap::makeDivisions(const std::vector<PolyConnector>& polyconnections
 
    for (size_t i = 0; i < polyconnections.size(); i++) {
       PixelRefVector pixels = pixelateLine(polyconnections[i].line);
-      std::vector<int> testedshapes;
+      std::vector<size_t> testedshapes;
       auto connIter = radialdivisions.find(polyconnections[i].key);
       size_t connindex = std::distance(radialdivisions.begin(), connIter);
       double tolerance = sqrt(TOLERANCE_A);// * polyconnections[i].line.length();
@@ -318,7 +321,7 @@ void AllLineMap::makeDivisions(const std::vector<PolyConnector>& polyconnections
                case 2:
                   {
                      size_t index = depthmapX::findIndexFromKey(axialdividers, (int) shape.m_shape_ref);
-                     if (int(index) != shape.m_shape_ref) {
+                     if (index != shape.m_shape_ref) {
                         throw 1; // for the code to work later this can't be true!
                      }
                      axialdividers[index].insert(connindex);
@@ -328,7 +331,7 @@ void AllLineMap::makeDivisions(const std::vector<PolyConnector>& polyconnections
                case 1:
                   {
                      size_t index = depthmapX::findIndexFromKey(axialdividers, (int) shape.m_shape_ref);
-                     if (int(index) != shape.m_shape_ref) {
+                     if (index != shape.m_shape_ref) {
                         throw 1; // for the code to work later this can't be true!
                      }
                      //

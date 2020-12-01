@@ -343,6 +343,20 @@
                 "-xf": ""
             }
         }],
+        "axial_makelines_rooms": [{
+            "infile": "../../../testdata/rooms.dxf",
+            "outfile": "out.graph",
+            "mode": "IMPORT",
+            "extraArgs":{}
+        },{
+            "infile": "out.graph",
+            "outfile": "out.graph",
+            "mode": "AXIAL",
+            "extraArgs":{
+                "-xl": "7.5,7.5",
+                "-xf": ""
+            }
+        }],
         "axial_rn": [{
             "infile": "../../../testdata/simple_axlines.graph",
             "outfile": "out.graph",
@@ -357,6 +371,15 @@
             "mode": "AXIAL",
             "extraArgs": {
                 "-xa": "3"
+            }
+        }],
+        "axial_rn_length_weighted": [{
+            "infile": "../../../testdata/simple_axlines.graph",
+            "outfile": "out.graph",
+            "mode": "AXIAL",
+            "extraArgs": {
+                "-xa": "n",
+                "-xaw": "Line Length"
             }
         }],
         "axial_rn_rra": [{
@@ -566,6 +589,26 @@
             "extraArgs": {
                 "-st": "metric",
                 "-sr": "n"
+            }
+        }],
+        "import_dxf_to_drawing":[{
+            "infile": "../../../testdata/barnsbury_extended1.dxf",
+            "outfile": "out.graph",
+            "mode": "IMPORT",
+            "extraArgs": {}
+        }],
+        "import_csv_to_drawing":[{
+            "infile": "../../../testdata/barnsbury_extended1_axial.csv",
+            "outfile": "out.graph",
+            "mode": "IMPORT",
+            "extraArgs": {}
+        }],
+        "import_tsv_to_data":[{
+            "infile": "../../../testdata/barnsbury_extended1_axial.tsv",
+            "outfile": "out.graph",
+            "mode": "IMPORT",
+            "extraArgs": {
+                "-it": "data"
             }
         }],
         "convert_drawing_axial":[{

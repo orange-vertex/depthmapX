@@ -40,5 +40,8 @@ int CoreApplication::exec() {
 
     mMainWindow = MainWindowFactory::getMainWindow(fileToLoad, settings);
     mMainWindow->show();
+
+    QApplication::setWindowIcon(QIcon(":/images/depthmapX.png"));
+
     return QApplication::exec();
 }

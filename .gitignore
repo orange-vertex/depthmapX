@@ -2,9 +2,10 @@
 .DS_Store
 depthmapX-build
 build
+build-debug
 RegressionTest/rundir
 __pycache__
-depthmapX.pro.user
+CMakeLists.txt.user
 *_BACKUP_*
 *_BASE_*
 *_LOCAL_*

@@ -25,8 +25,9 @@
 #include "exportparser.h"
 #include "stepdepthparser.h"
 #include "mapconvertparser.h"
-#include "shortestpathparser.h"
-#include "isovistzoneparser.h"
+#include "modules/vgapaths/cli/shortestpathparser.h"
+#include "modules/vgapaths/cli/isovistzoneparser.h"
+#include "modules/segmentshortestpaths/cli/segmentshortestpathparser.h"
 
 
 void ModeParserRegistry::populateParsers()
@@ -45,5 +46,6 @@ void ModeParserRegistry::populateParsers()
     REGISTER_PARSER(MapConvertParser);
     REGISTER_PARSER(ShortestPathParser);
     REGISTER_PARSER(IsovistZoneParser);
+    REGISTER_PARSER(SegmentShortestPathParser);
     // *********
 }

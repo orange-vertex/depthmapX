@@ -1,0 +1,32 @@
+# FROM ubuntu:xenial
+# i.e.: docker run -it ubuntu:xenial
+# linuxdeployqt requires xenial in order to support older systems
+# however depthmapX requires cmake >= 1.13 and qt > 5.6
+
+apt-get -y update && apt-get install -y software-properties-common
+add-apt-repository --yes ppa:beineri/opt-qt-5.15.0-xenial
+add-apt-repository --yes ppa:deadsnakes/ppa
+add-apt-repository ppa:andrew-fuller/cmake
+apt-get -y update && apt-get install -y gcc g++ make git libgl1-mesa-dev libglu1-mesa-dev python3.5 clang vim wget qt5153d cmake build-essential qt515tools
+export PATH="/opt/qt515/bin/:$PATH"
+
+mkdir /mnt/code
+cd /mnt/code
+git clone https://github.com/SpaceGroupUCL/depthmapX
+mkdir depthmapX/build
+cd depthmapX/build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j$(nproc)
+ 
+wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+mkdir appdir
+cp depthmapX/depthmapX appdir/
+cp ../tools/build-appimage/depthmapX.desktop appdir/
+mkdir -p appdir/usr/share/icons/depthmapX/128x128/
+cp ../depthmapX/images/depthmapX-128x128.png appdir/usr/share/icons/depthmapX/128x128/depthmapX.png
+export VERSION=0.8.0 # this is where linuxdeployqt gets the application version (not the .desktop file)
+./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/depthmapX.desktop -appimage
+
+# docker ps # to see all containers
+# docker cp <docker id>:/mnt/code/depthmapX/build/depthmapX-0.8.0-x86_64.AppImage .

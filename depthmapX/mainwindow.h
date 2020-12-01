@@ -22,6 +22,7 @@
 #include "depthmapX/GraphDoc.h"
 #include "depthmapX/compatibilitydefines.h"
 #include "depthmapX/settings.h"
+#include "depthmapX/mainwindowmoduleregistry.hpp"
 
 #include "depthmapX/dialogs/ColourScaleDlg.h"
 #include "depthmapX/views/glview/glview.h"
@@ -80,6 +81,10 @@ public:
     QRgb m_foreground;
     QRgb m_background;
 
+    MainWindowModuleRegistry mainWindowPluginRegistry;
+
+    QGraphDoc *activeMapDoc();
+
     bool m_simpleVersion;  // bool that replaces compile defines
 
     void RedoPlotViewMenu(QGraphDoc* pDoc);
@@ -89,6 +94,8 @@ public:
     void UpdateStatus(QString s1, QString s2, QString s3);
     void updateGLWindows(bool datasetChanged, bool recentreView);
     void loadFile(QString fileName);
+
+    void chooseAttributeOnIndex(int attributeIdx);
 
 protected:
     QGraphDoc* m_treeDoc;
@@ -143,6 +150,7 @@ private slots:
     void OnToolsMakeGraph();
     void OnToolsUnmakeGraph();
     void OnToolsImportVGALinks();
+    void OnToolsGenerateIsovistsFromFile();
     void OnToolsIsovistpath();
     void OnToolsAgentLoadProgram();
     void OnToolsRunAxa();
@@ -249,7 +257,6 @@ private:
     QWidget * setupAttributesListWidget();
     MapView *createMapView();
     MapView *activeMapView();
-    QGraphDoc *activeMapDoc();
     QMdiSubWindow *findMapView(const QString &fileName);
 //////////////////////////////////////////////////////
 //	treeContorl
@@ -365,6 +372,7 @@ private:
     QAction *makeVisibilityGraphAct;
     QAction *unmakeVisibilityGraphAct;
     QAction *importVGALinksAct;
+    QAction *generateIsovistsAct;
     QAction *makeIsovistPathAct;
     QAction *runVisibilityGraphAnalysisAct;
     QAction *visibilityStepAct;
