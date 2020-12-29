@@ -144,7 +144,7 @@ bool VGAMetricShortestPath::run(Communicator *) {
         }
 
         m_map.overrideDisplayedAttribute(-2);
-        m_map.setDisplayedAttribute(order_col);
+        m_map.setDisplayedAttribute(path_col);
 
         return true;
     }
