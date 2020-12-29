@@ -15,6 +15,7 @@
 
 set(vgapathsgui vgapathsgui)
 set(vgapathsgui_SRCS
+    uictrigger.cpp
     vgapathsmainwindow.cpp)
 set(modules_gui "${modules_gui}" "vgapathsgui" CACHE INTERNAL "modules_gui" FORCE)
 
