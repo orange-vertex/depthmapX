@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Petros Koutsolampros
+// Copyright (C) 2017 Christian Sailer
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,121 +18,103 @@
 #include "depthmapXcli/parsingutils.h"
 #include "depthmapXcli/runmethods.h"
 #include "depthmapXcli/simpletimer.h"
-#include "modules/segmentshortestpaths/core/segmmetricshortestpath.h"
-#include "modules/segmentshortestpaths/core/segmtopologicalshortestpath.h"
-#include "modules/segmentshortestpaths/core/segmtulipshortestpath.h"
-#include "salalib/entityparsing.h"
+#include "salalib/options.h"
 #include <cstring>
-#include <sstream>
+#include <iostream>
 
 using namespace depthmapX;
 
-void VGAParallelParser::parse(int argc, char **argv) {
+VgaParallelParser::VgaParallelParser() : m_vgaMode(VgaMode::NONE), m_localMeasures(false), m_globalMeasures(false) {}
 
-    std::string originPoint;
-    std::string destinationPoint;
-    for (int i = 1; i < argc; ++i) {
-        if (std::strcmp("-sspo", argv[i]) == 0) {
-            if (!originPoint.empty()) {
-                throw CommandLineException("-sspo can only be provided once");
+void VgaParallelParser::parse(int argc, char *argv[]) {
+    for (int i = 1; i < argc;) {
+
+        if (std::strcmp("-vm", argv[i]) == 0) {
+            if (m_vgaMode != VgaMode::NONE) {
+                throw CommandLineException("-vm can only be used once, modes are mutually exclusive");
             }
-            ENFORCE_ARGUMENT("-sspo", i)
-            if (!has_only_digits_dots_commas(argv[i])) {
-                std::stringstream message;
-                message << "Invalid origin point provided (" << argv[i]
-                        << "). Should only contain digits dots and commas" << std::flush;
-                throw CommandLineException(message.str().c_str());
-            }
-            originPoint = argv[i];
-        }
-        if (std::strcmp("-sspd", argv[i]) == 0) {
-            if (!destinationPoint.empty()) {
-                throw CommandLineException("-sspd can only be provided once");
-            }
-            ENFORCE_ARGUMENT("-sspd", i)
-            if (!has_only_digits_dots_commas(argv[i])) {
-                std::stringstream message;
-                message << "Invalid destination point provided (" << argv[i]
-                        << "). Should only contain digits dots and commas" << std::flush;
-                throw CommandLineException(message.str().c_str());
-            }
-            destinationPoint = argv[i];
-        } else if (std::strcmp("-sspt", argv[i]) == 0) {
-            ENFORCE_ARGUMENT("-sspt", i)
-            if (std::strcmp(argv[i], "tulip") == 0) {
-                m_stepType = StepType::TULIP;
+            ENFORCE_ARGUMENT("-vm", i)
+            if (std::strcmp(argv[i], "isovist") == 0) {
+                m_vgaMode = VgaMode::ISOVIST;
+            } else if (std::strcmp(argv[i], "visibility") == 0) {
+                m_vgaMode = VgaMode::VISBILITY;
             } else if (std::strcmp(argv[i], "metric") == 0) {
-                m_stepType = StepType::METRIC;
-            } else if (std::strcmp(argv[i], "topological") == 0) {
-                m_stepType = StepType::TOPOLOGICAL;
+                m_vgaMode = VgaMode::METRIC;
+            } else if (std::strcmp(argv[i], "angular") == 0) {
+                m_vgaMode = VgaMode::ANGULAR;
+            } else if (std::strcmp(argv[i], "thruvision") == 0) {
+                m_vgaMode = VgaMode::THRU_VISION;
             } else {
-                throw CommandLineException(std::string("Invalid step type: ") + argv[i]);
+                throw CommandLineException(std::string("Invalid VGA mode: ") + argv[i]);
             }
+        } else if (std::strcmp(argv[i], "-vg") == 0) {
+            m_globalMeasures = true;
+        } else if (std::strcmp(argv[i], "-vl") == 0) {
+            m_localMeasures = true;
+        } else if (std::strcmp(argv[i], "-vr") == 0) {
+            ENFORCE_ARGUMENT("-vr", i)
+            m_radius = argv[i];
         }
+        ++i;
     }
 
-    if (originPoint.empty() || destinationPoint.empty()) {
-        throw CommandLineException("Both -sspo and -sspd must be provided");
+    if (m_vgaMode == VgaMode::NONE) {
+        m_vgaMode = VgaMode::ISOVIST;
     }
 
-    std::stringstream pointsStream;
-    pointsStream << "x,y";
-    pointsStream << "\n" << originPoint;
-    pointsStream << "\n" << destinationPoint;
-    std::vector<Point2f> parsed = EntityParsing::parsePoints(pointsStream, ',');
-    m_originPoint = parsed[0];
-    m_destinationPoint = parsed[1];
+    if (m_vgaMode == VgaMode::VISBILITY && m_globalMeasures) {
+        if (m_radius.empty()) {
+            throw CommandLineException(
+                "Global measures in VGA/visibility analysis require a radius, use -vr <radius>");
+        }
+        if (m_radius != "n" && !has_only_digits(m_radius)) {
+            throw CommandLineException(std::string("Radius must be a positive integer number or n, got ") + m_radius);
+        }
 
-    if (m_stepType == StepType::NONE) {
-        throw CommandLineException("Step depth type (-sspt) must be provided");
+    } else if (m_vgaMode == VgaMode::METRIC) {
+        if (m_radius.empty()) {
+            throw CommandLineException("Metric vga requires a radius, use -vr <radius>");
+        }
     }
 }
 
-void VGAParallelParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
-    auto mGraph = dm_runmethods::loadGraph(clp.getFileName().c_str(), perfWriter);
+void VgaParallelParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
+    RadiusConverter radiusConverter;
 
-    std::cout << "ok\nSelecting cells... " << std::flush;
+    auto mgraph = dm_runmethods::loadGraph(clp.getFileName().c_str(), perfWriter);
 
-    auto graphRegion = mGraph->getRegion();
+    std::unique_ptr<Options> options(new Options());
 
-    if (!graphRegion.contains(m_originPoint)) {
-        throw depthmapX::RuntimeException("Origin point outside of target region");
-    }
-    if (!graphRegion.contains(m_destinationPoint)) {
-        throw depthmapX::RuntimeException("Destination point outside of target region");
-    }
-    QtRegion r(m_originPoint, m_originPoint);
-    mGraph->setCurSel(r, false);
-
-    r = QtRegion(m_destinationPoint, m_destinationPoint);
-    mGraph->setCurSel(r, true);
-
-    std::cout << "ok\nCalculating shortest path... " << std::flush;
-
-    std::unique_ptr<Communicator> comm(new ICommunicator());
-
-    switch (m_stepType) {
-    case VGAParallelParser::StepType::TULIP: {
-        DO_TIMED("Calculating tulip shortest path",
-                 SegmentTulipShortestPath(mGraph->getDisplayedShapeGraph()).run(comm.get()))
+    std::cout << "Getting options..." << std::flush;
+    switch (getVgaMode()) {
+    case VgaParser::VgaMode::VISBILITY:
+        options->output_type = Options::OUTPUT_VISUAL;
+        options->local = localMeasures();
+        options->global = globalMeasures();
+        if (options->global) {
+            options->radius = radiusConverter.ConvertForVisibility(getRadius());
+        }
         break;
-    }
-    case VGAParallelParser::StepType::METRIC: {
-        DO_TIMED("Calculating metric shortest path",
-                 SegmentMetricShortestPath(mGraph->getDisplayedShapeGraph()).run(comm.get()))
+    case VgaParser::VgaMode::METRIC:
+        options->output_type = Options::OUTPUT_METRIC;
+        options->radius = radiusConverter.ConvertForMetric(getRadius());
         break;
-    }
-    case VGAParallelParser::StepType::TOPOLOGICAL: {
-        DO_TIMED("Calculating topological shortest path",
-                 SegmentTopologicalShortestPath(mGraph->getDisplayedShapeGraph()).run(comm.get()))
+    case VgaParser::VgaMode::ANGULAR:
+        options->output_type = Options::OUTPUT_ANGULAR;
         break;
+    case VgaParser::VgaMode::ISOVIST:
+        options->output_type = Options::OUTPUT_ISOVIST;
+        break;
+    case VgaParser::VgaMode::THRU_VISION:
+        options->output_type = Options::OUTPUT_THRU_VISION;
+        break;
+    default:
+        throw depthmapX::SetupCheckException("Unsupported VGA mode");
     }
-    default: {
-        throw depthmapX::SetupCheckException("Error, unsupported step type");
-    }
-    }
+    std::cout << " ok\nAnalysing graph..." << std::flush;
 
+    DO_TIMED("Run VGA", mgraph->analyseGraph(dm_runmethods::getCommunicator(clp).get(), *options, clp.simpleMode()))
     std::cout << " ok\nWriting out result..." << std::flush;
-    DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
+    DO_TIMED("Writing graph", mgraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
     std::cout << " ok" << std::endl;
 }

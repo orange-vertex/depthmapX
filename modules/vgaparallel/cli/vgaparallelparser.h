@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Petros Koutsolampros
+// Copyright (C) 2017 Christian Sailer
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,37 +15,40 @@
 
 #pragma once
 
+#include "depthmapXcli/commandlineparser.h"
 #include "depthmapXcli/imodeparser.h"
-#include "genlib/p2dpoly.h"
-#include <vector>
+#include "depthmapXcli/radiusconverter.h"
+#include <string>
 
-class VGAParallelParser : public IModeParser {
+class VgaParallelParser : public IModeParser {
   public:
-    VGAParallelParser() : m_stepType(StepType::NONE) {}
-
-    virtual std::string getModeName() const { return "SEGMENTSHORTESTPATH"; }
+    virtual std::string getModeName() const { return "VGA"; }
 
     virtual std::string getHelp() const {
-        return "Mode options for pointmap SEGMENTSHORTESTPATH are:\n"
-               "  -sspo <shortest path origin point> point where to calculate shortest path between.\n"
-               "  -sspd <shortest path destination point> point where to calculate shortest path between.\n"
-               "  -sspt <type> step type. One of metric, tulip or topological.\n";
+        return "Mode options for VGAPARALLEL:\n"
+               "-vm <vga mode> one of isovist, visiblity, metric, angular, thruvision\n"
+               "-vg turn on global measures for visibility, requires radius between 1 and 99 or n\n"
+               "-vl turn on local measures for visibility\n"
+               "-vr set visibility radius\n";
     }
 
-    enum class StepType { NONE, TULIP, METRIC, TOPOLOGICAL };
-
-    virtual void parse(int argc, char **argv);
-
+  public:
+    VgaParallelParser();
+    virtual void parse(int argc, char *argv[]);
     virtual void run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const;
 
-    Point2f getShortestPathOrigin() const { return m_originPoint; }
-    Point2f getShortestPathDestination() const { return m_destinationPoint; }
+    enum VgaMode { NONE, ISOVIST, VISBILITY, METRIC, ANGULAR, THRU_VISION };
 
-    StepType getStepType() const { return m_stepType; }
+    // vga options
+    VgaMode getVgaMode() const { return m_vgaMode; }
+    bool localMeasures() const { return m_localMeasures; }
+    bool globalMeasures() const { return m_globalMeasures; }
+    const std::string &getRadius() const { return m_radius; }
 
   private:
-    Point2f m_originPoint;
-    Point2f m_destinationPoint;
-
-    StepType m_stepType;
+    // vga options
+    VgaMode m_vgaMode;
+    bool m_localMeasures;
+    bool m_globalMeasures;
+    std::string m_radius;
 };
