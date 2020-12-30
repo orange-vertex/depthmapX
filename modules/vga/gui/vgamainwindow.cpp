@@ -46,7 +46,7 @@ bool VGAMainWindow::createMenus(MainWindow *mainWindow) {
     QMenu *stepMenu = MainWindowHelpers::getOrAddMenu(visibilitySubMenu, tr("Step &Depth"));
     connect(stepMenu, &QMenu::aboutToShow, this, [this, mainWindow] { OnAboutToShowStepDepthMenu(mainWindow); });
 
-    QAction *m_angularStepAct = new QAction(tr("&Angular Step"), mainWindow);
+    m_angularStepAct = new QAction(tr("&Angular Step"), mainWindow);
     m_angularStepAct->setStatusTip(tr("Angular distance from current selection\nAngular Depth"));
     connect(m_angularStepAct, &QAction::triggered, this,
             [this, mainWindow] { OnVGAStep(mainWindow, StepType::ANGULAR); });
