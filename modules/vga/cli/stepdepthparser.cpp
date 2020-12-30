@@ -18,6 +18,9 @@
 #include "depthmapXcli/parsingutils.h"
 #include "depthmapXcli/runmethods.h"
 #include "depthmapXcli/simpletimer.h"
+#include "modules/vga/core/vgaangulardepth.h"
+#include "modules/vga/core/vgametricdepth.h"
+#include "modules/vga/core/vgavisualglobaldepth.h"
 #include "salalib/entityparsing.h"
 #include <cstring>
 #include <sstream>
@@ -106,25 +109,24 @@ void StepDepthParser::run(const CommandLineParser &clp, IPerformanceSink &perfWr
 
     std::cout << "ok\nCalculating step-depth... " << std::flush;
 
-    Options options;
-    options.global = 0;
+    std::unique_ptr<IAnalysis> analysis = nullptr;
 
     switch (m_stepType) {
     case StepDepthParser::StepType::ANGULAR:
-        options.point_depth_selection = 3;
+        analysis = std::unique_ptr<IAnalysis>(new VGAAngularDepth(mGraph->getDisplayedPointMap()));
         break;
     case StepDepthParser::StepType::METRIC:
-        options.point_depth_selection = 2;
+        analysis = std::unique_ptr<IAnalysis>(new VGAMetricDepth(mGraph->getDisplayedPointMap()));
         break;
     case StepDepthParser::StepType::VISUAL:
-        options.point_depth_selection = 1;
+        analysis = std::unique_ptr<IAnalysis>(new VGAVisualGlobalDepth(mGraph->getDisplayedPointMap()));
         break;
     default: {
         throw depthmapX::SetupCheckException("Error, unsupported step type");
     }
     }
 
-    DO_TIMED("Calculating step-depth", mGraph->analyseGraph(dm_runmethods::getCommunicator(clp).get(), options, false))
+    DO_TIMED("Calculating step-depth", analysis->run(dm_runmethods::getCommunicator(clp).get()))
 
     std::cout << " ok\nWriting out result..." << std::flush;
     DO_TIMED("Writing graph", mGraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))

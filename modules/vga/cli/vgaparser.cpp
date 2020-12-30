@@ -18,6 +18,12 @@
 #include "depthmapXcli/parsingutils.h"
 #include "depthmapXcli/runmethods.h"
 #include "depthmapXcli/simpletimer.h"
+#include "modules/vga/core/vgaangular.h"
+#include "modules/vga/core/vgaisovist.h"
+#include "modules/vga/core/vgametric.h"
+#include "modules/vga/core/vgathroughvision.h"
+#include "modules/vga/core/vgavisualglobal.h"
+#include "modules/vga/core/vgavisuallocal.h"
 #include "salalib/options.h"
 #include <cstring>
 #include <iostream>
@@ -79,41 +85,45 @@ void VgaParser::parse(int argc, char *argv[]) {
 }
 
 void VgaParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
-    RadiusConverter radiusConverter;
 
     auto mgraph = dm_runmethods::loadGraph(clp.getFileName().c_str(), perfWriter);
 
-    std::unique_ptr<Options> options(new Options());
+    std::unique_ptr<IAnalysis> analysis = nullptr;
 
-    std::cout << "Getting options..." << std::flush;
+    RadiusConverter radiusConverter;
     switch (getVgaMode()) {
-    case VgaParser::VgaMode::VISBILITY:
-        options->output_type = Options::OUTPUT_VISUAL;
-        options->local = localMeasures();
-        options->global = globalMeasures();
-        if (options->global) {
-            options->radius = radiusConverter.ConvertForVisibility(getRadius());
+    case VgaMode::VISBILITY:
+        if (globalMeasures()) {
+            analysis = std::unique_ptr<IAnalysis>(
+                new VGAVisualGlobal(mgraph->getDisplayedPointMap(), radiusConverter.ConvertForVisibility(getRadius()),
+                                    false, clp.simpleMode()));
+        }
+        if (localMeasures()) {
+            analysis = std::unique_ptr<IAnalysis>(
+                new VGAVisualLocal(mgraph->getDisplayedPointMap(), false, clp.simpleMode()));
         }
         break;
-    case VgaParser::VgaMode::METRIC:
-        options->output_type = Options::OUTPUT_METRIC;
-        options->radius = radiusConverter.ConvertForMetric(getRadius());
+    case VgaMode::METRIC:
+        analysis = std::unique_ptr<IAnalysis>(
+            new VGAMetric(mgraph->getDisplayedPointMap(), radiusConverter.ConvertForMetric(getRadius()), false));
         break;
-    case VgaParser::VgaMode::ANGULAR:
-        options->output_type = Options::OUTPUT_ANGULAR;
+    case VgaMode::ANGULAR:
+        analysis = std::unique_ptr<IAnalysis>(
+            new VGAAngular(mgraph->getDisplayedPointMap(), radiusConverter.ConvertForMetric(getRadius()), false));
         break;
-    case VgaParser::VgaMode::ISOVIST:
-        options->output_type = Options::OUTPUT_ISOVIST;
+    case VgaMode::ISOVIST:
+        analysis = std::unique_ptr<IAnalysis>(new VGAIsovist(mgraph->getDisplayedPointMap(), clp.simpleMode()));
         break;
-    case VgaParser::VgaMode::THRU_VISION:
-        options->output_type = Options::OUTPUT_THRU_VISION;
+    case VgaMode::THRU_VISION:
+        analysis = std::unique_ptr<IAnalysis>(new VGAThroughVision(mgraph->getDisplayedPointMap()));
         break;
     default:
         throw depthmapX::SetupCheckException("Unsupported VGA mode");
     }
+
     std::cout << " ok\nAnalysing graph..." << std::flush;
 
-    DO_TIMED("Run VGA", mgraph->analyseGraph(dm_runmethods::getCommunicator(clp).get(), *options, clp.simpleMode()))
+    DO_TIMED("Run VGA", analysis->run(dm_runmethods::getCommunicator(clp).get()))
     std::cout << " ok\nWriting out result..." << std::flush;
     DO_TIMED("Writing graph", mgraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
     std::cout << " ok" << std::endl;
