@@ -106,8 +106,7 @@ bool VGAVisualGlobal::run(Communicator *comm) {
                             total_nodes += 1;
                             distribution.back() += 1;
                             if ((int)m_radius == -1 ||
-                                (level < (int)m_radius &&
-                                    (!p.contextfilled() || currLvlIter->iseven()))) {
+                                (level < (int)m_radius && (!p.contextfilled() || currLvlIter->iseven()))) {
                                 extractUnseen(p.getNode(), search_tree[level + 1], miscs, extents);
                                 pmisc = ~0;
                                 if (!p.getMergePixel().empty()) {

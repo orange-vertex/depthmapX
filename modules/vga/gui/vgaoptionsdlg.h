@@ -14,32 +14,31 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ui_vgaoptionsdlg.h"
+#include <salalib/axialmap.h>
 #include <salalib/mgraph.h>
 #include <salalib/shapemap.h>
-#include <salalib/axialmap.h>
 
-class VGAOptionsDlg : public QDialog, public Ui::VGAOptionsDlg
-{
-	Q_OBJECT
-public:
+class VGAOptionsDlg : public QDialog, public Ui::VGAOptionsDlg {
+    Q_OBJECT
+  public:
     VGAOptionsDlg(QWidget *parent = 0, Options existingOptions = Options());
-	bool	m_global;
-	bool	m_local;
-	QString	m_radius;
-    float   m_numericRadius;
-	bool	m_gates_only;
-    int     m_gatelayer;
-	int		m_output_type;
-    QString	m_radius2;
-	void UpdateData(bool value);
-	void showEvent(QShowEvent * event);
+    bool m_global;
+    bool m_local;
+    QString m_radius;
+    float m_numericRadius;
+    bool m_gates_only;
+    int m_gatelayer;
+    int m_output_type;
+    QString m_radius2;
+    void UpdateData(bool value);
+    void showEvent(QShowEvent *event);
 
     std::vector<std::string> m_layer_names;
 
-	private slots:
-		void OnOutputType(bool);
-		void OnUpdateRadius(QString);
-		void OnUpdateRadius2(QString);
-		void OnOK();
-		void OnCancel();
+  private slots:
+    void OnOutputType(bool);
+    void OnUpdateRadius(QString);
+    void OnUpdateRadius2(QString);
+    void OnOK();
+    void OnCancel();
 };

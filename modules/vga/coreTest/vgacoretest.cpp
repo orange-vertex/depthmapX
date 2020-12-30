@@ -15,6 +15,4 @@
 
 #include "catch.hpp"
 
-TEST_CASE("Dummy VGA Core test", "") {
-
-}
+TEST_CASE("Dummy VGA Core test", "") {}

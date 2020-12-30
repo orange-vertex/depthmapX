@@ -43,7 +43,7 @@ bool VGAVisualGlobalDepth::run(Communicator *) {
     size_t level = 0;
     while (search_tree[level].size()) {
         search_tree.push_back(PixelRefVector());
-        const PixelRefVector& searchTreeAtLevel = search_tree[level];
+        const PixelRefVector &searchTreeAtLevel = search_tree[level];
         for (auto currLvlIter = searchTreeAtLevel.rbegin(); currLvlIter != searchTreeAtLevel.rend(); currLvlIter++) {
             Point &p = m_map.getPoint(*currLvlIter);
             if (p.filled() && p.m_misc != ~0) {
@@ -77,7 +77,7 @@ bool VGAVisualGlobalDepth::run(Communicator *) {
 }
 
 void VGAVisualGlobalDepth::extractUnseen(Node &node, PixelRefVector &pixels, depthmapX::RowMatrix<int> &miscs,
-                   depthmapX::RowMatrix<PixelRef> &extents) {
+                                         depthmapX::RowMatrix<PixelRef> &extents) {
     for (int i = 0; i < 32; i++) {
         Bin &bin = node.bin(i);
         for (auto pixVec : bin.m_pixel_vecs) {

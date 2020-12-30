@@ -15,52 +15,40 @@
 
 #pragma once
 
-#include <string>
-#include "depthmapXcli/imodeparser.h"
 #include "depthmapXcli/commandlineparser.h"
+#include "depthmapXcli/imodeparser.h"
 #include "depthmapXcli/radiusconverter.h"
+#include <string>
 
-class VgaParser : public IModeParser
-{
-public:
-    virtual std::string getModeName() const
-    {
-        return "VGA";
+class VgaParser : public IModeParser {
+  public:
+    virtual std::string getModeName() const { return "VGA"; }
+
+    virtual std::string getHelp() const {
+        return "Mode options for VGA:\n"
+               "-vm <vga mode> one of isovist, visiblity, metric, angular, thruvision\n"
+               "-vg turn on global measures for visibility, requires radius between 1 and 99 or n\n"
+               "-vl turn on local measures for visibility\n"
+               "-vr set visibility radius\n";
     }
 
-    virtual std::string getHelp() const
-    {
-        return    "Mode options for VGA:\n"\
-                  "-vm <vga mode> one of isovist, visiblity, metric, angular, thruvision\n"\
-                  "-vg turn on global measures for visibility, requires radius between 1 and 99 or n\n"\
-                  "-vl turn on local measures for visibility\n"\
-                  "-vr set visibility radius\n";
-    }
-
-public:
+  public:
     VgaParser();
     virtual void parse(int argc, char *argv[]);
-    virtual void run(const CommandLineParser &clp, IPerformanceSink& perfWriter) const;
+    virtual void run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const;
 
-    enum VgaMode{
-        NONE,
-        ISOVIST,
-        VISBILITY,
-        METRIC,
-        ANGULAR,
-        THRU_VISION
-    };
+    enum VgaMode { NONE, ISOVIST, VISBILITY, METRIC, ANGULAR, THRU_VISION };
 
     // vga options
     VgaMode getVgaMode() const { return m_vgaMode; }
     bool localMeasures() const { return m_localMeasures; }
     bool globalMeasures() const { return m_globalMeasures; }
-    const std::string & getRadius() const { return m_radius; }
-private:
+    const std::string &getRadius() const { return m_radius; }
+
+  private:
     // vga options
     VgaMode m_vgaMode;
     bool m_localMeasures;
     bool m_globalMeasures;
     std::string m_radius;
 };
-

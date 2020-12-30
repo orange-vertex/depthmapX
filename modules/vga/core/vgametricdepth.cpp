@@ -69,8 +69,7 @@ bool VGAMetricDepth::run(Communicator *) {
                 Point &p2 = m_map.getPoint(p.getMergePixel());
                 if (p2.m_misc != ~0) {
                     p2.m_cumangle = p.m_cumangle;
-                    AttributeRow &mergePixelRow =
-                        m_map.getAttributeTable().getRow(AttributeKey(p.getMergePixel()));
+                    AttributeRow &mergePixelRow = m_map.getAttributeTable().getRow(AttributeKey(p.getMergePixel()));
                     mergePixelRow.setValue(path_length_col, float(m_map.getSpacing() * here.dist));
                     mergePixelRow.setValue(path_angle_col, float(p2.m_cumangle));
                     if (m_map.getSelSet().size() == 1) {
@@ -78,7 +77,8 @@ bool VGAMetricDepth::run(Communicator *) {
                         mergePixelRow.setValue(
                             dist_col, float(m_map.getSpacing() * dist(p.getMergePixel(), *m_map.getSelSet().begin())));
                     }
-                    p2.getNode().extractMetric(search_list, &m_map, MetricTriple(here.dist, p.getMergePixel(), NoPixel));
+                    p2.getNode().extractMetric(search_list, &m_map,
+                                               MetricTriple(here.dist, p.getMergePixel(), NoPixel));
                     p2.m_misc = ~0;
                 }
             }

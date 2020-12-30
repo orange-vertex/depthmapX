@@ -13,18 +13,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "catch.hpp"
 #include "modules/vga/cli/vgaparser.h"
+#include "catch.hpp"
 #include "cliTest/argumentholder.h"
 
-TEST_CASE("VGA args invalid", "")
-{
+TEST_CASE("VGA args invalid", "") {
     {
         ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "VGA", "-vm"};
         VgaParser p;
         REQUIRE_THROWS_WITH(p.parse(ah.argc(), ah.argv()), Catch::Contains("-vm requires an argument"));
     }
-
 
     {
         ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "VGA", "-vm", "foo"};
@@ -38,11 +36,12 @@ TEST_CASE("VGA args invalid", "")
         REQUIRE_THROWS_WITH(p.parse(ah.argc(), ah.argv()), Catch::Contains("-vm can only be used once"));
     }
 
-
     {
         ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "VGA", "-vm", "visibility", "-vg"};
         VgaParser p;
-        REQUIRE_THROWS_WITH(p.parse(ah.argc(), ah.argv()), Catch::Contains("Global measures in VGA/visibility analysis require a radius, use -vr <radius>"));
+        REQUIRE_THROWS_WITH(
+            p.parse(ah.argc(), ah.argv()),
+            Catch::Contains("Global measures in VGA/visibility analysis require a radius, use -vr <radius>"));
     }
 
     {
@@ -52,20 +51,22 @@ TEST_CASE("VGA args invalid", "")
     }
 
     {
-        ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "VGA", "-vm", "visibility", "-vg", "-vr", "foo"};
+        ArgumentHolder ah{"prog", "-f",  "infile",     "-o",  "outfile", "-m",
+                          "VGA",  "-vm", "visibility", "-vg", "-vr",     "foo"};
         VgaParser p;
-        REQUIRE_THROWS_WITH(p.parse(ah.argc(), ah.argv()), Catch::Contains("Radius must be a positive integer number or n, got foo"));
+        REQUIRE_THROWS_WITH(p.parse(ah.argc(), ah.argv()),
+                            Catch::Contains("Radius must be a positive integer number or n, got foo"));
     }
 
     {
         ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "VGA", "-vm", "metric"};
         VgaParser p;
-        REQUIRE_THROWS_WITH(p.parse(ah.argc(), ah.argv()), Catch::Contains("Metric vga requires a radius, use -vr <radius>"));
+        REQUIRE_THROWS_WITH(p.parse(ah.argc(), ah.argv()),
+                            Catch::Contains("Metric vga requires a radius, use -vr <radius>"));
     }
 }
 
-TEST_CASE("VGA args valid", "valid")
-{
+TEST_CASE("VGA args valid", "valid") {
     {
         ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "VGA"};
         VgaParser cmdP;
@@ -91,7 +92,8 @@ TEST_CASE("VGA args valid", "valid")
     }
 
     {
-        ArgumentHolder ah{"prog", "-f", "infile", "-o", "outfile", "-m", "VGA", "-vm", "visibility", "-vl", "-vg", "-vr", "4"};
+        ArgumentHolder ah{"prog", "-f",         "infile", "-o",  "outfile", "-m", "VGA",
+                          "-vm",  "visibility", "-vl",    "-vg", "-vr",     "4"};
         VgaParser cmdP;
         cmdP.parse(ah.argc(), ah.argv());
         REQUIRE(cmdP.getVgaMode() == VgaParser::VgaMode::VISBILITY);
@@ -106,6 +108,4 @@ TEST_CASE("VGA args valid", "valid")
         cmdP.parse(ah.argc(), ah.argv());
         REQUIRE(cmdP.getVgaMode() == VgaParser::VgaMode::THRU_VISION);
     }
-
-
 }
