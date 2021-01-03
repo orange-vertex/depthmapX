@@ -25,14 +25,9 @@ find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
 set(vgaparallelgui_SRCS
     uictrigger.cpp
     vgaparallelmainwindow.cpp
-    vgaparalleloptionsdlg.cpp
 )
 
 set(modules_gui "${modules_gui}" "vgaparallelgui" CACHE INTERNAL "modules_gui" FORCE)
-
-qt5_wrap_ui(vgaparallelgui_UIS
-    UI/vgaparalleloptionsdlg.ui
-)
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
