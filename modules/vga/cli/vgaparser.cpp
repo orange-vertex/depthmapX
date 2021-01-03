@@ -110,7 +110,7 @@ void VgaParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) 
         break;
     case VgaMode::ANGULAR:
         analysis = std::unique_ptr<IAnalysis>(
-            new VGAAngular(mgraph->getDisplayedPointMap(), radiusConverter.ConvertForMetric(getRadius()), false));
+            new VGAAngular(mgraph->getDisplayedPointMap(), -1, false));
         break;
     case VgaMode::ISOVIST:
         analysis = std::unique_ptr<IAnalysis>(new VGAIsovist(mgraph->getDisplayedPointMap(), clp.simpleMode()));
