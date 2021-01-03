@@ -73,6 +73,9 @@ void VgaParallelParser::parse(int argc, char *argv[]) {
         if (m_radius.empty()) {
             throw CommandLineException("Metric vga requires a radius, use -vr <radius>");
         }
+        if (m_radius != "n" && !has_only_digits(m_radius)) {
+            throw CommandLineException(std::string("Radius must be a positive integer number or n, got ") + m_radius);
+        }
     }
 }
 

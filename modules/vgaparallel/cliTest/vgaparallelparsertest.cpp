@@ -13,82 +13,71 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "modules/vgaparallel/cli/vgaparallelparser.h"
 #include "cliTest/argumentholder.h"
 #include "cliTest/selfcleaningfile.h"
-#include "modules/segmentshortestpaths/cli/segmentshortestpathparser.h"
 #include <catch.hpp>
 
-TEST_CASE("SegmentShortestPathParser", "Error cases") {
-    SECTION("Missing argument to -sspo") {
-        SegmentShortestPathParser parser;
-        ArgumentHolder ah{"prog", "-sspd", "0,0", "-sspo"};
-        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-sspo requires an argument"));
+TEST_CASE("VgaParallelParser", "Error cases") {
+    SECTION("Missing argument to -vr") {
+        VgaParallelParser parser;
+        ArgumentHolder ah{
+            "prog",
+            "-vr",
+        };
+        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-vr requires an argument"));
     }
 
-    SECTION("Missing argument to -sspd") {
-        SegmentShortestPathParser parser;
-        ArgumentHolder ah{"prog", "-sspo", "0,0", "-sspd"};
-        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-sspd requires an argument"));
+    SECTION("Missing argument to -vm") {
+        VgaParallelParser parser;
+        ArgumentHolder ah{"prog", "-vm"};
+        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-vm requires an argument"));
     }
 
-    SECTION("Missing argument to -sspt") {
-        SegmentShortestPathParser parser;
-        ArgumentHolder ah{"prog", "-sspo", "0,0", "-sspd", "0,0", "-sspt"};
-        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("-sspt requires an argument"));
+    SECTION("rubbish input to -vm") {
+        VgaParallelParser parser;
+        ArgumentHolder ah{"prog", "-vm", "foo"};
+        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("Invalid VGAPARALLEL mode: foo"));
     }
 
-    SECTION("rubbish input to -sspo") {
-        SegmentShortestPathParser parser;
-        ArgumentHolder ah{"prog", "-sspd", "0,0", "-sspo", "foo"};
-        REQUIRE_THROWS_WITH(
-            parser.parse(ah.argc(), ah.argv()),
-            Catch::Contains("Invalid origin point provided (foo). Should only contain digits dots and commas"));
-    }
-
-    SECTION("rubbish input to -sspd") {
-        SegmentShortestPathParser parser;
-        ArgumentHolder ah{"prog", "-sspo", "0,0", "-sspd", "foo"};
-        REQUIRE_THROWS_WITH(
-            parser.parse(ah.argc(), ah.argv()),
-            Catch::Contains("Invalid destination point provided (foo). Should only contain digits dots and commas"));
-    }
-
-    SECTION("rubbish input to -sspt") {
-        SegmentShortestPathParser parser;
-        ArgumentHolder ah{"prog", "-sspo", "0,0", "-sspd", "0,0", "-sspt", "foo"};
-        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()), Catch::Contains("Invalid step type: foo"));
-    }
-
-    SECTION("Neiter points nor point file provided") {
-        SegmentShortestPathParser parser;
-        ArgumentHolder ah{"prog"};
+    SECTION("no input to -vr in metric analysis") {
+        VgaParallelParser parser;
+        ArgumentHolder ah{"prog", "-vm", "metric"};
         REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()),
-                            Catch::Contains("Both -sspo and -sspd must be provided"));
+                            Catch::Contains("Metric vga requires a radius, use -vr <radius>"));
+    }
+
+    SECTION("rubbish input to -vr in metric analysis") {
+        VgaParallelParser parser;
+        ArgumentHolder ah{"prog", "-vm", "metric", "-vr", "foo"};
+        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()),
+                            Catch::Contains("Radius must be a positive integer number or n, got foo"));
+    }
+
+    SECTION("no input to -vr in visual global analysis") {
+        VgaParallelParser parser;
+        ArgumentHolder ah{"prog", "-vm", "visiblity-global"};
+        REQUIRE_THROWS_WITH(
+            parser.parse(ah.argc(), ah.argv()),
+            Catch::Contains("Global measures in VGA/visibility analysis require a radius, use -vr <radius>"));
+    }
+
+    SECTION("rubbish input to -vr in visual global analysis") {
+        VgaParallelParser parser;
+        ArgumentHolder ah{"prog", "-vm", "visiblity-global", "-vr", "foo"};
+        REQUIRE_THROWS_WITH(parser.parse(ah.argc(), ah.argv()),
+                            Catch::Contains("Radius must be a positive integer number or n, got foo"));
     }
 }
 
-TEST_CASE("Successful SegmentShortestPathParser", "Read successfully") {
-    SegmentShortestPathParser parser;
-    double originX = 1.0;
-    double originY = 2.0;
-    double destinationX = 1.1;
-    double destinationY = 1.2;
+TEST_CASE("Successful VgaParallelParser", "Read successfully") {
+    VgaParallelParser parser;
 
     SECTION("Read from commandline") {
-        std::stringstream originStream;
-        originStream << originX << "," << originY << std::flush;
-        std::stringstream destinationStream;
-        destinationStream << destinationX << "," << destinationY << std::flush;
-
-        ArgumentHolder ah{"prog",  "-sspo",      originStream.str(), "-sspd", destinationStream.str(),
-                          "-sspt", "topological"};
+        ArgumentHolder ah{"prog", "-vm", "metric", "-vr", "5"};
         parser.parse(ah.argc(), ah.argv());
     }
 
-    auto originPoint = parser.getShortestPathOrigin();
-    auto destinationPoint = parser.getShortestPathDestination();
-    REQUIRE(originPoint.x == Approx(originX));
-    REQUIRE(originPoint.y == Approx(originY));
-    REQUIRE(destinationPoint.x == Approx(destinationX));
-    REQUIRE(destinationPoint.y == Approx(destinationY));
+    REQUIRE(parser.getVgaMode() == VgaParallelParser::VgaMode::METRIC);
+    REQUIRE(parser.getRadius() == "5");
 }
