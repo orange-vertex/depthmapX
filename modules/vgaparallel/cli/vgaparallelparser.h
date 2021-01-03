@@ -26,10 +26,12 @@ class VgaParallelParser : public IModeParser {
 
     virtual std::string getHelp() const {
         return "Mode options for VGAPARALLEL:\n"
-               "-vm <vga mode> one of isovist, visiblity, metric, angular, thruvision\n"
-               "-vg turn on global measures for visibility, requires radius between 1 and 99 or n\n"
-               "-vl turn on local measures for visibility\n"
-               "-vr set visibility radius\n";
+               "-vm <vga mode> one of visiblity-global (default algorithm)"
+               "                      visibility-local (default algorithm)"
+               "                      visibility-local-adjmatrix (alternative algorithm)"
+               "                      metric (default algorithm)"
+               "                      angular (default algorithm)\n"
+               "-vr <radius> radius between 1 and 99 or n, to limit visibility\n";
     }
 
   public:
@@ -37,18 +39,14 @@ class VgaParallelParser : public IModeParser {
     virtual void parse(int argc, char *argv[]);
     virtual void run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const;
 
-    enum VgaMode { NONE, ISOVIST, VISBILITY, METRIC, ANGULAR, THRU_VISION };
+    enum VgaMode { NONE, VISBILITY_GLOBAL, VISBILITY_LOCAL, VISBILITY_LOCAL_ADJMATRIX, METRIC, ANGULAR };
 
     // vga options
     VgaMode getVgaMode() const { return m_vgaMode; }
-    bool localMeasures() const { return m_localMeasures; }
-    bool globalMeasures() const { return m_globalMeasures; }
     const std::string &getRadius() const { return m_radius; }
 
   private:
     // vga options
     VgaMode m_vgaMode;
-    bool m_localMeasures;
-    bool m_globalMeasures;
     std::string m_radius;
 };

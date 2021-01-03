@@ -44,6 +44,6 @@ void ModeParserRegistry::populateParsers()
     REGISTER_PARSER(StepDepthParser);
     REGISTER_PARSER(MapConvertParser);
     REGISTER_PARSER(SegmentShortestPathParser);
-    REGISTER_PARSER(VGAParallelParser)
+    REGISTER_PARSER(VgaParallelParser)
     // *********
 }

@@ -47,8 +47,6 @@ bool VGAVisualLocalAdjMatrix::run(Communicator *comm) {
 
     int count = 0;
 
-    count = 0;
-
     std::vector<DataPoint> col_data(filled.size());
 
     int i;

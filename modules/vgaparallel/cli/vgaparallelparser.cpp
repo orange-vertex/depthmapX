@@ -1,4 +1,5 @@
 // Copyright (C) 2017 Christian Sailer
+// Copyright (C) 2020 Petros Koutsolampros
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,13 +19,18 @@
 #include "depthmapXcli/parsingutils.h"
 #include "depthmapXcli/runmethods.h"
 #include "depthmapXcli/simpletimer.h"
+#include "modules/vgaparallel/core/vgaangularopenmp.h"
+#include "modules/vgaparallel/core/vgametricopenmp.h"
+#include "modules/vgaparallel/core/vgavisualglobalopenmp.h"
+#include "modules/vgaparallel/core/vgavisuallocaladjmatrix.h"
+#include "modules/vgaparallel/core/vgavisuallocalopenmp.h"
 #include "salalib/options.h"
 #include <cstring>
 #include <iostream>
 
 using namespace depthmapX;
 
-VgaParallelParser::VgaParallelParser() : m_vgaMode(VgaMode::NONE), m_localMeasures(false), m_globalMeasures(false) {}
+VgaParallelParser::VgaParallelParser() : m_vgaMode(VgaMode::NONE) {}
 
 void VgaParallelParser::parse(int argc, char *argv[]) {
     for (int i = 1; i < argc;) {
@@ -34,23 +40,19 @@ void VgaParallelParser::parse(int argc, char *argv[]) {
                 throw CommandLineException("-vm can only be used once, modes are mutually exclusive");
             }
             ENFORCE_ARGUMENT("-vm", i)
-            if (std::strcmp(argv[i], "isovist") == 0) {
-                m_vgaMode = VgaMode::ISOVIST;
-            } else if (std::strcmp(argv[i], "visibility") == 0) {
-                m_vgaMode = VgaMode::VISBILITY;
+            if (std::strcmp(argv[i], "visiblity-global") == 0) {
+                m_vgaMode = VgaMode::VISBILITY_GLOBAL;
+            } else if (std::strcmp(argv[i], "visibility-local") == 0) {
+                m_vgaMode = VgaMode::VISBILITY_LOCAL;
+            } else if (std::strcmp(argv[i], "visibility-local-adjmatrix") == 0) {
+                m_vgaMode = VgaMode::VISBILITY_LOCAL_ADJMATRIX;
             } else if (std::strcmp(argv[i], "metric") == 0) {
                 m_vgaMode = VgaMode::METRIC;
             } else if (std::strcmp(argv[i], "angular") == 0) {
                 m_vgaMode = VgaMode::ANGULAR;
-            } else if (std::strcmp(argv[i], "thruvision") == 0) {
-                m_vgaMode = VgaMode::THRU_VISION;
             } else {
-                throw CommandLineException(std::string("Invalid VGA mode: ") + argv[i]);
+                throw CommandLineException(std::string("Invalid VGAPARALLEL mode: ") + argv[i]);
             }
-        } else if (std::strcmp(argv[i], "-vg") == 0) {
-            m_globalMeasures = true;
-        } else if (std::strcmp(argv[i], "-vl") == 0) {
-            m_localMeasures = true;
         } else if (std::strcmp(argv[i], "-vr") == 0) {
             ENFORCE_ARGUMENT("-vr", i)
             m_radius = argv[i];
@@ -58,11 +60,7 @@ void VgaParallelParser::parse(int argc, char *argv[]) {
         ++i;
     }
 
-    if (m_vgaMode == VgaMode::NONE) {
-        m_vgaMode = VgaMode::ISOVIST;
-    }
-
-    if (m_vgaMode == VgaMode::VISBILITY && m_globalMeasures) {
+    if (m_vgaMode == VgaMode::VISBILITY_GLOBAL) {
         if (m_radius.empty()) {
             throw CommandLineException(
                 "Global measures in VGA/visibility analysis require a radius, use -vr <radius>");
@@ -79,41 +77,38 @@ void VgaParallelParser::parse(int argc, char *argv[]) {
 }
 
 void VgaParallelParser::run(const CommandLineParser &clp, IPerformanceSink &perfWriter) const {
-    RadiusConverter radiusConverter;
 
     auto mgraph = dm_runmethods::loadGraph(clp.getFileName().c_str(), perfWriter);
 
-    std::unique_ptr<Options> options(new Options());
+    std::unique_ptr<IAnalysis> analysis = nullptr;
 
-    std::cout << "Getting options..." << std::flush;
+    RadiusConverter radiusConverter;
     switch (getVgaMode()) {
-    case VgaParser::VgaMode::VISBILITY:
-        options->output_type = Options::OUTPUT_VISUAL;
-        options->local = localMeasures();
-        options->global = globalMeasures();
-        if (options->global) {
-            options->radius = radiusConverter.ConvertForVisibility(getRadius());
-        }
+    case VgaMode::VISBILITY_GLOBAL:
+        analysis = std::unique_ptr<IAnalysis>(new VGAVisualGlobalOpenMP(
+            mgraph->getDisplayedPointMap(), radiusConverter.ConvertForVisibility(getRadius()), false));
         break;
-    case VgaParser::VgaMode::METRIC:
-        options->output_type = Options::OUTPUT_METRIC;
-        options->radius = radiusConverter.ConvertForMetric(getRadius());
+    case VgaMode::VISBILITY_LOCAL:
+        analysis = std::unique_ptr<IAnalysis>(new VGAVisualLocalOpenMP(mgraph->getDisplayedPointMap()));
         break;
-    case VgaParser::VgaMode::ANGULAR:
-        options->output_type = Options::OUTPUT_ANGULAR;
+    case VgaMode::VISBILITY_LOCAL_ADJMATRIX:
+        analysis = std::unique_ptr<IAnalysis>(new VGAVisualLocalAdjMatrix(mgraph->getDisplayedPointMap(), false));
         break;
-    case VgaParser::VgaMode::ISOVIST:
-        options->output_type = Options::OUTPUT_ISOVIST;
+    case VgaMode::METRIC:
+        analysis = std::unique_ptr<IAnalysis>(
+            new VGAMetricOpenMP(mgraph->getDisplayedPointMap(), radiusConverter.ConvertForMetric(getRadius()), false));
         break;
-    case VgaParser::VgaMode::THRU_VISION:
-        options->output_type = Options::OUTPUT_THRU_VISION;
+    case VgaMode::ANGULAR:
+        analysis = std::unique_ptr<IAnalysis>(new VGAAngularOpenMP(
+            mgraph->getDisplayedPointMap(), radiusConverter.ConvertForMetric(getRadius()), false));
         break;
     default:
         throw depthmapX::SetupCheckException("Unsupported VGA mode");
     }
+
     std::cout << " ok\nAnalysing graph..." << std::flush;
 
-    DO_TIMED("Run VGA", mgraph->analyseGraph(dm_runmethods::getCommunicator(clp).get(), *options, clp.simpleMode()))
+    DO_TIMED("Run VGA", analysis->run(dm_runmethods::getCommunicator(clp).get()))
     std::cout << " ok\nWriting out result..." << std::flush;
     DO_TIMED("Writing graph", mgraph->write(clp.getOuputFile().c_str(), METAGRAPH_VERSION, false))
     std::cout << " ok" << std::endl;
