@@ -11,4 +11,5 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: docker run --security-opt seccomp:unconfined --user $UID -v $PWD:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh
+      - uses: actions/checkout@v2
+      - run: docker run --security-opt seccomp:unconfined --user $UID -v $GITHUB_WORKSPACE:/mnt/code blackseamonster/depthmapx-buildenv:0.3 bash -c ci/build.sh
