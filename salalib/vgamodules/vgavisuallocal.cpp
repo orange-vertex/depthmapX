@@ -76,7 +76,7 @@ bool VGAVisualLocal::run(Communicator *comm, PointMap &map, bool simple_version)
                             }
                             retpt.getNode().next();
                         }
-                        control += 1.0f / float(retro_size);
+                        control += 2.0f / float(retro_size);
                         cluster += intersect_size;
                     }
                 }
