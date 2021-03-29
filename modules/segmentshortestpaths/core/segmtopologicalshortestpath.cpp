@@ -20,10 +20,20 @@
 
 #include "genlib/stringutils.h"
 
-bool SegmentTopologicalShortestPath::run(Communicator *comm) {
+bool SegmentTopologicalShortestPath::run(Communicator *) {
+
+    struct TopologicalSegmentRef {
+        int ref;
+        double dist;
+        bool done;
+        TopologicalSegmentRef(int r = -1, double di = 0.0) {
+            ref = r;
+            dist = di;
+            done = false;
+        }
+    };
 
     AttributeTable &attributes = m_map.getAttributeTable();
-    int shapeCount = m_map.getShapeCount();
 
     bool retvar = true;
 
@@ -32,22 +42,16 @@ bool SegmentTopologicalShortestPath::run(Communicator *comm) {
 
     // record axial line refs for topological analysis
     std::vector<int> axialrefs;
-    // quick through to find the longest seg length
-    std::vector<float> seglengths;
-    float maxseglength = 0.0f;
-    for (size_t cursor = 0; cursor < shapeCount; cursor++) {
-        AttributeRow &row = m_map.getAttributeRowFromShapeIndex(cursor);
-        axialrefs.push_back(row.getValue("Axial Line Ref"));
-        seglengths.push_back(row.getValue("Segment Length"));
-        if (seglengths.back() > maxseglength) {
-            maxseglength = seglengths.back();
-        }
+
+    size_t axialRefColIdx = attributes.getColumnIndex("Axial Line Ref");
+    for (auto rowIt = attributes.begin(); rowIt != attributes.end(); rowIt++) {
+        axialrefs.push_back(rowIt->getRow().getValue(axialRefColIdx));
     }
 
     int maxbin = 2;
 
-    std::vector<unsigned int> seen(shapeCount, 0xffffffff);
-    std::vector<TopoMetSegmentRef> audittrail(shapeCount);
+    std::vector<unsigned int> seen(m_map.getShapeCount(), 0xffffffff);
+    std::vector<TopologicalSegmentRef> audittrail(m_map.getShapeCount());
     std::vector<int> list[512]; // 512 bins!
     int open = 0;
 
@@ -60,8 +64,7 @@ bool SegmentTopologicalShortestPath::run(Communicator *comm) {
 
     seen[refFrom] = 0;
     open++;
-    double length = seglengths[refFrom];
-    audittrail[refFrom] = TopoMetSegmentRef(refFrom, Connector::SEG_CONN_ALL, length * 0.5, -1);
+    audittrail[refFrom] = TopologicalSegmentRef(refFrom, 0);
     list[0].push_back(refFrom);
     m_map.getAttributeRowFromShapeIndex(refFrom).setValue(depth_col, 0);
 
@@ -71,8 +74,8 @@ bool SegmentTopologicalShortestPath::run(Communicator *comm) {
     std::map<unsigned int, unsigned int> parents;
     bool refFound = false;
 
-    while (open != 0) {
-        while (list[bin].empty()) {
+    while (open != 0 && !refFound) {
+        while (list[bin].size() == 0) {
             bin++;
             segdepth += 1;
             if (bin == maxbin) {
@@ -80,7 +83,7 @@ bool SegmentTopologicalShortestPath::run(Communicator *comm) {
             }
         }
         //
-        TopoMetSegmentRef &here = audittrail[list[bin].back()];
+        TopologicalSegmentRef &here = audittrail[list[bin].back()];
         list[bin].pop_back();
         open--;
         // this is necessary using unsigned ints for "seen", as it is possible to add a node twice
@@ -108,11 +111,9 @@ bool SegmentTopologicalShortestPath::run(Communicator *comm) {
             connected_cursor = iter->first.ref;
             AttributeRow &row = m_map.getAttributeRowFromShapeIndex(connected_cursor);
             if (seen[connected_cursor] > segdepth) {
-                float length = seglengths[connected_cursor];
                 int axialref = axialrefs[connected_cursor];
                 seen[connected_cursor] = segdepth;
-                audittrail[connected_cursor] =
-                    TopoMetSegmentRef(connected_cursor, here.dir, here.dist + length, here.ref);
+                audittrail[connected_cursor] = TopologicalSegmentRef(connected_cursor, 0);
                 // puts in a suitable bin ahead of us...
                 open++;
                 //
@@ -127,7 +128,7 @@ bool SegmentTopologicalShortestPath::run(Communicator *comm) {
                            // still handled -- note it can result in the connected cursor being added twice
                     row.setValue(depth_col, segdepth + 1);
                 }
-                if(parents.find(connected_cursor) == parents.end()) {
+                if (parents.find(connected_cursor) == parents.end()) {
                     parents[connected_cursor] = here.ref;
                 }
             }
@@ -137,8 +138,6 @@ bool SegmentTopologicalShortestPath::run(Communicator *comm) {
             }
             iter++;
         }
-        if (refFound)
-            break;
     }
 
     auto refToParent = parents.find(refTo);

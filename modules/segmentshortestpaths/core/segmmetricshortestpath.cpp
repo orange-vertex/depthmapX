@@ -22,23 +22,30 @@
 
 bool SegmentMetricShortestPath::run(Communicator *) {
 
+    struct MetricSegmentRef {
+        int ref;
+        double dist;
+        bool done;
+        MetricSegmentRef(int r = -1, double di = 0.0) {
+            ref = r;
+            dist = di;
+            done = false;
+        }
+    };
+
     AttributeTable &attributes = m_map.getAttributeTable();
-    int shapeCount = m_map.getShapeCount();
 
     bool retvar = true;
 
     int dist_col = attributes.insertOrResetColumn("Metric Shortest Path Distance");
     int path_col = attributes.insertOrResetColumn("Metric Shortest Path Order");
 
-    // record axial line refs for topological analysis
-    std::vector<int> axialrefs;
     // quick through to find the longest seg length
     std::vector<float> seglengths;
     float maxseglength = 0.0f;
-    for (size_t cursor = 0; cursor < shapeCount; cursor++) {
-        AttributeRow &row = m_map.getAttributeRowFromShapeIndex(cursor);
-        axialrefs.push_back(row.getValue("Axial Line Ref"));
-        seglengths.push_back(row.getValue("Segment Length"));
+    size_t segLengthColIdx = attributes.getColumnIndex("Segment Length");
+    for (auto rowIt = attributes.begin(); rowIt != attributes.end(); rowIt++) {
+        seglengths.push_back(rowIt->getRow().getValue(segLengthColIdx));
         if (seglengths.back() > maxseglength) {
             maxseglength = seglengths.back();
         }
@@ -46,8 +53,9 @@ bool SegmentMetricShortestPath::run(Communicator *) {
 
     int maxbin = 512;
 
-    std::vector<unsigned int> seen(shapeCount, 0xffffffff);
-    std::vector<TopoMetSegmentRef> audittrail(shapeCount);
+    // seenDepth holds the depth each other node has been seen at
+    std::vector<unsigned int> seenDepth(m_map.getShapeCount(), 0xffffffff);
+    std::vector<MetricSegmentRef> audittrail(m_map.getShapeCount());
     std::vector<int> list[512]; // 512 bins!
     int open = 0;
 
@@ -58,10 +66,10 @@ bool SegmentMetricShortestPath::run(Communicator *) {
     int refFrom = *selected.begin();
     int refTo = *selected.rbegin();
 
-    seen[refFrom] = 0;
+    seenDepth[refFrom] = 0;
     open++;
     double length = seglengths[refFrom];
-    audittrail[refFrom] = TopoMetSegmentRef(refFrom, Connector::SEG_CONN_ALL, length * 0.5, -1);
+    audittrail[refFrom] = MetricSegmentRef(refFrom, length * 0.5);
     // better to divide by 511 but have 512 bins...
     list[(int(floor(0.5 + 511 * length / maxseglength))) % 512].push_back(refFrom);
     m_map.getAttributeRowFromShapeIndex(refFrom).setValue(dist_col, 0);
@@ -73,7 +81,7 @@ bool SegmentMetricShortestPath::run(Communicator *) {
     bool refFound = false;
 
     while (open != 0 && !refFound) {
-        while (list[bin].empty()) {
+        while (list[bin].size() == 0) {
             bin++;
             segdepth += 1;
             if (bin == maxbin) {
@@ -81,7 +89,7 @@ bool SegmentMetricShortestPath::run(Communicator *) {
             }
         }
         //
-        TopoMetSegmentRef &here = audittrail[list[bin].back()];
+        MetricSegmentRef &here = audittrail[list[bin].back()];
         list[bin].pop_back();
         open--;
         // this is necessary using unsigned ints for "seen", as it is possible to add a node twice
@@ -107,11 +115,11 @@ bool SegmentMetricShortestPath::run(Communicator *) {
             }
 
             connected_cursor = iter->first.ref;
-            if (seen[connected_cursor] > segdepth) {
+            if (seenDepth[connected_cursor] > segdepth) {
                 float length = seglengths[connected_cursor];
-                seen[connected_cursor] = segdepth;
+                seenDepth[connected_cursor] = segdepth;
                 audittrail[connected_cursor] =
-                    TopoMetSegmentRef(connected_cursor, here.dir, here.dist + length, here.ref);
+                    MetricSegmentRef(connected_cursor, here.dist + length);
                 parents[connected_cursor] = here.ref;
                 // puts in a suitable bin ahead of us...
                 open++;
@@ -142,7 +150,7 @@ bool SegmentMetricShortestPath::run(Communicator *) {
     for (auto iter = attributes.begin(); iter != attributes.end(); iter++) {
         AttributeRow &row = iter->getRow();
         if (row.getValue(path_col) < 0) {
-            row.setValue(dist_col, -1);
+            //row.setValue(dist_col, -1);
         } else {
             row.setValue(path_col, counter - row.getValue(path_col));
         }

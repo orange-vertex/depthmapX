@@ -29,5 +29,5 @@ class SegmentTopologicalShortestPath : public IAnalysis {
   public:
     SegmentTopologicalShortestPath(ShapeGraph &map) : m_map(map) {}
     std::string getAnalysisName() const override { return "Topological Shortest Path"; }
-    bool run(Communicator *comm) override;
+    bool run(Communicator *) override;
 };
