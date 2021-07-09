@@ -32,12 +32,9 @@ class VGAParallelOptionsDlg : public QDialog, public Ui::VGAParallelOptionsDlg {
         THROUGH_VISION_OPENMP
     };
     VGAParallelOptionsDlg(QWidget *parent = 0);
-    bool m_global;
-    bool m_local;
-    QString m_radiusString;
-    QString m_radiusString2;
+    QString m_visualRadiusString;
+    QString m_metricRadiusString;
     double m_radius;
-    bool m_gates_only;
     int m_gatelayer;
     AnalysisType m_output_type;
     void UpdateData(bool value);
@@ -46,9 +43,8 @@ class VGAParallelOptionsDlg : public QDialog, public Ui::VGAParallelOptionsDlg {
     std::vector<std::string> m_layer_names;
 
   private slots:
-    void OnOutputType(bool);
-    void OnUpdateRadius(QString);
-    void OnUpdateRadius2(QString);
+    void OnUpdateVisualRadius(QString);
+    void OnUpdateMetricRadius(QString);
     void OnOK();
     void OnCancel();
 };

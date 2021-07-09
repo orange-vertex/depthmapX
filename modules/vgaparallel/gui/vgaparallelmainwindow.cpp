@@ -73,7 +73,7 @@ void VGAParallelMainWindow::OnVGAParallel(MainWindow *mainWindow) {
         break;
     case VGAParallelOptionsDlg::AnalysisType::VISUAL_GLOBAL_OPENMP:
         graphDoc->m_communicator->setAnalysis(std::unique_ptr<IAnalysis>(new VGAVisualGlobalOpenMP(
-            graphDoc->m_meta_graph->getDisplayedPointMap(), dlg.m_radius, dlg.m_gates_only)));
+            graphDoc->m_meta_graph->getDisplayedPointMap(), dlg.m_radius, false)));
         break;
     case VGAParallelOptionsDlg::AnalysisType::VISUAL_LOCAL_OPENMP:
         graphDoc->m_communicator->setAnalysis(
@@ -81,15 +81,15 @@ void VGAParallelMainWindow::OnVGAParallel(MainWindow *mainWindow) {
         break;
     case VGAParallelOptionsDlg::AnalysisType::VISUAL_LOCAL_ADJMATRIX:
         graphDoc->m_communicator->setAnalysis(std::unique_ptr<IAnalysis>(
-            new VGAVisualLocalAdjMatrix(graphDoc->m_meta_graph->getDisplayedPointMap(), dlg.m_gates_only)));
+            new VGAVisualLocalAdjMatrix(graphDoc->m_meta_graph->getDisplayedPointMap(), false)));
         break;
     case VGAParallelOptionsDlg::AnalysisType::METRIC_OPENMP:
         graphDoc->m_communicator->setAnalysis(std::unique_ptr<IAnalysis>(
-            new VGAMetricOpenMP(graphDoc->m_meta_graph->getDisplayedPointMap(), dlg.m_radius, dlg.m_gates_only)));
+            new VGAMetricOpenMP(graphDoc->m_meta_graph->getDisplayedPointMap(), dlg.m_radius, false)));
         break;
     case VGAParallelOptionsDlg::AnalysisType::ANGULAR_OPENMP:
         graphDoc->m_communicator->setAnalysis(std::unique_ptr<IAnalysis>(
-            new VGAAngularOpenMP(graphDoc->m_meta_graph->getDisplayedPointMap(), dlg.m_radius, dlg.m_gates_only)));
+            new VGAAngularOpenMP(graphDoc->m_meta_graph->getDisplayedPointMap(), dlg.m_radius, false)));
         break;
     case VGAParallelOptionsDlg::AnalysisType::THROUGH_VISION_OPENMP:
         //        analysisCompleted = VGAThroughVision().run(communicator, getDisplayedPointMap(), simple_version);
